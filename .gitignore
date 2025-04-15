@@ -1,0 +1,21 @@
+# Ignore data files
+*.pdf
+*.csv
+
+# Ignore Python cache and environment files
+__pycache__/
+*.pyc
+*.env
+.venv/
+venv/
+
+# Ignore temporary/upload folders
+uploads/
+instance/
+
+# Ignore specific large files (if needed)
+# example_large_file.dat
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db 
