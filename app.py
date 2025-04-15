@@ -585,11 +585,26 @@ def analyze():
                      analysis_summary['count_lastenboek_only'] += 1
         # --- End Generate Summary --- 
 
-        # --- Store results in session for export AND discrepancy analysis ---
-        session['analysis_results'] = combined_data # Store flattened data
+        # --- Added Logging --- 
+        logger.info(f"Attempting to save {len(combined_data)} items to session['analysis_results'].")
+        if combined_data:
+            logger.debug(f"First item sample for session: {combined_data[0]}")
+        # --- End Added Logging ---
+        
+        # --- Store results in session for export AND discrepancy analysis --- 
+        # Removed limit: Store the full data again
+        # session_limit = 10 
+        session['analysis_results'] = combined_data # Store the full combined data
         # -----------------------------------------------------------------
 
-        logger.info(f"Analysis complete. Returning {len(combined_data)} combined items for UI display.")
+        # --- Added Logging ---
+        if 'analysis_results' in session:
+            logger.info(f"Successfully set session['analysis_results'] with {len(session['analysis_results'])} items.")
+        else:
+            logger.error("Failed to set session['analysis_results']!")
+        # --- End Added Logging ---
+
+        logger.info(f"Analysis complete. Returning {len(combined_data)} items for UI display.")
         # Return analysis output for the UI (reconstructs nested structure)
         ui_analysis_output = []
         for item in combined_data:
@@ -652,86 +667,177 @@ def analyze():
 # --- New Route for Discrepancy Analysis --- 
 @app.route('/start_discrepancy_analysis', methods=['POST'])
 def start_discrepancy_analysis():
-    # Check if analysis results exist in session
-    if 'analysis_output' not in session or not session['analysis_output']:
+    logger.info("--- Entering /start_discrepancy_analysis ---") # Log entry
+    
+    # --- Granular Logging --- 
+    try:
+        session_keys = list(session.keys()) # Get session keys
+        logger.debug(f"Session keys at start of request: {session_keys}")
+        has_key = 'analysis_results' in session
+        is_data_present = bool(session.get('analysis_results')) # Check if data is truthy
+        logger.debug(f"Checking session: has_key='{has_key}', is_data_present='{is_data_present}'")
+    except Exception as e:
+        logger.error(f"Error accessing session at start: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error accessing session data.'}), 500
+    # --- End Granular Logging ---
+        
+    # Check if analysis results exist in session using the CORRECT key
+    if not has_key or not is_data_present:
+        logger.error("Session check failed: 'analysis_results' key not found or data is empty.")
         return jsonify({'error': 'No analysis results found in session. Please run analysis first.'}), 400
     
+    logger.debug("Session check passed. Proceeding...") # Log success of check
+    
     # Parse request to get selected items for analysis or analyze all
-    req_data = request.get_json() or {}
-    selected_codes = req_data.get('selected_codes', [])
-    all_items = session['analysis_output']
+    try:
+        req_data = request.get_json() or {}
+        logger.debug(f"Parsed request data: {req_data}")
+        selected_codes = req_data.get('selected_codes', [])
+        logger.debug(f"Selected codes: {selected_codes}")
+    except Exception as e:
+        logger.error(f"Error parsing request JSON: {e}", exc_info=True)
+        return jsonify({'error': 'Invalid request format.'}), 400
+        
+    # Use the CORRECT session key
+    try:
+        all_items_from_session = session['analysis_results'] 
+        logger.debug(f"Successfully accessed session['analysis_results'] with {len(all_items_from_session)} items.")
+    except Exception as e:
+         logger.error(f"Error accessing session['analysis_results'] after check: {e}", exc_info=True)
+         return jsonify({'error': 'Internal server error retrieving session data.'}), 500
+    
+    # --- Added Logging --- 
+    logger.debug(f"Retrieved {len(all_items_from_session)} items from session['analysis_results']. First item (sample): {all_items_from_session[0] if all_items_from_session else 'N/A'}")
+    # ---------------------
     
     # Log the request details
-    logger.info(f"Starting discrepancy analysis for {len(selected_codes) if selected_codes else 'all'} items")
+    logger.info(f"Starting discrepancy analysis for {len(selected_codes) if selected_codes else 'all'} items using data from session['analysis_results'].")
     
     # Prepare items for analysis
     items_to_analyze = []
     
     # Filter for items present in both meetstaat and lastenboek
-    for item in all_items:
-        # Skip items that don't appear in both documents
-        if not item.get('meetstaat_present') or not item.get('lastenboek_toc_entry_present'):
+    # Iterate over the data retrieved from the correct session key
+    logger.debug("Filtering items from session for source == 'both'...")
+    for item in all_items_from_session: 
+        # Check the 'source' field which was determined in the /analyze route
+        item_source = item.get('source')
+        if item_source != 'both':
+            logger.debug(f"  Skipping item {item.get('item_code')} (source: {item_source})")
             continue
-        
+            
         # If specific codes requested, check if this item is in the list
         if selected_codes and item.get('item_code') not in selected_codes:
+            logger.debug(f"  Skipping item {item.get('item_code')} (not in selected codes)")
             continue
         
-        # Add valid items to analysis list
+        logger.debug(f"  Adding item {item.get('item_code')} to analyze list.")
+        # Construct the dictionary needed by analyze_batch_with_gemini
+        # IMPORTANT: 'lastenboek_text' is likely MISSING or empty here based on /analyze route logic
         items_to_analyze.append({
             'item_code': item.get('item_code'),
-            'meetstaat_info': item.get('meetstaat_info', {}),
-            'lastenboek_page_range': item.get('lastenboek_page_range', ''),
-            'lastenboek_text': item.get('lastenboek_text', '')
+            # Reconstruct meetstaat_info if needed by the LLM prompt 
+            # (assuming the flattened structure in session['analysis_results'] is sufficient)
+            'meetstaat_info': { 
+                'Description': item.get('meetstaat_description'),
+                'Quantity': item.get('meetstaat_quantity'),
+                'Unit': item.get('meetstaat_unit'),
+                'Type': item.get('meetstaat_type'),
+                'Notes': item.get('meetstaat_notes')
+            },
+            # Reconstruct lastenboek_page_range if needed by the LLM prompt
+            'lastenboek_page_range': { 
+                'title': item.get('lastenboek_title'),
+                'start': item.get('lastenboek_start_page'),
+                'end': item.get('lastenboek_end_page')
+             },
+            'lastenboek_text': item.get('lastenboek_text', '') # Likely empty/missing!
         })
     
+    # --- Added Logging --- 
+    logger.info(f"Prepared {len(items_to_analyze)} items for batch analysis.")
+    if len(items_to_analyze) > 0:
+        logger.debug(f"First item to analyze (sample): {items_to_analyze[0]}")
+    # ---------------------
+        
     if not items_to_analyze:
-        return jsonify({'error': 'No valid items found for analysis.'}), 400
+        logger.warning("No items marked as 'both' found in session data for discrepancy analysis.")
+        # --- Added Logging --- 
+        error_payload = {'error': 'No valid items (found in both sources) available for analysis.'}
+        logger.error(f"Returning 400 error with payload: {error_payload}")
+        # ---------------------
+        return jsonify(error_payload), 400
     
     # Process the items in batches to reduce API calls
     batch_size = 3  # Process 3 items at a time
-    all_results = {}
+    all_llm_results = {}
     
     # Split items into batches for processing
     batches = [items_to_analyze[i:i+batch_size] for i in range(0, len(items_to_analyze), batch_size)]
     
+    logger.info(f"Processing {len(batches)} batches...") # Log batch count
     for i, batch in enumerate(batches):
         logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} items")
         
         # Send batch to the Gemini model for analysis
-        batch_results = analyze_batch_with_gemini(batch)
-        all_results.update(batch_results)
+        batch_llm_results = analyze_batch_with_gemini(batch)
+        logger.debug(f"LLM results for batch {i+1}: {batch_llm_results}") # Log LLM result for batch
+        all_llm_results.update(batch_llm_results)
         
         # To avoid rate limiting, sleep briefly between batches
         if i < len(batches) - 1:
             time.sleep(1)
     
-    # Store results in session and return
-    session['discrepancy_analysis'] = all_results
-    logger.info(f"Discrepancy analysis completed. Found results for {len(all_results)} items.")
+    # Store LLM results in session (optional, might not be needed)
+    session['discrepancy_analysis_llm_results'] = all_llm_results 
+    logger.info(f"Discrepancy analysis completed. LLM provided results for {len(all_llm_results)} items.")
     
-    # Integrate discrepancy analysis results with the original analysis_output
-    # This is needed for the UI to display the results properly
-    updated_analysis_output = []
-    for item in session['analysis_output']:
-        item_code = item.get('item_code')
-        item_copy = item.copy()  # Create a copy to avoid modifying the session directly
-        
-        # Only add analysis to items with both sources
-        if item.get('meetstaat_present') and item.get('lastenboek_toc_entry_present') and item_code in all_results:
-            # Add the structured analysis result to the item
-            item_copy['llm_discrepancy_analysis'] = all_results[item_code]
-        
-        updated_analysis_output.append(item_copy)
+    # Integrate LLM results back into a format suitable for the UI
+    # The UI expects the original analysis structure plus the LLM results
+    # We need to merge all_llm_results into the session['analysis_results'] data
     
-    # Format response to categorize by check type
+    # Create the final list to send to the UI
+    final_analysis_output_for_ui = []
+    logger.debug("Merging LLM results with original session data for UI...")
+    for item_from_session in session['analysis_results']: # Use correct key
+        item_code = item_from_session.get('item_code')
+        # Create a structure suitable for the UI (similar to how /analyze originally returned it)
+        ui_item = {
+             'item_code': item_code,
+             'meetstaat_present': item_from_session.get('source') in ['both', 'meetstaat_only'],
+             'lastenboek_toc_entry_present': item_from_session.get('source') in ['both', 'lastenboek_only'],
+             'meetstaat_info': {
+                 'Description': item_from_session.get('meetstaat_description'),
+                 'Quantity': item_from_session.get('meetstaat_quantity'),
+                 'Unit': item_from_session.get('meetstaat_unit'),
+                 'Type': item_from_session.get('meetstaat_type'),
+                 'Notes': item_from_session.get('meetstaat_notes')
+             } if item_from_session.get('source') in ['both', 'meetstaat_only'] else None,
+             'lastenboek_page_range': {
+                 'title': item_from_session.get('lastenboek_title'),
+                 'start': item_from_session.get('lastenboek_start_page'),
+                 'end': item_from_session.get('lastenboek_end_page')
+             } if item_from_session.get('source') in ['both', 'lastenboek_only'] else None,
+             'llm_discrepancy_analysis': None # Default to None
+         }
+        
+        # If this item was analyzed by the LLM, add the result
+        if item_code in all_llm_results:
+            ui_item['llm_discrepancy_analysis'] = all_llm_results[item_code]
+            logger.debug(f"  Merged LLM result for item {item_code}")
+        
+        final_analysis_output_for_ui.append(ui_item)
+        
+    
+    # Format response for the UI
     response_data = {
         'success': True,
-        'item_count': len(all_results),
-        'analysis_output': updated_analysis_output,
-        'message': f"Analysis completed for {len(all_results)} items."
+        'item_count': len(all_llm_results), # Count of items actually analyzed by LLM
+        'analysis_output': final_analysis_output_for_ui, # Send the merged data structure
+        'message': f"Discrepancy analysis completed. Processed {len(all_llm_results)} items with LLM."
     }
     
+    logger.info("--- Exiting /start_discrepancy_analysis successfully ---")
     return jsonify(response_data), 200
 # ------------------------------------------
 
