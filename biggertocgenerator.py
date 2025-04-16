@@ -351,7 +351,7 @@ def save_results_with_index(chapters_dict, input_filename, output_base_filename=
 
     # Determine base filename structure
     base_filename_structure = f"{output_base_filename}_{input_base}_{today_date}"
-
+    
     # Find the next available index number
     index = 1
     output_filename = os.path.join(output_dir, f"{base_filename_structure}_{index}.json")
@@ -363,13 +363,13 @@ def save_results_with_index(chapters_dict, input_filename, output_base_filename=
 
     try:
         with open(output_filename, "w", encoding="utf-8") as f:
-            json.dump(chapters_dict, f, indent=4, ensure_ascii=False)
+        json.dump(chapters_dict, f, indent=4, ensure_ascii=False)
         logger.info(f"Successfully saved vision-based TOC to: {output_filename}")
     except IOError as e:
         logger.error(f"Error writing output JSON file '{output_filename}': {e}")
     except Exception as e:
         logger.error(f"Unexpected error saving results: {e}", exc_info=True)
-
+    
 
 def validate_chapters(chapters_dict, total_pages):
     """Validates page numbers in the extracted TOC dictionary."""
@@ -382,7 +382,7 @@ def validate_chapters(chapters_dict, total_pages):
         if not chapter_data or not isinstance(chapter_data, dict):
             logger.warning(f"Skipping invalid chapter entry: {chapter_id}")
             continue
-
+            
         # Check top-level chapter pages
         if ('start_page' not in chapter_data or 'end_page' not in chapter_data or
             not isinstance(chapter_data['start_page'], int) or not isinstance(chapter_data['end_page'], int) or
@@ -397,7 +397,7 @@ def validate_chapters(chapters_dict, total_pages):
             chapter_data['sections'] = _validate_sections_recursive(chapter_data['sections'], reasonable_max, chapter_id)
 
         validated[chapter_id] = chapter_data
-
+    
     return validated
 
 def _validate_sections_recursive(sections_dict, max_pages, parent_id):
@@ -430,47 +430,47 @@ def process_pdf_batches(pdf_path: str, pdf_part: Part, total_pages: int):
         logger.error("Vision model not initialized. Cannot process.")
         return None
 
-    all_chapters = {}
+        all_chapters = {}
     processed_batches = 0
 
     # --- Batching Logic ---
     page_batch_size = 20  # Default
-    if total_pages > 300:
-        page_batch_size = 15
-    elif total_pages > 500:
-        page_batch_size = 10
-
+        if total_pages > 300:
+            page_batch_size = 15
+        elif total_pages > 500:
+            page_batch_size = 10
+            
     overlap = 5
-    page_batches = []
-    for start_page in range(1, total_pages + 1, page_batch_size - overlap):
-        end_page = min(start_page + page_batch_size - 1, total_pages)
-        if end_page - start_page < 5 and len(page_batches) > 0:
-            page_batches[-1] = (page_batches[-1][0], end_page)
-            break
-        page_batches.append((start_page, end_page))
-
+        page_batches = []
+        for start_page in range(1, total_pages + 1, page_batch_size - overlap):
+            end_page = min(start_page + page_batch_size - 1, total_pages)
+            if end_page - start_page < 5 and len(page_batches) > 0:
+                page_batches[-1] = (page_batches[-1][0], end_page)
+                break
+            page_batches.append((start_page, end_page))
+        
     logger.info(f"Processing PDF in {len(page_batches)} page batches (size ~{page_batch_size}, overlap {overlap})")
-
+        
     # --- Process Batches ---
-    for batch_idx, (start_page, end_page) in enumerate(page_batches):
+        for batch_idx, (start_page, end_page) in enumerate(page_batches):
         logger.info(f"Processing page batch {batch_idx+1}/{len(page_batches)}: pages {start_page}-{end_page}")
-
+            
         # Add context notes for first/last batches
-        if batch_idx < 3:
+            if batch_idx < 3:
             comprehensive_note = "This is one of the first batches; pay extra attention to document structure and early chapters/sections."
-        elif batch_idx >= len(page_batches) - 3:
+            elif batch_idx >= len(page_batches) - 3:
             comprehensive_note = "This is one of the final batches; pay extra attention to closing chapters/sections and ensure correct final page numbers."
-        else:
-            comprehensive_note = ""
-
+            else:
+                comprehensive_note = ""
+                
         # Construct the prompt for this batch
         # Include the overall system instruction context within the batch prompt if model needs reminding
         page_prompt = f"""{system_instruction_text}
 
         ---
         Current Task: Analyze ONLY pages {start_page}-{end_page} of the provided PDF document.
-        {comprehensive_note}
-
+            {comprehensive_note}
+            
         Identify any chapters or sections (and their nested subsections) that *appear* within this specific page range ({start_page}-{end_page}).
 
         Specific Instructions for this Batch:
@@ -508,7 +508,7 @@ def process_pdf_batches(pdf_path: str, pdf_part: Part, total_pages: int):
                          logger.info(f"Successfully processed batch {batch_idx+1}. Found {len(page_batch_dict)} top-level items in this batch.")
                          processed_batches += 1
                          break # Success, exit retry loop
-                    else:
+                        else:
                          logger.warning(f"Failed to parse dictionary from response for batch {batch_idx+1} (Attempt {attempt+1}). Response start: {response.text[:200]}...")
                          page_batch_dict = None # Ensure it's None if parsing failed
                          # Continue to retry if attempts remain
@@ -530,14 +530,14 @@ def process_pdf_batches(pdf_path: str, pdf_part: Part, total_pages: int):
 
         # --- Merge Batch Results ---
         if isinstance(page_batch_dict, dict):
-            for chapter_id, chapter_data in page_batch_dict.items():
+                        for chapter_id, chapter_data in page_batch_dict.items():
                 if not isinstance(chapter_data, dict) or 'start_page' not in chapter_data or 'end_page' not in chapter_data:
                      logger.warning(f"Skipping invalid chapter data from batch {batch_idx+1}: {chapter_id} -> {chapter_data}")
                      continue
 
                 if chapter_id not in all_chapters:
                     all_chapters[chapter_id] = chapter_data
-                else:
+                            else:
                     # Merge: Keep earliest start, latest end, longest title, merge sections
                     existing = all_chapters[chapter_id]
                     existing['start_page'] = min(existing['start_page'], chapter_data['start_page'])
@@ -548,15 +548,15 @@ def process_pdf_batches(pdf_path: str, pdf_part: Part, total_pages: int):
                     if 'sections' in chapter_data and isinstance(chapter_data['sections'], dict):
                         if 'sections' not in existing or not isinstance(existing.get('sections'), dict):
                             existing['sections'] = {} # Initialize if missing or wrong type
-
-                        for section_id, section_data in chapter_data['sections'].items():
+                                    
+                                    for section_id, section_data in chapter_data['sections'].items():
                              if not isinstance(section_data, dict) or 'start_page' not in section_data or 'end_page' not in section_data:
                                  logger.warning(f"Skipping invalid section data {section_id} under {chapter_id} from batch {batch_idx+1}")
                                  continue
 
-                             if section_id not in existing['sections']:
-                                 existing['sections'][section_id] = section_data
-                             else:
+                                        if section_id not in existing['sections']:
+                                            existing['sections'][section_id] = section_data
+                                        else:
                                  # Merge section: Keep earliest start, latest end, longest title
                                  existing_sec = existing['sections'][section_id]
                                  existing_sec['start_page'] = min(existing_sec['start_page'], section_data['start_page'])
@@ -593,8 +593,8 @@ def process_pdf_batches(pdf_path: str, pdf_part: Part, total_pages: int):
             sorted_sections = sorted(valid_sections, key=lambda x: x[1]['start_page'])
 
             # Adjust end pages for all sections except the last one
-            for j in range(len(sorted_sections) - 1):
-                current_sec_id, current_sec = sorted_sections[j]
+                for j in range(len(sorted_sections) - 1):
+                    current_sec_id, current_sec = sorted_sections[j]
                 next_sec_id, next_sec = sorted_sections[j+1]
                 if current_sec['end_page'] < next_sec['start_page'] - 1:
                      logger.debug(f"Adjusting end page for section {current_sec_id}: {current_sec['end_page']} -> {next_sec['start_page'] - 1}")
@@ -647,7 +647,7 @@ def process_pdf_batches(pdf_path: str, pdf_part: Part, total_pages: int):
              valid_sections = [(sk, sv) for sk, sv in last_ch['sections'].items() if isinstance(sv, dict) and isinstance(sv.get('start_page'), int)]
              if valid_sections:
                  sorted_sections = sorted(valid_sections, key=lambda x: x[1]['start_page'])
-                 last_sec_id, last_sec = sorted_sections[-1]
+                last_sec_id, last_sec = sorted_sections[-1]
                  if last_sec['end_page'] < last_ch['end_page']:
                      logger.debug(f"Adjusting end page for last section {last_sec_id} in last chapter {last_id}: {last_sec['end_page']} -> {last_ch['end_page']}")
                      last_sec['end_page'] = last_ch['end_page']
