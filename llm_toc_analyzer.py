@@ -129,12 +129,64 @@ def get_toc_page_ranges_from_json(toc_data: dict) -> dict:
         {"title": str, "start": int, "end": int}.
     """
     page_ranges = {}
-    for top_level_code, top_level_node in toc_data.items():
-        if isinstance(top_level_node, dict):
-            # Pass the top-level code itself when starting traversal for that branch
-            _traverse_toc_for_ranges(top_level_node, code=top_level_code, page_ranges=page_ranges)
-        else:
-            logger.warning(f"Expected dictionary for top-level code {top_level_code}, but got {type(top_level_node)}. Skipping top-level item.")
+    
+    # Detect if this is a standard TOC or vision TOC format
+    # Vision TOC format has "start_page" and "end_page" directly in the items
+    is_vision_format = False
+    for code, node in toc_data.items():
+        if isinstance(node, dict) and "start_page" in node and "end_page" in node:
+            is_vision_format = True
+            break
+    
+    if is_vision_format:
+        logger.info("Detected vision TOC format with start_page/end_page keys")
+        # For vision TOC format, process recursively to get all nodes
+        def extract_vision_toc_ranges(code, node, page_ranges):
+            if isinstance(node, dict):
+                # Add this node if it has page range info
+                if "start_page" in node and "end_page" in node and "title" in node:
+                    start_page = node.get("start_page")
+                    end_page = node.get("end_page")
+                    title = node.get("title")
+                    
+                    # Only add if start and end are valid numbers
+                    if start_page is not None and end_page is not None and isinstance(start_page, int) and isinstance(end_page, int):
+                        page_ranges[code] = {
+                            "title": title,
+                            "start": start_page, 
+                            "end": end_page
+                        }
+                    else:
+                        # Try to use parent's page range if available
+                        if "." in code:
+                            parent_code = code.rsplit(".", 1)[0]
+                            if parent_code in page_ranges:
+                                parent = page_ranges[parent_code]
+                                page_ranges[code] = {
+                                    "title": title,
+                                    "start": parent["start"],
+                                    "end": parent["end"]
+                                }
+                                logger.info(f"Using parent page range for {code}: {parent['start']}-{parent['end']}")
+                
+                # Process sections recursively
+                sections = node.get("sections", {})
+                if isinstance(sections, dict):
+                    for subcode, subnode in sections.items():
+                        extract_vision_toc_ranges(subcode, subnode, page_ranges)
+        
+        # Process the top-level nodes
+        for code, node in toc_data.items():
+            extract_vision_toc_ranges(code, node, page_ranges)
+    else:
+        # Standard TOC format - use existing traversal logic
+        logger.info("Using standard TOC format traversal")
+        for top_level_code, top_level_node in toc_data.items():
+            if isinstance(top_level_node, dict):
+                # Pass the top-level code itself when starting traversal for that branch
+                _traverse_toc_for_ranges(top_level_node, code=top_level_code, page_ranges=page_ranges)
+            else:
+                logger.warning(f"Expected dictionary for top-level code {top_level_code}, but got {type(top_level_node)}. Skipping top-level item.")
 
     logger.info(f"Extracted {len(page_ranges)} item codes with page ranges from TOC data.")
     return page_ranges

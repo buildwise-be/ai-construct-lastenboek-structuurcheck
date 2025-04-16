@@ -40,6 +40,7 @@ from werkzeug.utils import secure_filename # For safe filenames
 import json # <-- Import json
 import re # Import regex for number parsing
 import time # For potential backoff in LLM calls
+import glob # For globbing files
 
 # Import the refactored function
 from llm_toc_analyzer import get_toc_page_ranges_from_json
@@ -122,6 +123,38 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # --- Define path to the TOC JSON file --- 
 TOC_JSON_PATH = os.path.join(os.path.dirname(__file__), 'step1_toc', 'chapters.json')
+
+# --- Define function to get the most recent vision TOC file ---
+def get_latest_vision_toc_path():
+    """Returns the path to the most recent vision TOC file in the output directory."""
+    output_dir = os.path.join(os.path.dirname(__file__), 'output')
+    vision_toc_files = glob.glob(os.path.join(output_dir, 'vision_toc_*.json'))
+    
+    if not vision_toc_files:
+        logger.warning("No vision TOC files found in output directory")
+        return None
+    
+    # Sort by modification time (most recent first)
+    vision_toc_files.sort(key=os.path.getmtime, reverse=True)
+    latest_file = vision_toc_files[0]
+    logger.info(f"Selected most recent vision TOC file: {latest_file}")
+    return latest_file
+
+# --- Define function to get TOC path based on selected type ---
+def get_toc_path_by_type(toc_type):
+    """Returns the path to the appropriate TOC file based on the selected type."""
+    if toc_type == "vision":
+        # Hardcode the path to the existing vision TOC file instead of searching
+        vision_toc_path = os.path.join(os.path.dirname(__file__), 'output', 
+                                      'uitgebreide toc met taken.json')
+        if os.path.exists(vision_toc_path):
+            logger.info(f"Using hardcoded vision TOC file: {vision_toc_path}")
+            return vision_toc_path
+        else:
+            logger.warning(f"Hardcoded vision TOC file not found at {vision_toc_path}, falling back to standard TOC")
+            return TOC_JSON_PATH
+    else:  # Default to standard
+        return TOC_JSON_PATH
 
 def parse_meetstaat_csv(csv_path):
     """Parses the Meetstaat CSV file into a dictionary, trying common delimiters."""
@@ -443,6 +476,10 @@ def analyze():
 
     lastenboek_file = request.files['lastenboek']
     meetstaat_file = request.files.get('meetstaat') # Meetstaat is optional for now
+    
+    # Get the selected TOC type (default to standard if not provided)
+    toc_type = request.form.get('toc_type', 'standard')
+    logger.info(f"Selected TOC type: {toc_type}")
 
     # --- File Validation ---
     if lastenboek_file.filename == '':
@@ -479,15 +516,16 @@ def analyze():
     toc_data = None # Initialize toc_data
 
     try:
-        # --- Load TOC JSON from File --- 
-        logger.info(f"Loading TOC data from: {TOC_JSON_PATH}")
+        # --- Load TOC JSON from File based on selected type --- 
+        selected_toc_path = get_toc_path_by_type(toc_type)
+        logger.info(f"Loading TOC data from: {selected_toc_path}")
         try:
-            with open(TOC_JSON_PATH, 'r', encoding='utf-8') as f:
+            with open(selected_toc_path, 'r', encoding='utf-8') as f:
                 toc_data = json.load(f)
-            logger.info("Successfully loaded TOC JSON data.")
+            logger.info(f"Successfully loaded TOC JSON data from {selected_toc_path}.")
         except FileNotFoundError:
-            logger.error(f"TOC JSON file not found at: {TOC_JSON_PATH}")
-            error_messages.append(f"Critical error: TOC JSON file not found at {TOC_JSON_PATH}")
+            logger.error(f"TOC JSON file not found at: {selected_toc_path}")
+            error_messages.append(f"Critical error: TOC JSON file not found at {selected_toc_path}")
             # Stop processing if TOC is missing
             return jsonify({'error': f'Server configuration error: TOC file not found.'}), 500
         except json.JSONDecodeError as json_err:
@@ -595,6 +633,8 @@ def analyze():
         # Removed limit: Store the full data again
         # session_limit = 10 
         session['analysis_results'] = combined_data # Store the full combined data
+        session['toc_type'] = toc_type  # Store the TOC type used
+        session['toc_path'] = os.path.basename(selected_toc_path)  # Store the TOC path used
         # -----------------------------------------------------------------
 
         # --- Added Logging ---
@@ -617,29 +657,35 @@ def analyze():
                      'Type': item['meetstaat_type'],
                      'Notes': item['meetstaat_notes']
                  }
-             lastenboek_page_range = None
+             
+             readable_lastenboek_info = None
              if item['source'] in ['both', 'lastenboek_only']:
-                 lastenboek_page_range = {
+                 readable_lastenboek_info = {
                      'title': item['lastenboek_title'],
-                     'start': item['lastenboek_start_page'],
-                     'end': item['lastenboek_end_page']
+                     'start_page': item['lastenboek_start_page'],
+                     'end_page': item['lastenboek_end_page']
                  }
-             ui_analysis_output.append({
+             
+             # Construct a more UI-friendly output structure
+             ui_friendly_item = {
                  'item_code': item['item_code'],
                  'meetstaat_present': item['source'] in ['both', 'meetstaat_only'],
                  'lastenboek_toc_entry_present': item['source'] in ['both', 'lastenboek_only'],
                  'meetstaat_info': readable_meetstaat_info,
-                 'lastenboek_page_range': lastenboek_page_range,
-                 'llm_analysis': item['llm_analysis']
-             })
+                 'lastenboek_page_range': readable_lastenboek_info,
+                 'llm_analysis': item.get('llm_analysis') # Placeholder for later use (NULL for first analysis)
+             }
+             ui_analysis_output.append(ui_friendly_item)
 
         return jsonify({
-            'meetstaat_filename': meetstaat_filename if meetstaat_filename else 'Not Provided',
+            'message': 'Analysis complete!',
+            'errors': error_messages,
+            'analysis_output': ui_analysis_output,
+            'meetstaat_filename': meetstaat_filename or "Not provided",
             'lastenboek_filename': lastenboek_filename,
             'analysis_summary': analysis_summary,
-            'analysis_output': ui_analysis_output,
-            'errors': error_messages,
-            'message': 'Processing complete. Ready for discrepancy analysis.'
+            'toc_type': toc_type,
+            'toc_path': os.path.basename(selected_toc_path) # Only send the filename, not the full path
         })
 
     except Exception as e:
@@ -834,9 +880,16 @@ def start_discrepancy_analysis():
         'success': True,
         'item_count': len(all_llm_results), # Count of items actually analyzed by LLM
         'analysis_output': final_analysis_output_for_ui, # Send the merged data structure
-        'message': f"Discrepancy analysis completed. Processed {len(all_llm_results)} items with LLM."
+        'message': f"Discrepancy analysis completed. Processed {len(all_llm_results)} items with LLM.",
+        'toc_type': session.get('toc_type', 'standard'),  # Include the TOC type used in analysis
+        'toc_path': session.get('toc_path', os.path.basename(TOC_JSON_PATH))  # Include the TOC path
     }
     
+    # --- Store the final merged results in session for export --- 
+    session['final_discrepancy_results'] = final_analysis_output_for_ui
+    logger.info("Stored final discrepancy results in session['final_discrepancy_results'].")
+    # -----------------------------------------------------------
+
     logger.info("--- Exiting /start_discrepancy_analysis successfully ---")
     return jsonify(response_data), 200
 # ------------------------------------------
@@ -856,6 +909,24 @@ def export_json():
     response.headers["Content-Type"] = "application/json"
     return response
 # ------------------------------------
+
+# --- New Route for Exporting Discrepancy Analysis JSON --- 
+@app.route('/export_discrepancy_json')
+def export_discrepancy_json():
+    """Exports the discrepancy analysis results stored in session as JSON."""
+    # Retrieve the discrepancy results stored in the session
+    discrepancy_results = session.get('final_discrepancy_results', [])
+    if not discrepancy_results:
+        logger.warning("Attempted to export discrepancy JSON, but no results found in session.")
+        return jsonify({"error": "No discrepancy analysis results found in session. Please run discrepancy analysis first."}), 404
+
+    # Create a JSON response with headers for download
+    response = make_response(jsonify(discrepancy_results))
+    response.headers["Content-Disposition"] = "attachment; filename=discrepancy_analysis_results.json"
+    response.headers["Content-Type"] = "application/json"
+    logger.info("Exporting discrepancy analysis results as JSON.")
+    return response
+# ---------------------------------------------------------
 
 # Run the Flask app
 if __name__ == '__main__':

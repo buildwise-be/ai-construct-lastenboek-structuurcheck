@@ -32,6 +32,17 @@
             <label for="lastenboek-input" class="block text-sm font-medium text-gray-700">Lastenboek (PDF)</label>
             <input type="file" id="lastenboek-input" name="lastenboek" accept=".pdf" class="mt-1 block w-full border border-gray-300 rounded p-2">
           </div>
+          
+          <!-- New Radio Buttons for TOC Type -->
+          <div class="form-group">
+            <label>Analysis Type:</label><br>
+            <input type="radio" id="toc_type_standard" name="toc_type" value="standard" checked>
+            <label for="toc_type_standard">Standard TOC Analysis (using step1_toc/chapters.json)</label><br>
+            <input type="radio" id="toc_type_vision" name="toc_type" value="vision">
+            <label for="toc_type_vision">Vision TOC Analysis (using latest vision_toc_*.json)</label>
+          </div>
+          <!-- End New Radio Buttons -->
+
           <button type="button" id="analyze-button" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50">Analyze</button>
         </form>
       </div>
@@ -44,7 +55,9 @@
             <!-- Discrepancy Analysis Button - Initially Hidden -->
             <button id="discrepancy-button" class="hidden bg-yellow-500 text-white px-4 py-2 rounded text-sm hover:bg-yellow-600 mr-2 disabled:opacity-50">Analyze Discrepancies</button>
             <!-- Export Button - Initially Hidden -->
-            <button id="export-button" class="hidden bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">Export JSON</button>
+            <button id="export-button" class="hidden bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">Export Initial JSON</button>
+            <!-- Export Discrepancy Button - Initially Hidden -->
+            <button id="export-discrepancy-button" class="hidden bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700 ml-2">Export Discrepancy JSON</button>
           </div>
         </div>
         <div id="results-area" class="bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300 min-h-[100px]">
@@ -73,6 +86,7 @@
     const exportButton = document.getElementById('export-button');
     const discrepancyButton = document.getElementById('discrepancy-button');
     const discrepancyResultsArea = document.getElementById('discrepancy-results-area');
+    const exportDiscrepancyButton = document.getElementById('export-discrepancy-button');
 
     analyzeButton.addEventListener('click', async () => {
       // Get the files
@@ -92,6 +106,10 @@
         formData.append('meetstaat', meetstaatFile);
       }
       formData.append('lastenboek', lastenboekFile);
+      
+      // Add the selected TOC type
+      const selectedTocType = document.querySelector('input[name="toc_type"]:checked').value;
+      formData.append('toc_type', selectedTocType);
 
       // Show loading state
       resultsArea.innerHTML = '<p class="text-blue-600 font-semibold">Analyzing documents... Please wait.</p>';
@@ -117,6 +135,7 @@
           exportButton.classList.add('hidden');
           discrepancyButton.classList.add('hidden');
           discrepancyResultsArea.classList.add('hidden');
+          exportDiscrepancyButton.classList.add('hidden');
           throw new Error(`Backend error: ${result.error}`);
         }
 
@@ -155,6 +174,7 @@
           <ul class="list-disc list-inside mb-4">
             <li>Meetstaat: ${result.meetstaat_filename}</li>
             <li>Lastenboek: ${result.lastenboek_filename}</li>
+            <li>TOC Type: ${result.toc_type} (${result.toc_path})</li>
           </ul>
         `;
 
@@ -234,11 +254,13 @@
         if (combinedData.length > 0) {
             exportButton.classList.remove('hidden');
             discrepancyButton.classList.remove('hidden');
+            exportDiscrepancyButton.classList.add('hidden');
             // Keep discrepancy results area hidden until analysis is triggered
         } else {
             exportButton.classList.add('hidden');
             discrepancyButton.classList.add('hidden');
             discrepancyResultsArea.classList.add('hidden');
+            exportDiscrepancyButton.classList.add('hidden');
         }
 
       } catch (error) {
@@ -247,6 +269,7 @@
         exportButton.classList.add('hidden');
         discrepancyButton.classList.add('hidden');
         discrepancyResultsArea.classList.add('hidden');
+        exportDiscrepancyButton.classList.add('hidden');
       } finally {
         // Re-enable button
         analyzeButton.disabled = false;
@@ -266,13 +289,15 @@
         discrepancyResultsArea.innerHTML = '<p class="text-blue-600 font-semibold">Starting discrepancy analysis with Gemini... Please wait (this may take a while).</p>';
         discrepancyButton.disabled = true;
         discrepancyButton.textContent = 'Analyzing...';
+        exportDiscrepancyButton.classList.add('hidden'); // Hide during analysis
 
         try {
             const response = await fetch('/start_discrepancy_analysis', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json' // No body needed, data is in session
-                }
+                    'Content-Type': 'application/json' // Keep header
+                },
+                body: JSON.stringify({}) // Add an empty JSON object as the body
             });
 
             if (!response.ok) {
@@ -290,11 +315,16 @@
             let discrepancyHtml = `
               <h3 class="font-semibold mb-2">Analysis Status:</h3>
               <p class="mb-4">${result.message || 'Analysis complete.'}</p>
+              <p class="mb-4 text-sm text-gray-600">TOC Type Used: ${result.toc_type || 'standard'} (${result.toc_path || 'default path'})</p>
               <h3 class="font-semibold mb-2 mt-4">Discrepancy Findings (for items in both sources):</h3>
             `;
 
             const analysisOutput = result.analysis_output || [];
-            const analyzedItems = analysisOutput.filter(item => item.source === 'both');
+            // Filter items that have actual LLM analysis results
+            const analyzedItems = analysisOutput.filter(item => 
+                item.llm_discrepancy_analysis !== null && 
+                item.llm_discrepancy_analysis !== undefined
+            );
 
             if (analyzedItems.length === 0) {
                 discrepancyHtml += '<p class="text-sm text-gray-500 italic">No items found in both sources to analyze.</p>';
@@ -302,8 +332,28 @@
                  discrepancyHtml += '<div class="space-y-3 text-sm max-h-96 overflow-y-auto border rounded p-3 bg-gray-100">'; // Scrollable container
                  analyzedItems.forEach(item => {
                     // Check for error cases first
-                    if (item.error || (item.llm_discrepancy_analysis && item.llm_discrepancy_analysis.toLowerCase().startsWith('error:'))) {
-                        const errorText = item.error || item.llm_discrepancy_analysis || 'Unknown error occurred';
+                    let isError = false;
+                    let errorText = 'Unknown error occurred'; // Default error message
+                    if (item.error) { // Check top-level error key first
+                        isError = true;
+                        errorText = item.error;
+                    } else if (item.llm_discrepancy_analysis) {
+                        if (typeof item.llm_discrepancy_analysis === 'string' && item.llm_discrepancy_analysis.toLowerCase().startsWith('error:')) {
+                            // It's an error string
+                            isError = true;
+                            errorText = item.llm_discrepancy_analysis;
+                        } else if (typeof item.llm_discrepancy_analysis === 'object' && item.llm_discrepancy_analysis !== null && item.llm_discrepancy_analysis.error) {
+                            // It's an error object returned from the LLM batch function
+                            isError = true;
+                            errorText = item.llm_discrepancy_analysis.error;
+                        } // Note: A successful object analysis doesn't trigger an error here
+                    } else {
+                         // Handle case where llm_discrepancy_analysis is missing entirely or null/undefined
+                         isError = true; 
+                         errorText = 'Analysis result missing or invalid.';
+                    }
+
+                    if (isError) {
                         discrepancyHtml += `
                             <div class="border-b border-gray-200 pb-3 mb-3 p-2 rounded bg-red-50">
                                 <p class="font-semibold text-gray-800 mb-1">Code: ${item.item_code}</p>
@@ -312,6 +362,8 @@
                         `;
                         return; // Skip to next item
                     }
+
+                    // --- If not an error, proceed with parsing/displaying structured data ---
 
                     // Parse the structured response
                     let analysisData;
@@ -405,16 +457,31 @@
                  discrepancyHtml += '</div>'; // Close scrollable container
             }
             discrepancyResultsArea.innerHTML = discrepancyHtml;
+            
+            // --- Show the export discrepancy button on success ---
+            if (analyzedItems.length > 0) {
+                exportDiscrepancyButton.classList.remove('hidden');
+            } else {
+                exportDiscrepancyButton.classList.add('hidden');
+            }
+            // -----------------------------------------------------
 
         } catch (error) {
             console.error('Error during discrepancy analysis:', error);
             discrepancyResultsArea.innerHTML = `<p class="text-red-600 font-semibold">An error occurred during discrepancy analysis: ${error.message}</p>`;
+            exportDiscrepancyButton.classList.add('hidden'); // Hide on error
         } finally {
             discrepancyButton.disabled = false;
             discrepancyButton.textContent = 'Analyze Discrepancies';
         }
     });
     // ---------------------------------------------------------
+
+    // --- Add event listener for Export Discrepancy Button --- 
+    exportDiscrepancyButton.addEventListener('click', () => {
+        window.location.href = '/export_discrepancy_json';
+    });
+    // ----------------------------------------------------------
 
   </script>
 
