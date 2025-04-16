@@ -574,59 +574,87 @@ def process_pdf_batches(pdf_path: str, pdf_part: Part, total_pages: int):
     # Convert to sorted list for easier adjustment
     # Filter out entries without valid start_page before sorting
     valid_entries = [(k, v) for k, v in all_chapters.items() if isinstance(v, dict) and isinstance(v.get('start_page'), int)]
+    if not valid_entries:
+        logger.warning("No valid entries found for boundary adjustment.")
+        return all_chapters # Return the (likely empty) dict
+
     sorted_chapters = sorted(valid_entries, key=lambda x: x[1]['start_page'])
 
-    # Adjust end pages based on the start page of the *next* item
-    for i in range(len(sorted_chapters) - 1):
+    # Phase 1: Adjust sections within each chapter and update chapter end based on last section
+    for i in range(len(sorted_chapters)):
         current_id, current_ch = sorted_chapters[i]
-        next_id, next_ch = sorted_chapters[i+1]
 
-        # Adjust end page if it's before the start of the next item
-        if current_ch['end_page'] < next_ch['start_page'] - 1:
-            logger.debug(f"Adjusting end page for {current_id}: {current_ch['end_page']} -> {next_ch['start_page'] - 1}")
-            current_ch['end_page'] = next_ch['start_page'] - 1
-
-        # Adjust sections within the chapter (if they exist and are dicts)
-        if 'sections' in current_ch and isinstance(current_ch.get('sections'), dict):
+        # Adjust sections within the chapter first
+        if 'sections' in current_ch and isinstance(current_ch.get('sections'), dict) and current_ch['sections']:
             valid_sections = [(sk, sv) for sk, sv in current_ch['sections'].items() if isinstance(sv, dict) and isinstance(sv.get('start_page'), int)]
+            if not valid_sections:
+                continue # No valid sections to adjust
+
             sorted_sections = sorted(valid_sections, key=lambda x: x[1]['start_page'])
 
+            # Adjust end pages for all sections except the last one
             for j in range(len(sorted_sections) - 1):
                 current_sec_id, current_sec = sorted_sections[j]
                 next_sec_id, next_sec = sorted_sections[j+1]
                 if current_sec['end_page'] < next_sec['start_page'] - 1:
                      logger.debug(f"Adjusting end page for section {current_sec_id}: {current_sec['end_page']} -> {next_sec['start_page'] - 1}")
                      current_sec['end_page'] = next_sec['start_page'] - 1
-                 # Ensure sections don't go beyond chapter boundary (adjust if necessary)
-                if current_sec['end_page'] > current_ch['end_page']:
-                     logger.warning(f"Section {current_sec_id} end {current_sec['end_page']} exceeds chapter {current_id} end {current_ch['end_page']}. Clamping.")
-                     current_sec['end_page'] = current_ch['end_page']
+                elif current_sec['end_page'] >= next_sec['start_page']: # Handle overlap detected by LLM
+                     logger.warning(f"Overlap detected between section {current_sec_id} (ends {current_sec['end_page']}) and {next_sec_id} (starts {next_sec['start_page']}). Adjusting {current_sec_id} end.")
+                     current_sec['end_page'] = next_sec['start_page'] - 1
 
+            # Get the end page of the (potentially adjusted) last section
+            last_sec_id, last_sec = sorted_sections[-1]
+            last_section_end_page = last_sec['end_page']
 
-            # Adjust last section's end page to match chapter's end page
-            if sorted_sections:
-                last_sec_id, last_sec = sorted_sections[-1]
-                if last_sec['end_page'] < current_ch['end_page']:
-                    logger.debug(f"Adjusting end page for last section {last_sec_id}: {last_sec['end_page']} -> {current_ch['end_page']}")
-                    last_sec['end_page'] = current_ch['end_page']
-                elif last_sec['end_page'] > current_ch['end_page']: # Clamp last section if it exceeds chapter
-                     logger.warning(f"Last section {last_sec_id} end {last_sec['end_page']} exceeds chapter {current_id} end {current_ch['end_page']}. Clamping.")
-                     last_sec['end_page'] = current_ch['end_page']
+            # Update the chapter's end page to encompass its last section
+            # Only update if the last section ends *after* the current chapter end
+            if last_section_end_page > current_ch['end_page']:
+                logger.debug(f"Updating chapter {current_id} end page based on last section {last_sec_id}: {current_ch['end_page']} -> {last_section_end_page}")
+                current_ch['end_page'] = last_section_end_page
 
+            # Update the main dictionary with adjusted section data for this chapter
+            # This step might be redundant if sorted_chapters directly references the objects in all_chapters,
+            # but explicit update is safer.
+            current_ch['sections'] = {item[0]: item[1] for item in sorted_sections}
+            all_chapters[current_id] = current_ch # Ensure update in the main dict
 
-            # Update the dictionary with adjusted section data
-            for sec_id, sec_data in sorted_sections:
-                current_ch['sections'][sec_id] = sec_data
+    # Phase 2: Adjust chapter boundaries based on the *next* chapter's start page
+    # Re-sort based on potentially updated start pages (though unlikely to change)
+    sorted_chapters = sorted([(k, v) for k, v in all_chapters.items() if isinstance(v, dict) and isinstance(v.get('start_page'), int)],
+                             key=lambda x: x[1]['start_page'])
 
+    for i in range(len(sorted_chapters) - 1):
+        current_id, current_ch = sorted_chapters[i]
+        next_id, next_ch = sorted_chapters[i+1]
 
-    # Ensure the very last chapter/section ends at total_pages
+        # Adjust current chapter's end page if there's a gap before the next chapter
+        if current_ch['end_page'] < next_ch['start_page'] - 1:
+            logger.debug(f"Adjusting end page for chapter {current_id} based on next chapter {next_id}: {current_ch['end_page']} -> {next_ch['start_page'] - 1}")
+            current_ch['end_page'] = next_ch['start_page'] - 1
+        elif current_ch['end_page'] >= next_ch['start_page']: # Handle overlap
+             logger.warning(f"Overlap detected between chapter {current_id} (ends {current_ch['end_page']}) and {next_id} (starts {next_ch['start_page']}). Adjusting {current_id} end.")
+             current_ch['end_page'] = next_ch['start_page'] - 1
+
+    # Phase 3: Ensure the very last chapter ends at the document end
     if sorted_chapters:
         last_id, last_ch = sorted_chapters[-1]
         if last_ch['end_page'] < total_pages:
              logger.debug(f"Adjusting end page for very last item {last_id}: {last_ch['end_page']} -> {total_pages}")
              last_ch['end_page'] = total_pages
+        # Also ensure the last section within the last chapter ends correctly
+        if 'sections' in last_ch and isinstance(last_ch.get('sections'), dict) and last_ch['sections']:
+             valid_sections = [(sk, sv) for sk, sv in last_ch['sections'].items() if isinstance(sv, dict) and isinstance(sv.get('start_page'), int)]
+             if valid_sections:
+                 sorted_sections = sorted(valid_sections, key=lambda x: x[1]['start_page'])
+                 last_sec_id, last_sec = sorted_sections[-1]
+                 if last_sec['end_page'] < last_ch['end_page']:
+                     logger.debug(f"Adjusting end page for last section {last_sec_id} in last chapter {last_id}: {last_sec['end_page']} -> {last_ch['end_page']}")
+                     last_sec['end_page'] = last_ch['end_page']
+                 last_ch['sections'][last_sec_id] = last_sec # Update dict
 
-    # Update the main dictionary with adjusted data
+
+    # Update the main dictionary with all adjusted data
     final_toc = {item[0]: item[1] for item in sorted_chapters}
 
     logger.info("Boundary adjustment complete.")
