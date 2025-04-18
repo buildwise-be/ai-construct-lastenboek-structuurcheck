@@ -130,50 +130,107 @@ def get_toc_page_ranges_from_json(toc_data: dict) -> dict:
     """
     page_ranges = {}
     
+    # Log TOC structure at top level for debugging
+    top_level_keys = list(toc_data.keys())
+    logger.info(f"TOC structure has {len(top_level_keys)} top-level keys: {', '.join(top_level_keys[:5])}{'...' if len(top_level_keys) > 5 else ''}")
+    
     # Detect if this is a standard TOC or vision TOC format
     # Vision TOC format has "start_page" and "end_page" directly in the items
     is_vision_format = False
     for code, node in toc_data.items():
         if isinstance(node, dict) and "start_page" in node and "end_page" in node:
             is_vision_format = True
+            logger.info(f"Detected vision TOC format based on node '{code}' with keys: {', '.join(node.keys())}")
             break
     
     if is_vision_format:
-        logger.info("Detected vision TOC format with start_page/end_page keys")
+        logger.info("Using vision TOC format processing with start_page/end_page keys")
         # For vision TOC format, process recursively to get all nodes
-        def extract_vision_toc_ranges(code, node, page_ranges):
-            if isinstance(node, dict):
-                # Add this node if it has page range info
-                if "start_page" in node and "end_page" in node and "title" in node:
-                    start_page = node.get("start_page")
-                    end_page = node.get("end_page")
-                    title = node.get("title")
-                    
-                    # Only add if start and end are valid numbers
-                    if start_page is not None and end_page is not None and isinstance(start_page, int) and isinstance(end_page, int):
+        def extract_vision_toc_ranges(code, node, page_ranges, parent_code=None):
+            if not isinstance(node, dict):
+                logger.warning(f"Node for code '{code}' is not a dictionary. Type: {type(node)}")
+                return
+                
+            # Add detailed logging for debugging page range issues
+            if "title" in node:
+                title = node.get("title", "No Title")
+                logger.debug(f"Processing '{code}': '{title}'")
+            else:
+                logger.warning(f"Node '{code}' missing title field: {list(node.keys())}")
+                
+            # Add this node if it has page range info
+            if "start_page" in node and "end_page" in node and "title" in node:
+                start_page = node.get("start_page")
+                end_page = node.get("end_page")
+                title = node.get("title")
+                
+                # Log the raw page range values to help debug type/value issues
+                logger.debug(f"Raw page range for '{code}': start_page={start_page} ({type(start_page)}), end_page={end_page} ({type(end_page)})")
+                
+                # Only add if start and end are valid numbers
+                if start_page is not None and end_page is not None:
+                    if isinstance(start_page, int) and isinstance(end_page, int):
                         page_ranges[code] = {
                             "title": title,
                             "start": start_page, 
                             "end": end_page
                         }
+                        logger.debug(f"Added page range for '{code}': {start_page}-{end_page}")
                     else:
-                        # Try to use parent's page range if available
-                        if "." in code:
-                            parent_code = code.rsplit(".", 1)[0]
-                            if parent_code in page_ranges:
+                        # Try to convert string page numbers to integers
+                        try:
+                            start_int = int(start_page) if not isinstance(start_page, int) else start_page
+                            end_int = int(end_page) if not isinstance(end_page, int) else end_page
+                            
+                            page_ranges[code] = {
+                                "title": title,
+                                "start": start_int, 
+                                "end": end_int
+                            }
+                            logger.info(f"Converted string page numbers to integers for '{code}': {start_int}-{end_int}")
+                        except (ValueError, TypeError):
+                            logger.warning(f"Invalid page range format for '{code}': start_page={start_page}, end_page={end_page}")
+                            # Try to use parent's page range if available
+                            if parent_code and parent_code in page_ranges:
                                 parent = page_ranges[parent_code]
                                 page_ranges[code] = {
                                     "title": title,
                                     "start": parent["start"],
                                     "end": parent["end"]
                                 }
-                                logger.info(f"Using parent page range for {code}: {parent['start']}-{parent['end']}")
-                
-                # Process sections recursively
-                sections = node.get("sections", {})
-                if isinstance(sections, dict):
-                    for subcode, subnode in sections.items():
-                        extract_vision_toc_ranges(subcode, subnode, page_ranges)
+                                logger.info(f"Using parent page range for '{code}': {parent['start']}-{parent['end']} from parent '{parent_code}'")
+                else:
+                    logger.warning(f"Missing page range values for '{code}': start_page={start_page}, end_page={end_page}")
+                    # Try to use parent's page range if available
+                    if parent_code and parent_code in page_ranges:
+                        parent = page_ranges[parent_code]
+                        page_ranges[code] = {
+                            "title": title,
+                            "start": parent["start"],
+                            "end": parent["end"]
+                        }
+                        logger.info(f"Using parent page range for '{code}': {parent['start']}-{parent['end']} from parent '{parent_code}'")
+            elif "title" in node:
+                logger.warning(f"Missing page range keys for '{code}' with title '{node['title']}'. Available keys: {', '.join(node.keys())}")
+                # Try to use parent's page range if available
+                if parent_code and parent_code in page_ranges:
+                    title = node.get("title", "Untitled")
+                    parent = page_ranges[parent_code]
+                    page_ranges[code] = {
+                        "title": title,
+                        "start": parent["start"],
+                        "end": parent["end"]
+                    }
+                    logger.info(f"Using parent page range for '{code}': {parent['start']}-{parent['end']} from parent '{parent_code}'")
+            
+            # Process sections recursively
+            sections = node.get("sections", {})
+            if isinstance(sections, dict):
+                logger.debug(f"Processing {len(sections)} subsections for '{code}'")
+                for subcode, subnode in sections.items():
+                    extract_vision_toc_ranges(subcode, subnode, page_ranges, parent_code=code)
+            elif sections:
+                logger.warning(f"'sections' for '{code}' is not a dictionary. Type: {type(sections)}")
         
         # Process the top-level nodes
         for code, node in toc_data.items():
@@ -188,7 +245,19 @@ def get_toc_page_ranges_from_json(toc_data: dict) -> dict:
             else:
                 logger.warning(f"Expected dictionary for top-level code {top_level_code}, but got {type(top_level_node)}. Skipping top-level item.")
 
-    logger.info(f"Extracted {len(page_ranges)} item codes with page ranges from TOC data.")
+    # Additional logging for debugging
+    if page_ranges:
+        sample_keys = list(page_ranges.keys())[:5]
+        sample_data = {k: page_ranges[k] for k in sample_keys}
+        logger.info(f"Sample of extracted page ranges (first 5): {sample_data}")
+    
+    # Check how many items don't have valid page ranges
+    valid_ranges = sum(1 for item in page_ranges.values() if isinstance(item.get('start'), int) and isinstance(item.get('end'), int))
+    logger.info(f"Extracted {len(page_ranges)} item codes with page ranges from TOC data. Valid ranges: {valid_ranges}.")
+    
+    if len(page_ranges) > 0 and valid_ranges == 0:
+        logger.error("CRITICAL: No valid page ranges found in TOC data. Check data format and structure.")
+        
     return page_ranges
 
 # ----------------------------------------------------------------
