@@ -21,8 +21,18 @@ logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 # Define model names via environment variables with defaults
-# Note: Using gemini-1.5-pro as the original script did, adjust if needed.
-VISION_MODEL_NAME = os.getenv("GEMINI_VISION_MODEL", "gemini-2.0-flash-001")
+# Model for initial TOC extraction (Chapters, Sections, Pages)
+TOC_EXTRACTION_MODEL_NAME = os.getenv("GEMINI_TOC_EXTRACTION_MODEL", "gemini-1.5-pro-002") # Default to 1.5 Pro 002
+# Model for summarizing sections (using vision capabilities)
+VISION_MODEL_NAME = os.getenv("GEMINI_VISION_MODEL", "gemini-2.0-flash-001") # Default to 2.0 Flash 001
+
+
+# TOC Extraction Model Config (May need different tuning than vision)
+TOC_EXTRACTION_GENERATION_CONFIG = GenerationConfig(
+    max_output_tokens=8192,
+    temperature=0.1, # Even lower temp for structured extraction?
+    top_p=0.95,
+)
 
 # Vision Model Config (Align with toc_summarizer.py examples)
 VISION_GENERATION_CONFIG = GenerationConfig(
@@ -30,8 +40,8 @@ VISION_GENERATION_CONFIG = GenerationConfig(
     temperature=0.2,      # Lower temperature for more deterministic TOC structure
     top_p=0.95,
 )
-# Define safety settings
-VISION_SAFETY_SETTINGS = [
+# Define safety settings (Apply same settings to both for now)
+COMMON_SAFETY_SETTINGS = [
     SafetySetting(
         category=SafetySetting.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
         threshold=SafetySetting.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
@@ -50,15 +60,16 @@ VISION_SAFETY_SETTINGS = [
     ),
 ]
 
-# Global variable for initialized model
+# Global variables for initialized models
+toc_extraction_model = None
 vision_model = None
 
 # --- Initialization ---
 def initialize_vertex_ai():
-    """Initializes the Vertex AI client and model."""
-    global vision_model
-    if vision_model:
-        logger.debug("Vertex AI model already initialized.")
+    """Initializes the Vertex AI client and models for TOC extraction and vision."""
+    global vision_model, toc_extraction_model
+    if vision_model and toc_extraction_model:
+        logger.debug("Vertex AI models already initialized.")
         return True
 
     try:
@@ -73,91 +84,85 @@ def initialize_vertex_ai():
         logger.info(f"Initializing Vertex AI (Project: {project_id}, Location: {location})")
         aiplatform.init(project=project_id, location=location)
 
+        # Initialize TOC Extraction Model
+        if not toc_extraction_model:
+            logger.info(f"Loading TOC extraction model: {TOC_EXTRACTION_MODEL_NAME}")
+            toc_extraction_model = GenerativeModel(
+                TOC_EXTRACTION_MODEL_NAME,
+                # System instruction is passed within generate_content
+            )
+            logger.info("TOC extraction model loaded successfully.")
+        else:
+            logger.debug("TOC extraction model already initialized.")
+
         # Initialize Vision Model
-        logger.info(f"Loading vision model: {VISION_MODEL_NAME}")
-        vision_model = GenerativeModel(
-            VISION_MODEL_NAME,
-            # System instruction is often passed within the generate_content call for multimodal
-            # system_instruction=system_instruction, # Pass later if needed
-        )
-        logger.info("Vision model loaded successfully.")
+        if not vision_model:
+            logger.info(f"Loading vision model: {VISION_MODEL_NAME}")
+            vision_model = GenerativeModel(
+                VISION_MODEL_NAME,
+                # System instruction passed within generate_content
+            )
+            logger.info("Vision model loaded successfully.")
+        else:
+             logger.debug("Vision model already initialized.")
+
         return True
 
     except Exception as e:
-        logger.error(f"Failed to initialize Vertex AI model: {e}", exc_info=True)
+        logger.error(f"Failed to initialize Vertex AI models: {e}", exc_info=True)
         vision_model = None
+        toc_extraction_model = None
         return False
 
 # --- Helper Functions ---
-# System instruction - kept similar to original, adjusted slightly for clarity
-system_instruction_text = """You are an expert system designed to extract a hierarchical Table of Contents (TOC) from technical PDF documents, specifically Belgian/Flemish construction specifications ("lastenboek" / "bestek"). These PDFs are often concatenations of multiple source documents, potentially with inconsistent internal pagination.
+# System instruction - Modified for batch-focused extraction
+system_instruction_text = """You are an expert system analyzing technical PDF documents, specifically Belgian/Flemish construction specifications ("lastenboek" / "bestek"). Focus ONLY on the visual content within the current page range provided.
 
-Your primary goal is to identify chapters and nested sections based on their numbered headings and determine their accurate page ranges within the GLOBAL PDF page numbering (1-based index).
+Your Task:
+Identify all headings (chapters, sections, subsections, etc.) that VISUALLY BEGIN within the current page range.
 
-Heading Formats:
+Heading Formats to look for:
 - Main chapters: "XX." (e.g., "00.", "01.")
 - Sections: "XX.YY." (e.g., "01.10.")
 - Subsections: "XX.YY.ZZ." (e.g., "01.10.01.")
 - Further levels: "XX.YY.ZZ.AA." etc.
 
-Task: Extract a complete TOC including ALL levels.
-
-For EACH identified entry (chapter, section, subsection, etc.):
+For EACH heading identified starting within this page range:
 1.  **Hierarchical Code:** Determine the exact code (e.g., "00", "01.10", "01.10.01"). Remove any trailing dots.
 2.  **Title:** Extract the full title exactly as it appears following the code.
-3.  **Start Page:** Determine the **GLOBAL PDF page number** (1-based index) where the content for this specific section *begins*.
-4.  **End Page:** Determine the **GLOBAL PDF page number** (1-based index) which is the last page containing content *belonging exclusively to this section*. This page is usually immediately before the *next* heading of the same or higher level starts. For the very last section of the document, the end page is the total number of pages in the PDF.
+3.  **Start Page:** Determine the **GLOBAL PDF page number** (1-based index) where this heading VISUALLY APPEARS.
 
 Crucial Instructions:
--   **Page Numbers:** Use ONLY GLOBAL PDF page numbers. IGNORE any page numbers printed *within* the document or in its internal TOC (which is unreliable).
--   **Accuracy:** Base page ranges on the actual start and end of content flow in the PDF body.
--   **Completeness:** Be extremely thorough. Missing *any* level is a critical failure.
--   **Structure:** Ensure parent start/end pages align with their first/last children.
+-   **Page Numbers:** Use ONLY GLOBAL PDF page numbers (1-based index).
+-   **Scope:** Only report headings that START on a page within the current range.
+-   **Completeness:** Be thorough in identifying all heading formats starting in these pages.
+-   **NO Hierarchy/End Pages:** Do NOT attempt to build the hierarchy or determine end pages in this step. Just list the headings you find starting here.
 
 Output Format:
-Produce a **single, valid Python dictionary literal** enclosed in ```python ... ```. Use the following nested structure, with chapter codes as top-level keys:
+Produce a **single, valid Python list literal** containing dictionaries, enclosed in ```python ... ```. Each dictionary represents one heading found starting in this range.
 
+Example Output:
 ```python
-{
-    "00": {
-        "title": "ALGEMENE BEPALINGEN",
-        "start_page": 5,
-        "end_page": 12,
-        "sections": {
-            "00.10": {
-                "title": "Definities",
-                "start_page": 5,
-                "end_page": 7,
-                "sections": {} # Empty dict if no further subsections
-            },
-            "00.20": {
-                "title": "Toepasselijke normen",
-                "start_page": 8,
-                "end_page": 12,
-                "sections": {
-                     "00.20.01": {
-                         "title": "Algemene normen",
-                         "start_page": 9,
-                         "end_page": 10,
-                         "sections": {}
-                     },
-                     "00.20.02": {
-                         "title": "Specifieke normen",
-                         "start_page": 11,
-                         "end_page": 12,
-                         "sections": {}
-                     }
-                }
-            }
-        }
+[
+    {
+        "code": "01.10",
+        "title": "Definities",
+        "start_page": 5
     },
-    "01": { # Next chapter
-        # ...
+    {
+        "code": "01.20",
+        "title": "Toepasselijke normen",
+        "start_page": 8
+    },
+    {
+        "code": "01.20.01",
+        "title": "Algemene normen",
+        "start_page": 9
     }
-    # ... other chapters
-}
+    # ... other headings starting in this page range
+]
 ```
-Ensure the output contains ONLY the Python dictionary within the ```python ... ``` block. Be meticulous about syntax, nesting, types, and page ranges.
+Ensure the output contains ONLY the Python list within the ```python ... ``` block. Be meticulous about syntax.
 """
 
 # New prompt template for vision-based summarization
@@ -178,65 +183,66 @@ Instructions for the summary:
 
 Execution Details Summary for pages {start_page}-{end_page}:"""
 
-def post_process_llm_response_to_dict(response_text: str) -> dict | None:
+def post_process_llm_response_to_list(response_text: str) -> list | None:
     """
-    Extracts a Python dictionary literal from the LLM's response text,
+    Extracts a Python list literal from the LLM's response text,
     attempting to handle common variations like ```python ... ``` blocks.
-    (Adapted from toc_summarizer.py)
+    EXPECTS A LIST, NOT A DICTIONARY.
     """
-    dict_str = None
+    list_str = None
     try:
-        # Regex to find ```python { ... } ``` or just { ... } as fallback
-        match_python = re.search(r"```python\s*(\{.*?\})\s*```", response_text, re.DOTALL)
-        match_raw = re.search(r"^\s*(\{.*?\})\s*$", response_text, re.DOTALL | re.MULTILINE)
+        # Regex to find ```python [ ... ] ``` or just [ ... ] as fallback
+        match_python = re.search(r"```python\s*(\[.*?\])\s*```", response_text, re.DOTALL)
+        match_raw = re.search(r"^\s*(\[.*?\])\s*$", response_text, re.DOTALL | re.MULTILINE)
 
         if match_python:
-            dict_str = match_python.group(1)
-            logger.debug("Found dictionary within ```python block.")
+            list_str = match_python.group(1)
+            logger.debug("Found list within ```python block.")
         elif match_raw:
-            dict_str = match_raw.group(1)
-            logger.debug("Found raw dictionary structure.")
+            list_str = match_raw.group(1)
+            logger.debug("Found raw list structure.")
         else:
-            logger.warning("Could not find Python dictionary structure (```python ... ``` or raw {...}) in LLM response.")
+            logger.warning("Could not find Python list structure (```python ... ``` or raw [...]) in LLM response.")
             logger.debug(f"LLM Response Start: {response_text[:500]}...")
             return None
 
-        logger.debug(f"Extracted potential dictionary string (length {len(dict_str)}). First 500 chars: {dict_str[:500]}...")
+        logger.debug(f"Extracted potential list string (length {len(list_str)}). First 500 chars: {list_str[:500]}...")
 
-        # Basic Python literal to JSON conversion
-        dict_str = dict_str.replace(': None', ': null')
-        dict_str = dict_str.replace(': True', ': true')
-        dict_str = dict_str.replace(': False', ': false')
+        # Basic Python literal to JSON conversion (for list contents)
+        list_str = list_str.replace(': None', ': null')
+        list_str = list_str.replace(': True', ': true')
+        list_str = list_str.replace(': False', ': false')
 
         try:
-            # Try direct JSON parsing
-            parsed_dict = json.loads(dict_str)
+            # Try direct JSON parsing (JSON arrays are valid lists)
+            parsed_list = json.loads(list_str)
         except json.JSONDecodeError:
             logger.warning("Direct JSON parsing failed. Trying ast.literal_eval as fallback.")
             import ast
             try:
-                parsed_dict = ast.literal_eval(dict_str)
-                if not isinstance(parsed_dict, dict) or not all(isinstance(v, dict) for v in parsed_dict.values()):
-                     logger.warning("ast.literal_eval result doesn't look like the expected TOC structure.")
+                parsed_list = ast.literal_eval(list_str)
+                # Check if the result is a list of dictionaries
+                if not isinstance(parsed_list, list) or not all(isinstance(item, dict) for item in parsed_list):
+                     logger.warning("ast.literal_eval result doesn't look like the expected list of dicts structure.")
                      return None
-            except (ValueError, SyntaxError, MemoryError, TypeError) as ast_e: # Added TypeError
+            except (ValueError, SyntaxError, MemoryError, TypeError) as ast_e:
                 logger.error(f"ast.literal_eval failed: {ast_e}")
-                logger.error(f"Problematic string (first 500 chars): {dict_str[:500]}...")
-                logger.error(f"Full problematic string for ast.literal_eval:\n{dict_str}")
+                logger.error(f"Problematic string (first 500 chars): {list_str[:500]}...")
+                # logger.error(f"Full problematic string for ast.literal_eval:\n{list_str}") # Avoid logging potentially huge strings
                 return None
 
-        if isinstance(parsed_dict, dict):
-            logger.info("Successfully extracted and parsed dictionary from LLM response.")
-            return parsed_dict
+        if isinstance(parsed_list, list):
+            logger.info(f"Successfully extracted and parsed list from LLM response ({len(parsed_list)} items).")
+            return parsed_list
         else:
-            logger.warning(f"Parsed result is not a dictionary: {type(parsed_dict)}")
+            logger.warning(f"Parsed result is not a list: {type(parsed_list)}")
             return None
 
     except Exception as e:
-        logger.error(f"Error post-processing LLM response: {e}", exc_info=True)
-        if dict_str:
-            logger.error(f"String being processed (first 500 chars): {dict_str[:500]}...")
-        logger.error(f"Original LLM response text leading to post-processing error:\n{response_text}")
+        logger.error(f"Error post-processing LLM response to list: {e}", exc_info=True)
+        if list_str:
+            logger.error(f"String being processed (first 500 chars): {list_str[:500]}...")
+        # logger.error(f"Original LLM response text leading to post-processing error:\n{response_text}") # Avoid logging huge response
         return None
 
 # --- New Function for Vision-Based Summarization ---
@@ -278,11 +284,11 @@ def add_vision_summaries_recursive(toc_node: dict, pdf_part: Part, node_code: st
         for attempt in range(max_retries + 1):
             try:
                 # Use appropriate config/safety for summarization - maybe slightly different?
-                # For now, reusing VISION settings, but could define separate SUMMARIZER ones.
+                # Using VISION settings specifically for the vision model
                 response = vision_model.generate_content(
                     content_parts,
-                    generation_config=VISION_GENERATION_CONFIG, # Consider a SUMMARIZER_CONFIG if needed
-                    safety_settings=VISION_SAFETY_SETTINGS,    # Consider SUMMARIZER_SAFETY if needed
+                    generation_config=VISION_GENERATION_CONFIG, # Use VISION_CONFIG
+                    safety_settings=COMMON_SAFETY_SETTINGS,     # Use common safety settings
                     stream=False
                 )
 
@@ -339,9 +345,102 @@ def add_vision_summaries_recursive(toc_node: dict, pdf_part: Part, node_code: st
         else:
              logger.debug(f"  Node {node_code} ('{node_title}') has no 'sections' key. End of branch for summary.")
 
+# --- TOC Assembly Function (NEW) ---
+def assemble_full_toc(extracted_items: list, total_pages: int) -> dict:
+    """Assembles the final hierarchical TOC from the flat list of extracted items."""
+    if not extracted_items:
+        return {}
 
-def save_results_with_index(chapters_dict, input_filename, output_base_filename="vision_toc"):
-    """Saves the resulting dictionary to a JSON file in the output folder with indexing."""
+    # 1. Deduplicate based on code and start_page
+    unique_items = []
+    seen = set()
+    for item in extracted_items:
+        # Basic validation of item structure
+        if not isinstance(item, dict) or 'code' not in item or 'start_page' not in item or 'title' not in item:
+            logger.warning(f"Skipping invalid item during deduplication: {item}")
+            continue
+        # Normalize code slightly (remove potential whitespace)
+        code = str(item['code']).strip()
+        start_page = item['start_page']
+        # Ensure start_page is a valid integer
+        if not isinstance(start_page, int) or start_page < 1:
+             logger.warning(f"Skipping item with invalid start_page: {item}")
+             continue
+
+        identifier = (code, start_page)
+        if identifier not in seen:
+            # Store with potentially cleaned code
+            item['code'] = code 
+            unique_items.append(item)
+            seen.add(identifier)
+        else:
+             logger.debug(f"Duplicate item found and removed: {item}")
+
+    logger.info(f"Reduced {len(extracted_items)} items to {len(unique_items)} unique items after deduplication.")
+
+    # 2. Sort globally by start_page, then by code length (shallower first), then code itself
+    def sort_key(item):
+        code = item['code']
+        return (item['start_page'], len(code.split('.')), code)
+
+    unique_items.sort(key=sort_key)
+    logger.debug("Sorted unique items by start_page and code.")
+
+    # 3. Calculate end_page
+    num_items = len(unique_items)
+    for i, current_item in enumerate(unique_items):
+        if 'end_page' not in current_item: # Calculate only if not somehow present
+            if i < num_items - 1:
+                next_item = unique_items[i+1]
+                # End page is the page before the next item starts
+                # Ensure end_page is not before start_page
+                calculated_end = next_item['start_page'] - 1
+                current_item['end_page'] = max(current_item['start_page'], calculated_end)
+            else:
+                # Last item goes to the end of the document
+                current_item['end_page'] = total_pages
+    logger.debug("Calculated end_pages for all items.")
+
+    # 4. Reconstruct hierarchy
+    toc_hierarchy = {}
+    item_map = {item['code']: item for item in unique_items} # Map for easy lookup
+
+    for item in sorted(unique_items, key=lambda x: (len(x['code'].split('.')), x['code'])): # Process top-level first
+        code = item['code']
+        parts = code.split('.')
+        # Ensure sections dictionary exists
+        if 'sections' not in item:
+            item['sections'] = {}
+
+        if len(parts) == 1:
+            # Top-level chapter
+            if code not in toc_hierarchy:
+                toc_hierarchy[code] = item
+        else:
+            # Find parent
+            parent_code = '.'.join(parts[:-1])
+            if parent_code in item_map:
+                parent_item = item_map[parent_code]
+                # Ensure parent has a sections dict
+                if 'sections' not in parent_item or not isinstance(parent_item['sections'], dict):
+                     parent_item['sections'] = {}
+                # Add current item to parent's sections
+                if parts[-1] not in parent_item['sections']:
+                     parent_item['sections'][parts[-1]] = item # Use the last part as the key in sections
+                     # Alternative: use full code? Stick to original structure: parent['sections'][full_child_code] = item
+                     # Let's stick to the original structure where keys are full codes
+                     parent_item['sections'][code] = item
+                else:
+                     logger.warning(f"Attempted to add duplicate code {code} under parent {parent_code}")
+            else:
+                logger.warning(f"Could not find parent ({parent_code}) for item {code}. Orphaned item.")
+                # Optionally add orphans to a separate list or top level?
+
+    logger.info("Reconstructed TOC hierarchy.")
+    return toc_hierarchy
+
+# --- Function for saving results (modified slightly if needed) ---
+def save_results_with_index(chapters_dict, input_filename, output_base_filename="vision_toc_focused"):
     input_base = os.path.splitext(os.path.basename(input_filename))[0]
     today_date = datetime.datetime.now().strftime("%Y%m%d")
 
@@ -363,415 +462,284 @@ def save_results_with_index(chapters_dict, input_filename, output_base_filename=
 
     try:
         with open(output_filename, "w", encoding="utf-8") as f:
-        json.dump(chapters_dict, f, indent=4, ensure_ascii=False)
+            json.dump(chapters_dict, f, indent=4, ensure_ascii=False)
         logger.info(f"Successfully saved vision-based TOC to: {output_filename}")
     except IOError as e:
         logger.error(f"Error writing output JSON file '{output_filename}': {e}")
     except Exception as e:
         logger.error(f"Unexpected error saving results: {e}", exc_info=True)
-    
 
-def validate_chapters(chapters_dict, total_pages):
-    """Validates page numbers in the extracted TOC dictionary."""
+# --- Validation Function (Potentially needs adaptation later) ---
+def validate_assembled_toc(chapters_dict, total_pages):
+    """Validates page numbers and basic structure in the assembled TOC dictionary."""
+    # This function might need more robust checks now, e.g., parent/child consistency
+    # For now, keep the basic page validation from validate_chapters
     validated = {}
-    # Use total_pages from PDF as the reasonable maximum
     reasonable_max = total_pages
 
     for chapter_id, chapter_data in chapters_dict.items():
-        # Skip empty chapters or non-dictionary entries
         if not chapter_data or not isinstance(chapter_data, dict):
-            logger.warning(f"Skipping invalid chapter entry: {chapter_id}")
+            logger.warning(f"Skipping invalid chapter entry during validation: {chapter_id}")
             continue
-            
-        # Check top-level chapter pages
+        
+        # Check top-level chapter pages (start/end should now exist)
         if ('start_page' not in chapter_data or 'end_page' not in chapter_data or
             not isinstance(chapter_data['start_page'], int) or not isinstance(chapter_data['end_page'], int) or
             chapter_data['start_page'] < 1 or chapter_data['end_page'] > reasonable_max or
             chapter_data['start_page'] > chapter_data['end_page']):
-            logger.warning(f"Chapter {chapter_id} has invalid page numbers: {chapter_data.get('start_page', 'missing')}-{chapter_data.get('end_page', 'missing')}. Max pages: {reasonable_max}")
-            # Optionally skip this chapter or try to fix later
-            continue # Skip for now
+            logger.warning(f"Chapter {chapter_id} has invalid final page numbers: {chapter_data.get('start_page', 'missing')}-{chapter_data.get('end_page', 'missing')}. Max pages: {reasonable_max}")
+            continue
 
         # Recursively validate sections
         if 'sections' in chapter_data and isinstance(chapter_data['sections'], dict):
-            chapter_data['sections'] = _validate_sections_recursive(chapter_data['sections'], reasonable_max, chapter_id)
+            chapter_data['sections'] = _validate_assembled_sections_recursive(chapter_data['sections'], reasonable_max, chapter_id)
 
         validated[chapter_id] = chapter_data
     
+    logger.info("Validation of assembled TOC page numbers complete.")
     return validated
 
-def _validate_sections_recursive(sections_dict, max_pages, parent_id):
-    """Helper function to recursively validate section page numbers."""
+def _validate_assembled_sections_recursive(sections_dict, max_pages, parent_id):
+    """Helper function to recursively validate section page numbers in assembled TOC."""
     valid_sections = {}
-    for section_id, section_data in sections_dict.items():
+    for section_id, section_data in sections_dict.items(): # Iterate through the values (which are the items)
         if not section_data or not isinstance(section_data, dict):
-            logger.warning(f"Skipping invalid section entry under {parent_id}: {section_id}")
+            logger.warning(f"Skipping invalid section entry during validation under {parent_id}: {section_id}")
             continue
+        
+        actual_code = section_data.get('code', section_id) # Get the real code from the item
 
         if ('start_page' not in section_data or 'end_page' not in section_data or
             not isinstance(section_data['start_page'], int) or not isinstance(section_data['end_page'], int) or
             section_data['start_page'] < 1 or section_data['end_page'] > max_pages or
             section_data['start_page'] > section_data['end_page']):
-            logger.warning(f"Section {section_id} (under {parent_id}) has invalid page numbers: {section_data.get('start_page', 'missing')}-{section_data.get('end_page', 'missing')}. Max pages: {max_pages}")
-            continue # Skip invalid section
+            logger.warning(f"Section {actual_code} (under {parent_id}) has invalid final page numbers: {section_data.get('start_page', 'missing')}-{section_data.get('end_page', 'missing')}. Max pages: {max_pages}")
+            continue
 
         # Recursively validate nested sections
         if 'sections' in section_data and isinstance(section_data['sections'], dict):
-            section_data['sections'] = _validate_sections_recursive(section_data['sections'], max_pages, section_id)
+            section_data['sections'] = _validate_assembled_sections_recursive(section_data['sections'], max_pages, actual_code)
 
-        valid_sections[section_id] = section_data
+        valid_sections[section_id] = section_data # Keep original key structure
     return valid_sections
 
 # --- Main Execution Logic ---
 def process_pdf_batches(pdf_path: str, pdf_part: Part, total_pages: int):
-    """Processes the PDF in batches to generate the TOC using Vertex AI."""
-    global vision_model
-    if not vision_model:
-        logger.error("Vision model not initialized. Cannot process.")
+    """Processes the PDF in batches to generate a flat list of TOC items using Vertex AI."""
+    global toc_extraction_model
+    if not toc_extraction_model:
+        logger.error("TOC Extraction model not initialized. Cannot process.")
         return None
 
-        all_chapters = {}
+    # Change from dict to list to collect items from all batches
+    all_extracted_items = [] 
     processed_batches = 0
 
     # --- Batching Logic ---
-    page_batch_size = 20  # Default
-        if total_pages > 300:
-            page_batch_size = 15
-        elif total_pages > 500:
-            page_batch_size = 10
-            
+    page_batch_size = 20
+    if total_pages > 300:
+        page_batch_size = 15
+    elif total_pages > 500:
+        page_batch_size = 10
+
     overlap = 5
-        page_batches = []
-        for start_page in range(1, total_pages + 1, page_batch_size - overlap):
-            end_page = min(start_page + page_batch_size - 1, total_pages)
-            if end_page - start_page < 5 and len(page_batches) > 0:
-                page_batches[-1] = (page_batches[-1][0], end_page)
-                break
-            page_batches.append((start_page, end_page))
-        
-    logger.info(f"Processing PDF in {len(page_batches)} page batches (size ~{page_batch_size}, overlap {overlap})")
-        
-    # --- Process Batches ---
-        for batch_idx, (start_page, end_page) in enumerate(page_batches):
-        logger.info(f"Processing page batch {batch_idx+1}/{len(page_batches)}: pages {start_page}-{end_page}")
+    page_batches = []
+    current_page = 1
+    while current_page <= total_pages:
+        start_page = current_page
+        end_page = min(start_page + page_batch_size - 1, total_pages)
+        page_batches.append((start_page, end_page))
+        # Move to the next page after the overlap
+        current_page = start_page + page_batch_size - overlap
+        if current_page <= start_page: # Prevent infinite loop if batch_size <= overlap
+            current_page = start_page + 1 
             
-        # Add context notes for first/last batches
-            if batch_idx < 3:
-            comprehensive_note = "This is one of the first batches; pay extra attention to document structure and early chapters/sections."
-            elif batch_idx >= len(page_batches) - 3:
-            comprehensive_note = "This is one of the final batches; pay extra attention to closing chapters/sections and ensure correct final page numbers."
-            else:
-                comprehensive_note = ""
-                
-        # Construct the prompt for this batch
-        # Include the overall system instruction context within the batch prompt if model needs reminding
-        page_prompt = f"""{system_instruction_text}
-
-        ---
-        Current Task: Analyze ONLY pages {start_page}-{end_page} of the provided PDF document.
-            {comprehensive_note}
-            
-        Identify any chapters or sections (and their nested subsections) that *appear* within this specific page range ({start_page}-{end_page}).
-
-        Specific Instructions for this Batch:
-        - Focus ONLY on pages {start_page} through {end_page}.
-        - Report page numbers relative to the GLOBAL PDF page count.
-        - If a chapter/section starts within this range but continues *beyond* page {end_page}, report its end page as {end_page} for this batch's analysis.
-        - If a chapter/section ends within this range but started *before* page {start_page}, report its start page as {start_page} for this batch's analysis.
-        - Be thorough, even for brief sections appearing in this range.
-        - Output ONLY the findings for pages {start_page}-{end_page} in the specified Python dictionary format ```python {{...}} ```. If no chapters/sections start or end in this range, output an empty dictionary ```python {{}} ```.
-        """
-
-        content_parts = [page_prompt, pdf_part]
-        max_retries = 2 # Allow one retry per batch
-        for attempt in range(max_retries + 1):
+    # Ensure the last batch covers the end page
+    if page_batches and page_batches[-1][1] < total_pages:
+         last_start, _ = page_batches[-1]
+         page_batches[-1] = (last_start, total_pages)
+         
+    logger.info(f"Created {len(page_batches)} page batches (size ~{page_batch_size}, overlap {overlap}).")
+    # --- Loop Through Batches ---
+    max_retries_per_batch = 2
+    
+    for i, (start_page, end_page) in enumerate(page_batches):
+        processed_batches += 1
+        logger.info(f"Processing Batch {processed_batches}/{len(page_batches)}: Pages {start_page}-{end_page}")
+        batch_success = False
+        for attempt in range(max_retries_per_batch + 1):
             try:
-                response = vision_model.generate_content(
+                # Define content for the LLM call using the new system instruction
+                content_parts = [
+                    system_instruction_text, 
+                    pdf_part
+                ]
+                
+                logger.debug(f"Sending request to TOC extraction model for batch {processed_batches} (Attempt {attempt+1})...")
+                # Use the TOC_EXTRACTION_MODEL and its specific config
+                response = toc_extraction_model.generate_content(
                     content_parts,
-                    generation_config=VISION_GENERATION_CONFIG,
-                    safety_settings=VISION_SAFETY_SETTINGS,
+                    generation_config=TOC_EXTRACTION_GENERATION_CONFIG, # Use TOC_EXTRACTION_CONFIG
+                    safety_settings=COMMON_SAFETY_SETTINGS,             # Use common safety settings
                     stream=False
                 )
+                logger.debug(f"Received response from TOC extraction model for batch {processed_batches}.")
 
-                # Check for safety blocks first
+                # Check for safety blocks
                 if response.prompt_feedback and response.prompt_feedback.block_reason:
                      block_reason = response.prompt_feedback.block_reason
-                     logger.warning(f"LLM call blocked for batch {batch_idx+1} (Attempt {attempt+1}): {block_reason}")
-                     page_batch_dict = None # Treat as no data found for this batch
+                     logger.warning(f"LLM call blocked for batch {processed_batches} (Attempt {attempt+1}): {block_reason}")
                      break # Exit retry loop for this batch if blocked
+                
+                # Post-process the response (expecting a LIST now)
+                extracted_list = post_process_llm_response_to_list(response.text)
 
-                # Check for valid content parts
-                if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
-                    response_text = response.text
-                    page_batch_dict = post_process_llm_response_to_dict(response_text)
-                    if page_batch_dict is not None: # Includes empty dict {}
-                         logger.info(f"Successfully processed batch {batch_idx+1}. Found {len(page_batch_dict)} top-level items in this batch.")
-                         processed_batches += 1
-                         break # Success, exit retry loop
-                        else:
-                         logger.warning(f"Failed to parse dictionary from response for batch {batch_idx+1} (Attempt {attempt+1}). Response start: {response.text[:200]}...")
-                         page_batch_dict = None # Ensure it's None if parsing failed
-                         # Continue to retry if attempts remain
-
+                if extracted_list is not None: # Can be an empty list [] which is valid
+                    logger.info(f"Batch {processed_batches}: Successfully extracted {len(extracted_list)} items.")
+                    # Filter items to ensure start_page is within the current batch range
+                    filtered_items = [
+                        item for item in extracted_list 
+                        if isinstance(item.get('start_page'), int) and 
+                           start_page <= item['start_page'] <= end_page
+                    ]
+                    if len(filtered_items) < len(extracted_list):
+                        logger.info(f"Filtered out {len(extracted_list) - len(filtered_items)} items whose start_page was outside batch range {start_page}-{end_page}.")
+                    
+                    all_extracted_items.extend(filtered_items)
+                    batch_success = True
+                    break # Success for this batch
                 else:
-                    logger.warning(f"LLM response structure unexpected or empty for batch {batch_idx+1} (Attempt {attempt+1}). Response: {response}")
-                    page_batch_dict = None # Treat as no data
+                    logger.warning(f"Batch {processed_batches}: Failed to extract list from LLM response (Attempt {attempt+1}).")
                     # Continue to retry if attempts remain
 
             except Exception as e:
-                logger.error(f"Error calling Vertex AI API for batch {batch_idx+1} (Attempt {attempt+1}/{max_retries}): {e}")
-                if attempt < max_retries:
-                    logger.info(f"Retrying batch {batch_idx+1} after delay...")
-                    time.sleep(5 * (attempt + 1)) # Exponential backoff
-                else:
-                    logger.error(f"Max retries reached for batch {batch_idx+1}. Skipping.")
-                    page_batch_dict = None # Ensure no data from this failed batch
-                    break # Exit retry loop
+                logger.error(f"Error processing batch {processed_batches} (Pages {start_page}-{end_page}), Attempt {attempt+1}: {e}", exc_info=True)
+            
+            # Retry logic
+            if not batch_success and attempt < max_retries_per_batch:
+                logger.info(f"Retrying batch {processed_batches} after delay...")
+                time.sleep(5 * (attempt + 1)) # Longer backoff for core extraction
+        
+        if not batch_success:
+             logger.error(f"Failed to process batch {processed_batches} (Pages {start_page}-{end_page}) after {max_retries_per_batch + 1} attempts. Skipping batch.")
+             # Consider whether to halt entirely or continue with potentially missing data
 
-        # --- Merge Batch Results ---
-        if isinstance(page_batch_dict, dict):
-                        for chapter_id, chapter_data in page_batch_dict.items():
-                if not isinstance(chapter_data, dict) or 'start_page' not in chapter_data or 'end_page' not in chapter_data:
-                     logger.warning(f"Skipping invalid chapter data from batch {batch_idx+1}: {chapter_id} -> {chapter_data}")
-                     continue
+    logger.info(f"Finished processing all batches. Total items extracted (before assembly): {len(all_extracted_items)}")
+    return all_extracted_items
 
-                if chapter_id not in all_chapters:
-                    all_chapters[chapter_id] = chapter_data
-                            else:
-                    # Merge: Keep earliest start, latest end, longest title, merge sections
-                    existing = all_chapters[chapter_id]
-                    existing['start_page'] = min(existing['start_page'], chapter_data['start_page'])
-                    existing['end_page'] = max(existing['end_page'], chapter_data['end_page'])
-                    if len(chapter_data.get('title', '')) > len(existing.get('title', '')):
-                        existing['title'] = chapter_data['title']
+# --- Main Function (Modified) ---
+def main(pdf_path: str):
+    """Main function to orchestrate TOC generation."""
+    if not initialize_vertex_ai():
+        sys.exit(1) # Exit if initialization fails
 
-                    if 'sections' in chapter_data and isinstance(chapter_data['sections'], dict):
-                        if 'sections' not in existing or not isinstance(existing.get('sections'), dict):
-                            existing['sections'] = {} # Initialize if missing or wrong type
-                                    
-                                    for section_id, section_data in chapter_data['sections'].items():
-                             if not isinstance(section_data, dict) or 'start_page' not in section_data or 'end_page' not in section_data:
-                                 logger.warning(f"Skipping invalid section data {section_id} under {chapter_id} from batch {batch_idx+1}")
-                                 continue
+    # Get total page count using fitz
+    try:
+        doc = fitz.open(pdf_path)
+        total_pages = len(doc)
+        doc.close() # Close the document
+        if total_pages == 0:
+             logger.error(f"PDF file '{pdf_path}' has 0 pages.")
+             sys.exit(1)
+        logger.info(f"PDF '{pdf_path}' has {total_pages} pages.")
+    except Exception as e:
+        logger.error(f"Failed to open PDF or get page count: {e}")
+        sys.exit(1)
 
-                                        if section_id not in existing['sections']:
-                                            existing['sections'][section_id] = section_data
-                                        else:
-                                 # Merge section: Keep earliest start, latest end, longest title
-                                 existing_sec = existing['sections'][section_id]
-                                 existing_sec['start_page'] = min(existing_sec['start_page'], section_data['start_page'])
-                                 existing_sec['end_page'] = max(existing_sec['end_page'], section_data['end_page'])
-                                 if len(section_data.get('title', '')) > len(existing_sec.get('title', '')):
-                                     existing_sec['title'] = section_data['title']
-                                 # Note: recursive section merging not implemented here, assumes max 2 levels for merge logic
+    # Prepare PDF Part for Vertex AI by loading local bytes
+    pdf_bytes = None
+    try:
+        logger.info(f"Loading PDF file locally: {pdf_path}")
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = f.read()
 
-    logger.info(f"Finished processing {processed_batches}/{len(page_batches)} batches successfully.")
-    if processed_batches < len(page_batches):
-        logger.warning("Some batches may have failed processing.")
+        if not pdf_bytes:
+             raise ValueError("Failed to read PDF bytes or file is empty.")
 
-    # --- Final Boundary Adjustment ---
-    logger.info("Performing final boundary adjustments...")
-    # Convert to sorted list for easier adjustment
-    # Filter out entries without valid start_page before sorting
-    valid_entries = [(k, v) for k, v in all_chapters.items() if isinstance(v, dict) and isinstance(v.get('start_page'), int)]
-    if not valid_entries:
-        logger.warning("No valid entries found for boundary adjustment.")
-        return all_chapters # Return the (likely empty) dict
+        pdf_part = Part.from_data(
+            mime_type="application/pdf",
+            data=pdf_bytes # Pass the raw bytes
+        )
+        logger.info("PDF Part prepared from local file bytes for Vertex AI.")
 
-    sorted_chapters = sorted(valid_entries, key=lambda x: x[1]['start_page'])
+    except FileNotFoundError:
+        logger.error(f"PDF file not found at path: {pdf_path}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Failed to read PDF file or create Part from data: {e}", exc_info=True)
+        sys.exit(1)
 
-    # Phase 1: Adjust sections within each chapter and update chapter end based on last section
-    for i in range(len(sorted_chapters)):
-        current_id, current_ch = sorted_chapters[i]
+    # --- Run Batch Processing ---
+    logger.info("Starting PDF batch processing for TOC item extraction...")
+    start_time = time.time()
+    # ** Pass pdf_path for potential text extraction and pdf_part for vision model **
+    # Note: process_pdf_batches might need adjustment if it cannot handle raw bytes efficiently
+    extracted_items_flat_list = process_pdf_batches(pdf_path, pdf_part, total_pages)
+    extraction_time = time.time() - start_time
+    logger.info(f"Batch processing completed in {extraction_time:.2f} seconds.")
 
-        # Adjust sections within the chapter first
-        if 'sections' in current_ch and isinstance(current_ch.get('sections'), dict) and current_ch['sections']:
-            valid_sections = [(sk, sv) for sk, sv in current_ch['sections'].items() if isinstance(sv, dict) and isinstance(sv.get('start_page'), int)]
-            if not valid_sections:
-                continue # No valid sections to adjust
+    if extracted_items_flat_list is None:
+        logger.error("TOC item extraction failed during batch processing.")
+        sys.exit(1)
+    if not extracted_items_flat_list:
+         logger.warning("No TOC items were extracted from the PDF after batch processing.")
+         final_toc = {} # Empty TOC
+    else:
+        # --- Assemble Full TOC --- 
+        logger.info(f"Assembling final TOC hierarchy from {len(extracted_items_flat_list)} extracted items...")
+        start_time = time.time()
+        # ** Call the assembly function **
+        assembled_toc = assemble_full_toc(extracted_items_flat_list, total_pages)
+        assembly_time = time.time() - start_time
+        logger.info(f"TOC assembly completed in {assembly_time:.2f} seconds.")
 
-            sorted_sections = sorted(valid_sections, key=lambda x: x[1]['start_page'])
+        # --- Validate Assembled TOC --- 
+        logger.info("Validating assembled TOC...")
+        # ** Call the correct validation function **
+        final_toc = validate_assembled_toc(assembled_toc, total_pages)
+        logger.info("TOC validation complete.")
 
-            # Adjust end pages for all sections except the last one
-                for j in range(len(sorted_sections) - 1):
-                    current_sec_id, current_sec = sorted_sections[j]
-                next_sec_id, next_sec = sorted_sections[j+1]
-                if current_sec['end_page'] < next_sec['start_page'] - 1:
-                     logger.debug(f"Adjusting end page for section {current_sec_id}: {current_sec['end_page']} -> {next_sec['start_page'] - 1}")
-                     current_sec['end_page'] = next_sec['start_page'] - 1
-                elif current_sec['end_page'] >= next_sec['start_page']: # Handle overlap detected by LLM
-                     logger.warning(f"Overlap detected between section {current_sec_id} (ends {current_sec['end_page']}) and {next_sec_id} (starts {next_sec['start_page']}). Adjusting {current_sec_id} end.")
-                     current_sec['end_page'] = next_sec['start_page'] - 1
+    # --- Add Summaries (Optional Step) ---
+    should_summarize = True # Set to False to skip summarization for now
+    if should_summarize and final_toc:
+        logger.info("Starting recursive summary generation for TOC nodes...")
+        start_time = time.time()
+        # ** Pass the same pdf_part (containing bytes) to summarization **
+        # Note: add_vision_summaries_recursive might also need adjustment
+        for chapter_code, chapter_node in final_toc.items():
+            add_vision_summaries_recursive(chapter_node, pdf_part, node_code=chapter_code)
+        summarization_time = time.time() - start_time
+        logger.info(f"Summary generation finished in {summarization_time:.2f} seconds.")
+    elif not final_toc:
+         logger.info("Skipping summary generation as the assembled TOC is empty.")
+    else:
+         logger.info("Skipping summary generation as per configuration.")
 
-            # Get the end page of the (potentially adjusted) last section
-            last_sec_id, last_sec = sorted_sections[-1]
-            last_section_end_page = last_sec['end_page']
+    # --- Save Final Results --- 
+    # ** Save the final_toc **
+    save_results_with_index(final_toc, pdf_path)
 
-            # Update the chapter's end page to encompass its last section
-            # Only update if the last section ends *after* the current chapter end
-            if last_section_end_page > current_ch['end_page']:
-                logger.debug(f"Updating chapter {current_id} end page based on last section {last_sec_id}: {current_ch['end_page']} -> {last_section_end_page}")
-                current_ch['end_page'] = last_section_end_page
-
-            # Update the main dictionary with adjusted section data for this chapter
-            # This step might be redundant if sorted_chapters directly references the objects in all_chapters,
-            # but explicit update is safer.
-            current_ch['sections'] = {item[0]: item[1] for item in sorted_sections}
-            all_chapters[current_id] = current_ch # Ensure update in the main dict
-
-    # Phase 2: Adjust chapter boundaries based on the *next* chapter's start page
-    # Re-sort based on potentially updated start pages (though unlikely to change)
-    sorted_chapters = sorted([(k, v) for k, v in all_chapters.items() if isinstance(v, dict) and isinstance(v.get('start_page'), int)],
-                             key=lambda x: x[1]['start_page'])
-
-    for i in range(len(sorted_chapters) - 1):
-        current_id, current_ch = sorted_chapters[i]
-        next_id, next_ch = sorted_chapters[i+1]
-
-        # Adjust current chapter's end page if there's a gap before the next chapter
-        if current_ch['end_page'] < next_ch['start_page'] - 1:
-            logger.debug(f"Adjusting end page for chapter {current_id} based on next chapter {next_id}: {current_ch['end_page']} -> {next_ch['start_page'] - 1}")
-            current_ch['end_page'] = next_ch['start_page'] - 1
-        elif current_ch['end_page'] >= next_ch['start_page']: # Handle overlap
-             logger.warning(f"Overlap detected between chapter {current_id} (ends {current_ch['end_page']}) and {next_id} (starts {next_ch['start_page']}). Adjusting {current_id} end.")
-             current_ch['end_page'] = next_ch['start_page'] - 1
-
-    # Phase 3: Ensure the very last chapter ends at the document end
-    if sorted_chapters:
-        last_id, last_ch = sorted_chapters[-1]
-        if last_ch['end_page'] < total_pages:
-             logger.debug(f"Adjusting end page for very last item {last_id}: {last_ch['end_page']} -> {total_pages}")
-             last_ch['end_page'] = total_pages
-        # Also ensure the last section within the last chapter ends correctly
-        if 'sections' in last_ch and isinstance(last_ch.get('sections'), dict) and last_ch['sections']:
-             valid_sections = [(sk, sv) for sk, sv in last_ch['sections'].items() if isinstance(sv, dict) and isinstance(sv.get('start_page'), int)]
-             if valid_sections:
-                 sorted_sections = sorted(valid_sections, key=lambda x: x[1]['start_page'])
-                last_sec_id, last_sec = sorted_sections[-1]
-                 if last_sec['end_page'] < last_ch['end_page']:
-                     logger.debug(f"Adjusting end page for last section {last_sec_id} in last chapter {last_id}: {last_sec['end_page']} -> {last_ch['end_page']}")
-                     last_sec['end_page'] = last_ch['end_page']
-                 last_ch['sections'][last_sec_id] = last_sec # Update dict
-
-
-    # Update the main dictionary with all adjusted data
-    final_toc = {item[0]: item[1] for item in sorted_chapters}
-
-    logger.info("Boundary adjustment complete.")
-    return final_toc
-
-
-# --- Main Execution Block ---
+# --- Entry Point ---
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Generate a hierarchical Table of Contents (TOC) with Vision Summaries from a PDF using the Vertex AI Vision model.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument("pdf_file", nargs='?', default="CoordinatedArchitectlastenboek.pdf",
-                        help="Path to the input PDF file.")
-    parser.add_argument("-o", "--output_base", default="vision_toc_vision_summary",
-                        help="Base name for the output JSON file (e.g., 'my_project_toc_summary').")
-    parser.add_argument("--log", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-                        help="Set the logging level.")
-
+    parser = argparse.ArgumentParser(description="Generate a hierarchical TOC with summaries from a PDF using Vertex AI Vision Model.")
+    # Make pdf_path an optional positional argument with a default value
+    parser.add_argument("pdf_path", type=str, nargs='?', default="CoordinatedArchitectlastenboek.pdf", 
+                        help="Path to the input PDF file (defaults to CoordinatedArchitectlastenboek.pdf in the current directory).")
+    # Add other arguments as needed (e.g., --no-summaries, --output-name)
     args = parser.parse_args()
 
-    # Set logging level
-    logging.getLogger().setLevel(args.log.upper())
-    logger.info(f"Logging level set to {args.log.upper()}")
-
-    logger.info(f"Input PDF: {args.pdf_file}")
-    logger.info(f"Output base name: {args.output_base}")
-
-    # --- Pre-checks ---
-    if not os.path.exists(args.pdf_file):
-        logger.error(f"Input PDF file not found: {args.pdf_file}")
+    # Basic check for PDF existence (using the resolved path)
+    pdf_to_check = args.pdf_path
+    if not os.path.isfile(pdf_to_check):
+        logger.error(f"Input PDF file not found: {pdf_to_check}")
+        # Check if it's the default that's missing
+        if pdf_to_check == "CoordinatedArchitectlastenboek.pdf":
+             logger.error("Default PDF 'CoordinatedArchitectlastenboek.pdf' not found in the current directory.")
+             logger.error("Please provide the path to your PDF or place the default file here.")
         sys.exit(1)
-    if not args.pdf_file.lower().endswith('.pdf'):
-        logger.warning(f"Input file '{args.pdf_file}' does not have a .pdf extension.")
+        
+    # Ensure the PDF is accessible, potentially upload to GCS first
+    # (Add GCS upload logic here if needed, using GOOGLE_CLOUD_BUCKET_NAME)
+    # Example: ensure_pdf_on_gcs(args.pdf_path, os.getenv('GOOGLE_CLOUD_BUCKET_NAME'))
 
-    # --- Initialize Vertex AI ---
-    if not initialize_vertex_ai():
-        logger.error("Failed to initialize Vertex AI. Exiting.")
-        sys.exit(1)
-
-    # --- Read PDF and Get Page Count ---
-    pdf_bytes = None
-    total_pages = 0
-    pdf_part = None # Initialize pdf_part
-    try:
-        logger.info(f"Reading PDF file: {args.pdf_file}")
-        with open(args.pdf_file, "rb") as f:
-            pdf_bytes = f.read()
-        logger.info(f"PDF read successfully ({len(pdf_bytes)} bytes).")
-
-        # Create PDF Part for API calls *once*
-        pdf_part = Part.from_data(data=pdf_bytes, mime_type="application/pdf")
-        logger.info("PDF Part created for Vertex AI API calls.")
-
-        # Get page count using fitz
-        pdf_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        total_pages = pdf_doc.page_count
-        pdf_doc.close()
-        logger.info(f"PDF has {total_pages} pages.")
-        if total_pages == 0:
-             logger.error("PDF file seems to have 0 pages. Cannot process.")
-             sys.exit(1)
-
-    except fitz.FitzError as fitz_e:
-         logger.error(f"PyMuPDF (fitz) error opening or reading {args.pdf_file}: {fitz_e}", exc_info=True)
-         sys.exit(1)
-    except IOError as e:
-         logger.error(f"Error reading PDF file {args.pdf_file}: {e}", exc_info=True)
-         sys.exit(1)
-    except Exception as e:
-         logger.error(f"Unexpected error during PDF reading: {e}", exc_info=True)
-         sys.exit(1)
-
-
-    # --- Process PDF ---
-    start_time = time.time()
-    logger.info("Phase 1: Starting Vision TOC generation process...")
-
-    # Generate the TOC using batch processing, passing the pdf_part
-    generated_toc = process_pdf_batches(args.pdf_file, pdf_part, total_pages)
-
-    # --- Augment with Summaries ---
-    if generated_toc and isinstance(generated_toc, dict) and pdf_part:
-        logger.info("Phase 2: Starting Vision Summary generation...")
-        # Process each top-level chapter for summaries
-        for chapter_code, chapter_node in generated_toc.items():
-             if isinstance(chapter_node, dict): # Ensure we're processing a dictionary
-                 logger.info(f"Summarizing Chapter: {chapter_code} - {chapter_node.get('title', 'Unknown Title')}")
-                 add_vision_summaries_recursive(chapter_node, pdf_part, node_code=chapter_code)
-             else:
-                 logger.warning(f"Skipping summary for invalid top-level entry: {chapter_code} (type: {type(chapter_node)}).")
-        logger.info("Finished generating summaries.")
-    elif not pdf_part:
-         logger.error("Cannot generate summaries because PDF Part failed to create.")
-    # Keep generated_toc even if summarization had issues, but maybe add a note?
-
-
-    # --- Validate and Save Results ---
-    if generated_toc and isinstance(generated_toc, dict):
-        logger.info("Validating generated TOC (post-summarization)...")
-        # Validation mainly checks page numbers, summaries are just added text
-        validated_toc = validate_chapters(generated_toc, total_pages)
-        logger.info(f"Validation complete. Found {len(validated_toc)} valid top-level chapters.")
-
-        if validated_toc:
-             save_results_with_index(validated_toc, args.pdf_file, args.output_base)
-        else:
-             logger.error("No valid chapters found after validation. No output file created.")
-             sys.exit(1)
-
-    elif generated_toc is None:
-        logger.error("Failed to generate TOC. No output file created.")
-        sys.exit(1)
-    else:
-         logger.error(f"Generated result was not a dictionary (type: {type(generated_toc)}). Cannot save. Check logs for errors.")
-         sys.exit(1)
-
-    end_time = time.time()
-    duration = end_time - start_time
-    logger.info(f"Vision TOC Generator script finished in {duration:.2f} seconds.")
+    main(args.pdf_path)

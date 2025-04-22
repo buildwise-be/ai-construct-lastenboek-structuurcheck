@@ -45,11 +45,11 @@ def analyze_item_with_gemini(
         f"Notes: {item.get('meetstaat_notes', 'N/A')}",
         "\n--- LASTENBOEK TOC DETAILS ---",
         f"TOC Title: {item.get('lastenboek_title', 'N/A')}",
-        f"Page Range: {item.get('lastenboek_start_page', '?')} - {item.get('lastenboek_end_page', '?')}",
-        # IMPORTANT LIMITATION: We don't have the actual text from these pages here.
-        # The analysis is based solely on the TOC title vs. Meetstaat details.
+        f"Page Range: {item.get('lastenboek_start', '?')} - {item.get('lastenboek_end', '?')}",
+        # Conditionally add Lastenboek Summary if available
+        f"TOC Summary (Context): {item.get('lastenboek_summary', 'N/A')}" if item.get('lastenboek_summary') else "",
         "\n--- ANALYSIS TASK ---",
-        "Provide a concise summary of any significant discrepancies found between the Meetstaat details and the Lastenboek TOC title. If no significant issues are apparent based *only* on this limited information, state 'No significant discrepancies found based on provided details.' Do not repeat the input information in your response."
+        "Provide a concise summary of any significant discrepancies found between the Meetstaat details and the Lastenboek TOC details (including title and summary if provided). If no significant issues are apparent based *only* on this limited information, state 'No significant discrepancies found based on provided details.' Do not repeat the input information in your response."
     ]
     prompt = "\n".join(prompt_parts)
 

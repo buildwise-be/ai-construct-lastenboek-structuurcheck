@@ -1,0 +1,98 @@
+{
+    "00": {
+        "code": "00",
+        "title": "ALGEMENE WERFORGANISATIE",
+        "start_page": 2,
+        "end_page": 2,
+        "sections": {},
+        "summary": "*   The contractor must install a temporary fence to enclose the construction site, equipped with lockable access points.\n*   The contractor is responsible for creating and maintaining a site layout plan, including traffic management, access points, and the location of construction facilities and storage areas.\n*   The contractor is responsible for providing and maintaining signage, lighting, and barriers around the construction site, conforming to traffic regulations.\n*   A \"Plaatsbeschrijving\" (condition report) of the existing building must be created by an expert before and after the work.\n*   Demolition work includes removing masonry elements, piping, floor coverings, wall elements, ceilings, and sanitary equipment.\n*   The contractor must provide a work plan and as-built documentation.\n*   The contractor must provide safety measures, including accident and fire insurance.\n*   The contractor must provide scaffolding that meets specific standards and is properly erected.\n*   The contractor is responsible for maintaining order and cleanliness on the construction site, including weekly cleanups and final cleaning.\n*   The contractor must minimize noise and dust pollution.\n*   The contractor must protect finished buildings and/or rooms and keep them in good condition until the preliminary acceptance."
+    },
+    "01": {
+        "code": "01",
+        "title": "VOORAFGAANDE WERKEN EN SLOOPWERKEN",
+        "start_page": 2,
+        "end_page": 2,
+        "sections": {},
+        "summary": "No specific execution details found on pages 2-2."
+    },
+    "03": {
+        "code": "03",
+        "title": "OPEN RUWBOUW",
+        "start_page": 3,
+        "end_page": 3,
+        "sections": {},
+        "summary": "No specific execution details found on pages 3-3."
+    },
+    "07": {
+        "code": "07",
+        "title": "GEVELSLUITINGEN",
+        "start_page": 3,
+        "end_page": 3,
+        "sections": {},
+        "summary": "No specific execution details found on pages 3-3."
+    },
+    "08": {
+        "code": "08",
+        "title": "AANVOER- EN AFVOERLEIDINGEN",
+        "start_page": 3,
+        "end_page": 3,
+        "sections": {},
+        "summary": "No specific execution details found on pages 3-3."
+    },
+    "09": {
+        "code": "09",
+        "title": "VLOEREN",
+        "start_page": 4,
+        "end_page": 4,
+        "sections": {},
+        "summary": "- The contractor must provide a work planning document in three copies before the start of work.\n- The contractor must provide an \"AS BUILT\" dossier in three copies after the work is completed.\n- The contractor must install a temporary fence to close off the construction site.\n- The contractor must provide signage and lighting for the construction site.\n- The contractor is responsible for safety measures during the works."
+    },
+    "10": {
+        "code": "10",
+        "title": "WANDEN",
+        "start_page": 4,
+        "end_page": 4,
+        "sections": {},
+        "summary": "*   The contractor must provide an installation that enables them to perform the work to the satisfaction of the building management.\n*   The contractor is responsible for maintaining order and cleanliness on the work site.\n*   The contractor must take measures to protect adjacent areas from damage and dust.\n*   The contractor must provide necessary ladders and scaffolding for working at height, complying with relevant regulations.\n*   The contractor must submit a design for the construction site sign for approval.\nNo specific execution details found on pages 4-4."
+    },
+    "11": {
+        "code": "11",
+        "title": "PLAFONDS",
+        "start_page": 5,
+        "end_page": 5,
+        "sections": {},
+        "summary": "- The contractor must provide an installation (material and equipment) that enables them to perform the work to the satisfaction of the administration.\n- The contractor is responsible for weekly cleaning of the construction site and cleaning of site offices.\n- The contractor must take all necessary measures to keep access roads to the site clean.\n- The contractor must provide all sound-damping equipment on machines and materials.\n- The contractor is obligated to protect the finished buildings and/or premises and keep them in good condition until the provisional acceptance."
+    },
+    "13": {
+        "code": "13",
+        "title": "VASTE UITRUSTINGEN",
+        "start_page": 5,
+        "end_page": 5,
+        "sections": {},
+        "summary": "* The contractor must provide an installation that enables them to perform the work to the satisfaction of the building authority.\n* The contractor is responsible for weekly cleaning of the construction site and cleaning of site facilities.\n* The contractor must take all necessary measures to protect adjacent areas from damage and dust.\n* The contractor must provide all necessary organizational and technical measures to ensure the safety of personnel and visitors on the site.\n* The announcement of the site must be done with a site board, with the information and guidelines determined by the building authority. The contractor must submit a design for approval."
+    },
+    "14": {
+        "code": "14",
+        "title": "SANITAIRE TOESTELLEN",
+        "start_page": 5,
+        "end_page": 5,
+        "sections": {},
+        "summary": "No specific execution details found on pages 5-5."
+    },
+    "15": {
+        "code": "15",
+        "title": "SCHILDER - EN BEHANGWERKEN",
+        "start_page": 5,
+        "end_page": 5,
+        "sections": {},
+        "summary": "- The contractor must provide an installation (material and equipment) that enables them to perform the work to the satisfaction of the administration.\n- The contractor is responsible for the weekly cleaning of the construction site and cleaning of site rooms.\n- The contractor must provide the necessary ladders and scaffolding. Scaffolding must meet specific NBN standards and a stability calculation must be performed.\n- The contractor must provide a work planning in the form of graphic documents, in the form of planning of the type GANTT, on paper in 3 copies format A3.\n- The contractor must make an \"AS BUILT\" dossier in three copies."
+    },
+    "20": {
+        "code": "20",
+        "title": "ONVOORZIENE LEVERINGEN EN WERKEN",
+        "start_page": 6,
+        "end_page": 134,
+        "sections": {},
+        "summary": "- The contractor must install a temporary fence with lockable access points.\n- Masonry work must adhere to specific NBN standards, including using BENOR-certified blocks/stones and specified mortar.\n- Wooden elements must be treated with an A1-procédé and be sufficiently dry.\n- The contractor is responsible for delivering an as-built dossier, including plans compatible with AUTOCAD 2000 or ALLPLAN.\n- The contractor must provide and install sanitary equipment, including wall-mounted toilets, sinks, and urinals, adhering to specific dimensions and standards for materials and installation."
+    }
+}

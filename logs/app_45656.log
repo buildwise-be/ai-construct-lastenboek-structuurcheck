@@ -1,0 +1,4 @@
+2025-04-22 10:35:34,488 - INFO - app.py:107 - Starting application (PID: 45656)
+2025-04-22 10:35:34,669 - WARNING - _internal.py:97 -  * Debugger is active!
+2025-04-22 10:35:34,678 - INFO - _internal.py:97 -  * Debugger PIN: 180-343-818
+2025-04-22 10:37:38,793 - INFO - _internal.py:97 -  * Detected change in 'c:\\Users\\gr\\Documents\\GitHub\\Meetstaatincorp\\app.py', reloading

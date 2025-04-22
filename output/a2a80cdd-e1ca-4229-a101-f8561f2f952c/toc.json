@@ -1,0 +1,362 @@
+{
+  "1040": {
+    "start": 30,
+    "end": 34,
+    "title": "BRUSSEL : Federale Politie \u201cGERUZET\u201d, Gen.Jacqueslaan 294 ; renovatie kamers en sanitairen  (TB_BOUW )     30/134",
+    "sections": {}
+  },
+  "1060": {
+    "start": 1,
+    "end": 5,
+    "title": "BRUSSEL",
+    "sections": {}
+  },
+  "00": {
+    "start": 29,
+    "end": 33,
+    "title": "Muren en tussenwanden van metselwerk \u2013 Algemeen (F)",
+    "sections": {}
+  },
+  "01": {
+    "start": 11,
+    "end": 15,
+    "title": "INRICHTEN VAN DE BOUWPLAATS",
+    "sections": {}
+  },
+  "10": {
+    "start": 25,
+    "end": 29,
+    "title": "Opmaak en levering van een werkplanning",
+    "sections": {}
+  },
+  "20": {
+    "start": 25,
+    "end": 29,
+    "title": "Opmaak en levering van een as -builtdossier",
+    "sections": {}
+  },
+  "21": {
+    "start": 25,
+    "end": 29,
+    "title": "Opmaak en levering van een as -builtdossier \u2013 gedeelte civiele bouwkunde  PM",
+    "sections": {}
+  },
+  "40": {
+    "start": 23,
+    "end": 27,
+    "title": "Verwijderen van plafondbekledingen",
+    "sections": {}
+  },
+  "70": {
+    "start": 8,
+    "end": 12,
+    "title": "Veiligheidsvoorschriften",
+    "sections": {}
+  },
+  "80": {
+    "start": 8,
+    "end": 12,
+    "title": "Arbeidsmiddelen \u2013 werken op hoogte",
+    "sections": {}
+  },
+  "81": {
+    "start": 8,
+    "end": 12,
+    "title": "Arbeidsmiddelen \u2013 werken op hoogte/ladders  PM",
+    "sections": {}
+  },
+  "82": {
+    "start": 8,
+    "end": 12,
+    "title": "Arbeidsmid delen \u2013 werken op hoogte/steigers  PM",
+    "sections": {}
+  },
+  "90": {
+    "start": 22,
+    "end": 26,
+    "title": "Verwijderen van accesoires op de muren",
+    "sections": {}
+  },
+  "91": {
+    "start": 22,
+    "end": 26,
+    "title": "Verwijderen toebehoren en bevestiging op de muren  GP",
+    "sections": {}
+  },
+  "92": {
+    "start": 9,
+    "end": 13,
+    "title": "Werfcondities - geluids - en stofhinder  PM",
+    "sections": {}
+  },
+  "93": {
+    "start": 10,
+    "end": 14,
+    "title": "Werfcondities \u2013 nazorg  PM",
+    "sections": {}
+  },
+  "12": {
+    "start": 11,
+    "end": 15,
+    "title": "Voorlopige omheining uit een draadnet  PM",
+    "sections": {}
+  },
+  "16": {
+    "start": 11,
+    "end": 15,
+    "title": "Bebakening en signalisatie  PM",
+    "sections": {}
+  },
+  "42": {
+    "start": 12,
+    "end": 16,
+    "title": "B.  Plaatsbeschrijving voor elk eind van de aanneming  GP",
+    "sections": {}
+  },
+  "41": {
+    "start": 23,
+    "end": 27,
+    "title": "Verwijderen van een plafondbekleding  VH m\u00b2",
+    "sections": {}
+  },
+  "30": {
+    "start": 22,
+    "end": 26,
+    "title": "Verwijderen van verlaagde plafonds",
+    "sections": {}
+  },
+  "32": {
+    "start": 23,
+    "end": 27,
+    "title": "Verwijderen van een verlaagd plafond op metalen draagconstructie  VH m\u00b2",
+    "sections": {}
+  },
+  "33": {
+    "start": 15,
+    "end": 19,
+    "title": "Verwijderen van een leiding in opbouw  VH m",
+    "sections": {}
+  },
+  "35": {
+    "start": 16,
+    "end": 20,
+    "title": "Verwijderen van een leiding in verlaagde plafonds  VH m",
+    "sections": {}
+  },
+  "11": {
+    "start": 25,
+    "end": 29,
+    "title": "Opmaak en levering van een werkplanning  PM",
+    "sections": {}
+  },
+  "31": {
+    "start": 17,
+    "end": 21,
+    "title": "Verwijderen van een soepele vloerbedekking  FH m\u00b2",
+    "sections": {}
+  },
+  "50": {
+    "start": 18,
+    "end": 22,
+    "title": "Opbreken van houten vloerbedekkingen",
+    "sections": {}
+  },
+  "51": {
+    "start": 18,
+    "end": 22,
+    "title": "Opbreken van een houten vl oerbedekking  VH m\u00b2",
+    "sections": {}
+  },
+  "52": {
+    "start": 19,
+    "end": 23,
+    "title": "Opbreken van estrade  GP",
+    "sections": {}
+  },
+  "60": {
+    "start": 21,
+    "end": 25,
+    "title": "Verwijderen van binnenwand - en binnenkolombekledingen",
+    "sections": {}
+  },
+  "61": {
+    "start": 19,
+    "end": 23,
+    "title": "Opbreken van een dekvloer  VH m\u00b2",
+    "sections": {}
+  },
+  "22": {
+    "start": 27,
+    "end": 31,
+    "title": "Opmaak en levering van een as -builtdossier \u2013 gedeelte elektriciteit FF  PM",
+    "sections": {}
+  },
+  "25": {
+    "start": 23,
+    "end": 27,
+    "title": "Betreft een systeemplafond (tegelplafond). Inclusief de",
+    "sections": {}
+  },
+  "64": {
+    "start": 22,
+    "end": 26,
+    "title": "Verwijderen van een binnenwandbekleding - faience  VH m\u00b2",
+    "sections": {}
+  },
+  "23": {
+    "start": 27,
+    "end": 31,
+    "title": "Opmaak en levering van een asbuiltdossier \u2013 gedeelte HVAC  PM",
+    "sections": {}
+  },
+  "03": {
+    "start": 29,
+    "end": 33,
+    "title": "OPEN RUWBOUW",
+    "sections": {}
+  },
+  "02": {
+    "start": 29,
+    "end": 33,
+    "title": "MUREN EN TUSSENWANDEN VAN METSELWERK UIT KLEINE ELEMENTEN",
+    "sections": {}
+  },
+  "13": {
+    "start": 5,
+    "end": 9,
+    "title": "VASTE UITRUSTINGEN  ................................ ................................ ................................ ................................ ................................ ... 116",
+    "sections": {}
+  },
+  "14": {
+    "start": 23,
+    "end": 27,
+    "title": "VERWIJDEREN VAN SANITAIRE TOESTELLEN",
+    "sections": {}
+  },
+  "07": {
+    "start": 14,
+    "end": 18,
+    "title": "SLOPEN VAN GEVELELEMENTEN",
+    "sections": {}
+  },
+  "53": {
+    "start": 3,
+    "end": 7,
+    "title": "Hang - en-sluitwerk - raamkrukken, spanjoletten (F) PM  ................................ ................................ ................................ ...........................  55",
+    "sections": {}
+  },
+  "54": {
+    "start": 4,
+    "end": 8,
+    "title": "Binnenwandbekleding met tegels van geglazuurde fa\u00efence  ................................ ................................ ................................ .....................  97",
+    "sections": {}
+  },
+  "58": {
+    "start": 3,
+    "end": 7,
+    "title": "Nazicht en renovatie bestaande hang -en sluitwerk GP  ................................ ................................ ................................ .............................  56",
+    "sections": {}
+  },
+  "08": {
+    "start": 15,
+    "end": 19,
+    "title": "VERWIJDEREN VAN AAN - EN AFVOERLEIDINGEN",
+    "sections": {}
+  },
+  "05": {
+    "start": 4,
+    "end": 8,
+    "title": "VENSTERBANKEN  ................................ ................................ ................................ ................................ ................................ ..................... 100",
+    "sections": {}
+  },
+  "06": {
+    "start": 5,
+    "end": 9,
+    "title": "URINOIRS  ................................ ................................ ................................ ................................ ................................ ................................ .122",
+    "sections": {}
+  },
+  "63": {
+    "start": 3,
+    "end": 7,
+    "title": "Hermetisch sluitend deksel uit roestvrij staal binnen het gebouw  ................................ ................................ ................................ ...........  83",
+    "sections": {}
+  },
+  "09": {
+    "start": 16,
+    "end": 20,
+    "title": "VERWIJDEREN VAN VLOERBEDEKKINGEN EN DEKVLOEREN",
+    "sections": {}
+  },
+  "04": {
+    "start": 13,
+    "end": 17,
+    "title": "SLOPEN VAN VOLLEDIGE BOUWWERKEN EN VAN RUWBOUWELEMENTEN",
+    "sections": {}
+  },
+  "66": {
+    "start": 4,
+    "end": 8,
+    "title": "MDF plinten VH m  ................................ ................................ ................................ ................................ ................................ .....................  89",
+    "sections": {}
+  },
+  "15": {
+    "start": 5,
+    "end": 9,
+    "title": "SCHILDER - EN BEHANGWERKEN  ................................ ................................ ................................ ................................ ....................  127",
+    "sections": {}
+  },
+  "17": {
+    "start": 4,
+    "end": 8,
+    "title": "Bovenpaneel va n houten brandwerende deur Rf 1 h PM  ................................ ................................ ................................ ........................ 107",
+    "sections": {}
+  },
+  "71": {
+    "start": 5,
+    "end": 9,
+    "title": "Panieksluiting met vertikale vergrendeling FH st  ................................ ................................ ................................ ................................ .....112",
+    "sections": {}
+  },
+  "43": {
+    "start": 5,
+    "end": 9,
+    "title": "Evacuatieplan VH st  ................................ ................................ ................................ ................................ ................................ ................. 117",
+    "sections": {}
+  },
+  "72": {
+    "start": 5,
+    "end": 9,
+    "title": "Wastafeltablet uit hogedruk laminaatplaten VH m\u00b2  ................................ ................................ ................................ ................................ 116",
+    "sections": {}
+  },
+  "1": {
+    "start": 21,
+    "end": 25,
+    "title": "Verwijderen van een binnenwand - en binnenkolombekleding  VH m\u00b2",
+    "sections": {}
+  },
+  "55": {
+    "start": 6,
+    "end": 10,
+    "title": "ONDERHOUDSSCHILDERWERKEN OP HOUT EN HOUTACHTIGE PLATEN  ................................ ................................ ................................ .131",
+    "sections": {}
+  },
+  "2": {
+    "start": 11,
+    "end": 15,
+    "title": "Daarnaast b etreft het de",
+    "sections": {}
+  },
+  "002": {
+    "start": 29,
+    "end": 33,
+    "title": "Gevelbakstenen en \u2013blokken ;",
+    "sections": {}
+  },
+  "003": {
+    "start": 29,
+    "end": 33,
+    "title": "Niet -decoratieve bakstenen en blokken, akoestische blokken en stenen en vuurvaste",
+    "sections": {}
+  }
+}

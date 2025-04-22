@@ -299,10 +299,12 @@ def analyze_item_with_gemini(
 
 def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
     """
-    Sends a batch of items to Gemini for discrepancy analysis using a single API call.
+    Sends a batch of items to Gemini for Task Placement analysis using a single API call.
+    (This version focuses ONLY on Lastenboek TOC item titles and summaries).
 
     Args:
-        batch: A list of item dictionaries with Meetstaat and Lastenboek information.
+        batch: A list of item dictionaries containing Lastenboek TOC info 
+               (item_code, lastenboek_title, lastenboek_start, lastenboek_end, lastenboek_summary).
 
     Returns:
         A dictionary mapping item_code to its analysis result (structured JSON object).
@@ -328,61 +330,48 @@ def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
         logger.error(f"Failed to initialize Vertex AI: {e}")
         return {item.get("item_code", "unknown"): {"error": f"Server configuration error: Could not initialize Vertex AI. {e}"} for item in batch}
 
-    # --- Construct the batch prompt --- 
+    # --- Construct the NEW batch prompt --- 
     prompt_parts = [
-        "You are an expert construction contract analyst comparing Meetstaat (Bill of Quantities) details with Lastenboek (Specifications) sections.",
-        "For EACH item, perform the following specific checks and provide structured findings:",
+        "You are an expert construction contract analyst reviewing a Lastenboek (Specifications) Table of Contents (TOC).",
+        "For EACH item provided below (representing a section in the TOC), perform the following check:",
         
-        "\n--- CHECK 1: CONSISTENCY CHECK ---",
-        "Evaluate if quantities and materials in the Meetstaat logically align with the tasks described in the Lastenboek.",
-        "Examples of inconsistencies: wrong material type, inappropriate quantities for the described task, mismatched units.",
-        "If the Lastenboek describes concrete walls but the Meetstaat shows brick quantities, this is inconsistent.",
-        
-        "\n--- CHECK 2: LOCATION CHECK ---",
-        "Identify if multiple tasks appear to be described in the Lastenboek section but some are missing from this Meetstaat item.",
-        "Example: Lastenboek section mentions both 'painting' and 'plastering', but only plastering appears in this Meetstaat item (painting might be missing or in another item).",
+        "\n--- CHECK 1: TASK PLACEMENT CHECK ---",
+        "Evaluate if the tasks described in the 'TOC Summary' seem contextually appropriate for the section defined by the 'Item Code' and 'TOC Title'.",
+        "Look for tasks described in the summary that seem misplaced given the section's title or typical hierarchical placement.",
+        "Examples of potential misplacements: painting tasks described under a woodworking code/title (e.g., 34.xx), detailed electrical work summarized under a structural chapter (e.g., 2x.xx), foundation work details appearing in a finishing chapter (e.g., 4x.xx or higher).",
         
         "\nFormat your analysis for EACH item as a JSON object in this exact structure:",
         "{",
         "  \"item_code\": \"the item code\",",
         "  \"checks\": {",
-        "    \"consistency\": {",
+        "    \"task_placement\": {", # Renamed check
         "      \"issue_found\": true/false,",
-        "      \"description\": \"Detailed description of consistency issue or 'No issues found.'\",",
-        "      \"significant\": true/false",
-        "    },",
-        "    \"location\": {",
-        "      \"issue_found\": true/false,",
-        "      \"description\": \"Detailed description of location/task mismatch issue or 'No issues found.'\",",
-        "      \"significant\": true/false",
+        "      \"description\": \"Detailed description of the misplaced task(s) or 'Tasks seem appropriately placed.'\",",
+        "      \"significant\": true/false", # Significance based on how out-of-place it seems
         "    }",
         "  },",
-        "  \"summary\": \"Brief summary of all issues, or 'No significant discrepancies identified.'\",",
+        "  \"summary\": \"Brief summary of any placement issues, or 'No placement issues identified.'\",",
         "  \"has_significant_issue\": true/false",
         "}",
         
         "\nGuidelines:",
-        "1. Set 'significant' to true ONLY for major discrepancies that likely require attention.",
-        "2. Set 'has_significant_issue' to true if ANY check has 'significant' set to true.",
-        "3. For each check, if 'issue_found' is false, set 'description' to 'No issues found.' and 'significant' to false.",
-        "4. If you cannot definitively assess a check due to limited information, set 'issue_found' to false and mention the limitation in 'description'.",
-        "5. For 'summary', briefly list ALL issues found across all checks. If no issues were found, set it to 'No significant discrepancies identified.'",
+        "1. Base your judgment *only* on the provided Item Code, TOC Title, and TOC Summary.",
+        "2. Set 'significant' to true ONLY for tasks that seem clearly and significantly misplaced.",
+        "3. Set 'has_significant_issue' to true if the 'task_placement' check has 'significant' set to true.",
+        "4. If 'issue_found' is false, set 'description' to 'Tasks seem appropriately placed.' and 'significant' to false.",
+        "5. For 'summary', briefly describe the misplaced task and why it seems out of place. If no issues, use 'No placement issues identified.'",
         
         "\n--- ITEMS FOR ANALYSIS ---"
     ]
 
+    # Add ONLY Lastenboek TOC details for each item
     for item in batch:
         prompt_parts.append("\n---") # Separator
         prompt_parts.append(f"Item Code: {item.get('item_code', 'N/A')}")
-        prompt_parts.append(f"  Meetstaat Info:")
-        
-        # Extract and include meetstaat_info
-        meetstaat_info = item.get('meetstaat_info', {})
-        for key, value in meetstaat_info.items():
-            prompt_parts.append(f"    {key}: {value}")
-        
-        prompt_parts.append(f"  Lastenboek Page Range: {item.get('lastenboek_page_range', 'N/A')}")
-        prompt_parts.append(f"  Lastenboek Text: {item.get('lastenboek_text', 'N/A')[:500]}...") # Truncate if too long
+        prompt_parts.append(f"TOC Title: {item.get('lastenboek_title', 'N/A')}")
+        # Page range might not be directly needed for this check, but can provide context
+        prompt_parts.append(f"Page Range: {item.get('lastenboek_start', '?')} - {item.get('lastenboek_end', '?')}") 
+        prompt_parts.append(f"TOC Summary (Context): {item.get('lastenboek_summary', 'N/A')}") # Summary is crucial
 
     prompt_parts.append("\n--- END ITEMS --- ")
     prompt_parts.append("\nReturn your analysis as a JSON array of objects with the exact structure specified above, one object per item.")
@@ -470,278 +459,250 @@ def index():
 # Route to handle the analysis request (POST)
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    app.logger.info("Received analyze request")
-    if request.method == 'POST':
-        session.clear()
+    """Handles the document analysis request."""
+    if 'lastenboek' not in request.files:
+        return jsonify({'error': 'No Lastenboek (PDF) file part in the request.'}), 400
+
+    lastenboek_file = request.files['lastenboek']
+    meetstaat_file = request.files.get('meetstaat') # Meetstaat is optional for now
+    
+    # Get the selected TOC type (default to standard if not provided)
+    toc_type = request.form.get('toc_type', 'standard')
+    logger.info(f"Selected TOC type: {toc_type}")
+
+    # --- File Validation ---
+    if lastenboek_file.filename == '':
+        return jsonify({'error': 'No selected file for Lastenboek (PDF).'}), 400
+    if not allowed_file(lastenboek_file.filename, ALLOWED_EXTENSIONS_PDF):
+         return jsonify({'error': 'Invalid file type for Lastenboek. Only PDF allowed.'}), 400
+
+    if meetstaat_file and meetstaat_file.filename == '':
+         # If meetstaat part exists but no file selected, treat as not uploaded
+         meetstaat_file = None
+    if meetstaat_file and not allowed_file(meetstaat_file.filename, ALLOWED_EXTENSIONS_CSV):
+         return jsonify({'error': 'Invalid file type for Meetstaat. Only CSV allowed.'}), 400
+
+    # --- Save Files Temporarily ---
+    # Using tempfile is generally safer for web apps than saving to a fixed 'uploads'
+    # but for simplicity here, we save to uploads and will clean up later (ideally)
+    lastenboek_filename = secure_filename(lastenboek_file.filename)
+    lastenboek_path = os.path.join(app.config['UPLOAD_FOLDER'], lastenboek_filename)
+    lastenboek_file.save(lastenboek_path)
+    logger.info(f"Saved Lastenboek PDF to: {lastenboek_path}")
+
+    meetstaat_path = None
+    meetstaat_filename = None
+    if meetstaat_file:
+        meetstaat_filename = secure_filename(meetstaat_file.filename)
+        meetstaat_path = os.path.join(app.config['UPLOAD_FOLDER'], meetstaat_filename)
+        meetstaat_file.save(meetstaat_path)
+        logger.info(f"Saved Meetstaat CSV to: {meetstaat_path}")
+
+    # --- Process Files ---
+    meetstaat_items = {}
+    toc_page_ranges = {}
+    error_messages = []
+    toc_data = None # Initialize toc_data
+
+    try:
+        # --- Load TOC JSON from File based on selected type --- 
+        selected_toc_path = get_toc_path_by_type(toc_type)
+        logger.info(f"Loading TOC data from: {selected_toc_path}")
         try:
-            # Get form data
-            app.logger.info("Form data: %s", request.form)
-            app.logger.info("Files: %s", request.files)
-            
-            # Debugging the TOC selection
-            toc_type = request.form.get('toc_type', 'standard')
-            app.logger.info(f"Selected TOC type: {toc_type}")
-            
-            # Process meetstaat file - using the correct field name from frontend 'meetstaat'
-            if 'meetstaat' not in request.files:
-                app.logger.warning("No meetstaat file provided")
-                return render_template('error.html', error="Geen meetstaat bestand geüpload.")
-            
-            meetstaat_file = request.files['meetstaat']
-            if meetstaat_file.filename == '':
-                app.logger.warning("Empty meetstaat filename")
-                return render_template('error.html', error="Geen meetstaat bestand geselecteerd.")
-            
-            # Process TOC file - frontend doesn't have a separate TOC file input
-            # Instead, we'll use the selected TOC type to determine which TOC file to use
-            toc_path = get_toc_path_by_type(toc_type)
-            app.logger.info(f"Using TOC path: {toc_path}")
-            
-            # Process PDF file - using the correct field name from frontend 'lastenboek'
-            if 'lastenboek' not in request.files:
-                app.logger.warning("No lastenboek file provided")
-                return render_template('error.html', error="Geen lastenboek bestand geüpload.")
-            
-            pdf_file = request.files['lastenboek']
-            if pdf_file.filename == '':
-                app.logger.warning("Empty lastenboek filename")
-                return render_template('error.html', error="Geen lastenboek bestand geselecteerd.")
-            
-            # Save files to temporary storage
-            temp_dir = tempfile.mkdtemp()
-            app.logger.info(f"Created temporary directory: {temp_dir}")
-            
-            meetstaat_path = os.path.join(temp_dir, secure_filename(meetstaat_file.filename))
-            meetstaat_file.save(meetstaat_path)
-            app.logger.info(f"Saved meetstaat file to: {meetstaat_path}")
-            
-            pdf_path = os.path.join(temp_dir, secure_filename(pdf_file.filename))
-            pdf_file.save(pdf_path)
-            app.logger.info(f"Saved PDF file to: {pdf_path}")
-            
-            # Read and parse files
-            try:
-                # Parse Meetstaat CSV
-                meetstaat_data = parse_meetstaat_csv(meetstaat_path)
-                if not meetstaat_data:
-                    app.logger.error("Failed to parse Meetstaat CSV.")
-                    return render_template('error.html', error="Fout bij het verwerken van het meetstaat bestand.")
-                app.logger.info(f"Successfully loaded meetstaat data with {len(meetstaat_data)} items")
-            except Exception as e:
-                app.logger.error(f"Error loading meetstaat file: {str(e)}")
-                return render_template('error.html', error=f"Fout bij het laden van het meetstaat bestand: {str(e)}")
-            
-            try:
-                # Load TOC from path
-                with open(toc_path, 'r', encoding='utf-8') as f:
-                    toc_data = json.load(f)
-                    
-                # Enhanced TOC validation and debugging
-                if not isinstance(toc_data, dict):
-                    app.logger.error(f"TOC data is not a dictionary. Type: {type(toc_data)}")
-                    return render_template('error.html', error="Inhoudsopgave bestand heeft een ongeldig formaat. Verwacht een JSON object.")
-                
-                # Basic TOC structure validation
-                top_level_keys = list(toc_data.keys())
-                app.logger.info(f"TOC has {len(top_level_keys)} top-level sections")
-                
-                # Check TOC format type
-                is_vision_format = any(
-                    isinstance(node, dict) and "start_page" in node and "end_page" in node 
-                    for node in toc_data.values() if isinstance(node, dict)
-                )
-                
-                format_type = "Vision format" if is_vision_format else "Standard format"
-                app.logger.info(f"Detected TOC format: {format_type}")
-                
-                # Sample validation of a top-level item
-                if top_level_keys:
-                    sample_key = top_level_keys[0]
-                    sample_node = toc_data[sample_key]
-                    app.logger.info(f"Sample TOC node '{sample_key}' keys: {list(sample_node.keys() if isinstance(sample_node, dict) else [])}")
-                    
-                    # Check if page range info is present and valid
-                    if isinstance(sample_node, dict):
-                        if is_vision_format:
-                            start_page = sample_node.get("start_page")
-                            end_page = sample_node.get("end_page")
-                            app.logger.info(f"Sample node page range: start_page={start_page} ({type(start_page)}), end_page={end_page} ({type(end_page)})")
-                        else:
-                            start = sample_node.get("start")
-                            end = sample_node.get("end")
-                            app.logger.info(f"Sample node page range: start={start} ({type(start)}), end={end} ({type(end)})")
-            except json.JSONDecodeError as e:
-                app.logger.error(f"Error parsing TOC JSON: {str(e)}")
-                return render_template('error.html', error=f"Fout bij het verwerken van het inhoudsopgave bestand: {str(e)}")
-            except Exception as e:
-                app.logger.error(f"Error loading TOC file: {str(e)}")
-                return render_template('error.html', error=f"Fout bij het laden van het inhoudsopgave bestand: {str(e)}")
-            
-            # Process the TOC to get page ranges
-            try:
-                page_ranges = get_toc_page_ranges_from_json(toc_data)
-                app.logger.info(f"Extracted {len(page_ranges)} page ranges from TOC")
-                
-                # Additional validation for debugging
-                valid_ranges = sum(1 for item in page_ranges.values() 
-                                if isinstance(item.get('start'), int) and 
-                                   isinstance(item.get('end'), int))
-                app.logger.info(f"Valid page ranges: {valid_ranges}/{len(page_ranges)}")
-                
-                if valid_ranges == 0 and len(page_ranges) > 0:
-                    app.logger.warning("No valid page ranges found in TOC data!")
-            except Exception as e:
-                app.logger.error(f"Error extracting page ranges from TOC: {str(e)}")
-                return render_template('error.html', error=f"Fout bij het verwerken van paginabereiken: {str(e)}")
-            
-            # --- Combine Data (Flattened Structure) ---
-            combined_data = []
-            normalized_meetstaat_codes = {normalize_code(k) for k in meetstaat_data.keys()}
-            normalized_toc_codes = {normalize_code(k) for k in page_ranges.keys()}
-            all_item_codes = normalized_meetstaat_codes | normalized_toc_codes
+            with open(selected_toc_path, 'r', encoding='utf-8') as f:
+                toc_data = json.load(f)
+            logger.info(f"Successfully loaded TOC JSON data from {selected_toc_path}.")
+        except FileNotFoundError:
+            logger.error(f"TOC JSON file not found at: {selected_toc_path}")
+            error_messages.append(f"Critical error: TOC JSON file not found at {selected_toc_path}")
+            # Stop processing if TOC is missing
+            return jsonify({'error': f'Server configuration error: TOC file not found.'}), 500
+        except json.JSONDecodeError as json_err:
+            logger.error(f"Error decoding TOC JSON file: {json_err}")
+            error_messages.append(f"Critical error: Invalid format in TOC JSON file.")
+            # Stop processing if TOC is invalid
+            return jsonify({'error': f'Server configuration error: Invalid TOC file format.'}), 500
+        # --- End Load TOC JSON ---
 
-            for code in sorted(list(all_item_codes)):
-                meetstaat_info = meetstaat_data.get(code)
-                lastenboek_range_info = page_ranges.get(code)
+        # Parse Meetstaat CSV (if provided)
+        if meetstaat_path:
+            meetstaat_items = parse_meetstaat_csv(meetstaat_path)
+            if meetstaat_items is None:
+                 error_messages.append("Failed to parse Meetstaat CSV.")
+                 # Decide if this is critical - for now, continue without it
 
-                # Determine source and apply abbreviation mappings/parsing
-                flat_item = {"item_code": code}
-                is_meetstaat_present = meetstaat_info is not None
-                is_lastenboek_present = lastenboek_range_info is not None
+        # Get Lastenboek TOC page ranges (using data loaded from file)
+        if toc_data: # Proceed only if TOC data was loaded successfully
+            toc_page_ranges = get_toc_page_ranges_from_json(toc_data)
+            if not toc_page_ranges:
+                 # This now indicates an issue with the content/structure of the JSON
+                 error_messages.append("Failed to extract page ranges from the loaded TOC data. Check JSON structure.")
+                 # Decide if this is critical
+        else:
+            error_messages.append("Skipping Lastenboek page range extraction due to earlier TOC loading error.")
 
-                if is_meetstaat_present and is_lastenboek_present:
-                    flat_item["source"] = "both"
-                elif is_meetstaat_present:
-                    flat_item["source"] = "meetstaat_only"
-                else: # Only in lastenboek
-                    flat_item["source"] = "lastenboek_only"
+        # --- Combine Data (Flattened Structure) ---
+        combined_data = []
+        normalized_meetstaat_codes = {normalize_code(k) for k in meetstaat_items.keys()}
+        normalized_toc_codes = {normalize_code(k) for k in toc_page_ranges.keys()}
+        all_item_codes = normalized_meetstaat_codes | normalized_toc_codes
 
-                # Add Meetstaat details (if present)
-                if meetstaat_info:
-                    flat_item["meetstaat_description"] = meetstaat_info.get("Description")
-                    flat_item["meetstaat_quantity"] = parse_dutch_number(meetstaat_info.get("Quantity"))
-                    flat_item["meetstaat_unit"] = meetstaat_info.get("Unit")
-                    # Apply mapping to Type and Notes
-                    raw_type = meetstaat_info.get("Type")
-                    flat_item["meetstaat_type"] = f"{ABBREVIATION_MAP.get(raw_type, raw_type)} ({raw_type})" if raw_type and raw_type in ABBREVIATION_MAP else raw_type
-                    raw_notes = meetstaat_info.get("Notes")
-                    flat_item["meetstaat_notes"] = f"{ABBREVIATION_MAP.get(raw_notes, raw_notes)} ({raw_notes})" if raw_notes and raw_notes in ABBREVIATION_MAP else raw_notes
-                else:
-                    flat_item["meetstaat_description"] = None
-                    flat_item["meetstaat_quantity"] = None
-                    flat_item["meetstaat_unit"] = None
-                    flat_item["meetstaat_type"] = None
-                    flat_item["meetstaat_notes"] = None
+        for code in sorted(list(all_item_codes)):
+            meetstaat_info = meetstaat_items.get(code)
+            lastenboek_range_info = toc_page_ranges.get(code)
 
-                # Add Lastenboek details (if present)
-                if lastenboek_range_info:
-                    flat_item["lastenboek_title"] = lastenboek_range_info.get("title")
-                    flat_item["lastenboek_start_page"] = lastenboek_range_info.get("start")
-                    flat_item["lastenboek_end_page"] = lastenboek_range_info.get("end")
-                else:
-                    flat_item["lastenboek_title"] = None
-                    flat_item["lastenboek_start_page"] = None
-                    flat_item["lastenboek_end_page"] = None
+            # Determine source and apply abbreviation mappings/parsing
+            flat_item = {"item_code": code}
+            is_meetstaat_present = meetstaat_info is not None
+            is_lastenboek_present = lastenboek_range_info is not None
 
-                flat_item["llm_analysis"] = None # Placeholder
+            if is_meetstaat_present and is_lastenboek_present:
+                flat_item["source"] = "both"
+            elif is_meetstaat_present:
+                flat_item["source"] = "meetstaat_only"
+            else: # Only in lastenboek
+                flat_item["source"] = "lastenboek_only"
 
-                combined_data.append(flat_item)
-            # --- End Combine Data ---
+            # Add Meetstaat details (if present)
+            if meetstaat_info:
+                flat_item["meetstaat_description"] = meetstaat_info.get("Description")
+                flat_item["meetstaat_quantity"] = parse_dutch_number(meetstaat_info.get("Quantity"))
+                flat_item["meetstaat_unit"] = meetstaat_info.get("Unit")
+                # Apply mapping to Type and Notes
+                raw_type = meetstaat_info.get("Type")
+                flat_item["meetstaat_type"] = f"{ABBREVIATION_MAP.get(raw_type, raw_type)} ({raw_type})" if raw_type and raw_type in ABBREVIATION_MAP else raw_type
+                raw_notes = meetstaat_info.get("Notes")
+                flat_item["meetstaat_notes"] = f"{ABBREVIATION_MAP.get(raw_notes, raw_notes)} ({raw_notes})" if raw_notes and raw_notes in ABBREVIATION_MAP else raw_notes
+            else:
+                flat_item["meetstaat_description"] = None
+                flat_item["meetstaat_quantity"] = None
+                flat_item["meetstaat_unit"] = None
+                flat_item["meetstaat_type"] = None
+                flat_item["meetstaat_notes"] = None
 
-            # --- Generate Summary (Overall Counts) --- 
-            analysis_summary = {
+            # Add Lastenboek details (if present)
+            if lastenboek_range_info:
+                flat_item["lastenboek_title"] = lastenboek_range_info.get("title")
+                flat_item["lastenboek_start_page"] = lastenboek_range_info.get("start")
+                flat_item["lastenboek_end_page"] = lastenboek_range_info.get("end")
+                # ** Copy the summary if it exists **
+                if "lastenboek_summary" in lastenboek_range_info:
+                    flat_item["lastenboek_summary"] = lastenboek_range_info.get("lastenboek_summary")
+            else:
+                flat_item["lastenboek_title"] = None
+                flat_item["lastenboek_start_page"] = None
+                flat_item["lastenboek_end_page"] = None
+                # Ensure summary key exists even if null when lastenboek_range_info is None
+                # flat_item["lastenboek_summary"] = None # Optional: uncomment if needed downstream
+
+            flat_item["llm_analysis"] = None # Placeholder
+
+            combined_data.append(flat_item)
+        # --- End Combine Data ---
+
+        # --- Generate Summary (Overall Counts) --- 
+        analysis_summary = {
+            'count_both': 0,
+            'count_meetstaat_only': 0,
+            'count_lastenboek_only': 0
+        }
+        if combined_data:
+             for item in combined_data:
+                 source = item.get("source")
+                 if source == "both":
+                     analysis_summary['count_both'] += 1
+                 elif source == "meetstaat_only":
+                     analysis_summary['count_meetstaat_only'] += 1
+                 elif source == "lastenboek_only":
+                     analysis_summary['count_lastenboek_only'] += 1
+        # --- End Generate Summary --- 
+
+        # --- Added Logging --- 
+        logger.info(f"Attempting to save {len(combined_data)} items to session['analysis_results'].")
+        if combined_data:
+            logger.debug(f"First item sample for session: {combined_data[0]}")
+        # --- End Added Logging ---
+        
+        # --- Store results in session for export AND discrepancy analysis --- 
+        # Removed limit: Store the full data again
+        # session_limit = 10 
+        session['analysis_results'] = combined_data # Store the full combined data
+        session['toc_type'] = toc_type  # Store the TOC type used
+        session['toc_path'] = os.path.basename(selected_toc_path)  # Store the TOC path used
+        # -----------------------------------------------------------------
+
+        # --- Added Logging ---
+        if 'analysis_results' in session:
+            logger.info(f"Successfully set session['analysis_results'] with {len(session['analysis_results'])} items.")
+        else:
+            logger.error("Failed to set session['analysis_results']!")
+        # --- End Added Logging ---
+
+        logger.info(f"Analysis complete. Returning {len(combined_data)} items for UI display.")
+        # Return analysis output for the UI (reconstructs nested structure)
+        ui_analysis_output = []
+        for item in combined_data:
+             readable_meetstaat_info = None
+             if item['source'] in ['both', 'meetstaat_only']:
+                 readable_meetstaat_info = {
+                     'Description': item['meetstaat_description'],
+                     'Quantity': item['meetstaat_quantity'], # UI might need formatting?
+                     'Unit': item['meetstaat_unit'],
+                     'Type': item['meetstaat_type'],
+                     'Notes': item['meetstaat_notes']
+                 }
+             
+             readable_lastenboek_info = None
+             if item['source'] in ['both', 'lastenboek_only']:
+                 readable_lastenboek_info = {
+                     'title': item['lastenboek_title'],
+                     'start_page': item['lastenboek_start_page'],
+                     'end_page': item['lastenboek_end_page']
+                 }
+             
+             # Construct a more UI-friendly output structure
+             ui_friendly_item = {
+                 'item_code': item['item_code'],
+                 'meetstaat_present': item['source'] in ['both', 'meetstaat_only'],
+                 'lastenboek_toc_entry_present': item['source'] in ['both', 'lastenboek_only'],
+                 'meetstaat_info': readable_meetstaat_info,
+                 'lastenboek_page_range': readable_lastenboek_info,
+                 'llm_analysis': item.get('llm_analysis') # Placeholder for later use (NULL for first analysis)
+             }
+             ui_analysis_output.append(ui_friendly_item)
+
+        return jsonify({
+            'message': 'Analysis complete!',
+            'errors': error_messages,
+            'analysis_output': ui_analysis_output,
+            'meetstaat_filename': meetstaat_filename or "Not provided",
+            'lastenboek_filename': lastenboek_filename,
+            'analysis_summary': analysis_summary,
+            'toc_type': toc_type,
+            'toc_path': os.path.basename(selected_toc_path) # Only send the filename, not the full path
+        })
+
+    except Exception as e:
+        logger.exception("An error occurred during analysis:") # Log full traceback
+        # Ensure temporary files are cleaned up even on error
+        # ... (Add cleanup logic here too) ...
+        # Retrieve filename if already set
+        if 'lastenboek_file' in locals() and not lastenboek_filename:
+            lastenboek_filename = secure_filename(lastenboek_file.filename)
+        # Return error in the expected structure if possible, or a generic error
+        return jsonify({
+            'error': f'An unexpected error occurred: {str(e)}',
+            'meetstaat_filename': meetstaat_filename if meetstaat_filename else 'Not Provided',
+            'lastenboek_filename': lastenboek_filename if 'lastenboek_filename' in locals() else 'Unknown',
+            'analysis_summary': {
                 'count_both': 0,
                 'count_meetstaat_only': 0,
                 'count_lastenboek_only': 0
-            }
-            if combined_data:
-                 for item in combined_data:
-                     source = item.get("source")
-                     if source == "both":
-                         analysis_summary['count_both'] += 1
-                     elif source == "meetstaat_only":
-                         analysis_summary['count_meetstaat_only'] += 1
-                     elif source == "lastenboek_only":
-                         analysis_summary['count_lastenboek_only'] += 1
-            # --- End Generate Summary --- 
-
-            # --- Store results in session for export AND discrepancy analysis --- 
-            session['analysis_results'] = combined_data # Store the full combined data
-            session['toc_type'] = toc_type  # Store the TOC type used
-            session['toc_path'] = os.path.basename(toc_path)  # Store the TOC path used
-            # -----------------------------------------------------------------
-
-            # --- Added Logging ---
-            if 'analysis_results' in session:
-                app.logger.info(f"Successfully set session['analysis_results'] with {len(session['analysis_results'])} items.")
-            else:
-                app.logger.error("Failed to set session['analysis_results']!")
-            # --- End Added Logging ---
-
-            # Return analysis output for the UI (reconstructs nested structure)
-            ui_analysis_output = []
-            for item in combined_data:
-                 readable_meetstaat_info = None
-                 if item['source'] in ['both', 'meetstaat_only']:
-                     readable_meetstaat_info = {
-                         'Description': item['meetstaat_description'],
-                         'Quantity': item['meetstaat_quantity'], # UI might need formatting?
-                         'Unit': item['meetstaat_unit'],
-                         'Type': item['meetstaat_type'],
-                         'Notes': item['meetstaat_notes']
-                     }
-                 
-                 readable_lastenboek_info = None
-                 if item['source'] in ['both', 'lastenboek_only']:
-                     readable_lastenboek_info = {
-                         'title': item['lastenboek_title'],
-                         'start': item['lastenboek_start_page'],
-                         'end': item['lastenboek_end_page']
-                     }
-                 
-                 # Construct a more UI-friendly output structure
-                 ui_friendly_item = {
-                     'item_code': item['item_code'],
-                     'meetstaat_present': item['source'] in ['both', 'meetstaat_only'],
-                     'lastenboek_toc_entry_present': item['source'] in ['both', 'lastenboek_only'],
-                     'meetstaat_info': readable_meetstaat_info,
-                     'lastenboek_page_range': readable_lastenboek_info,
-                     'llm_analysis': item.get('llm_analysis') # Placeholder for later use (NULL for first analysis)
-                 }
-                 ui_analysis_output.append(ui_friendly_item)
-
-            app.logger.info(f"Analysis complete. Returning {len(combined_data)} items for UI display.")
-            return jsonify({
-                'message': 'Analysis complete!',
-                'analysis_output': ui_analysis_output,
-                'meetstaat_filename': meetstaat_file.filename,
-                'lastenboek_filename': pdf_file.filename,
-                'analysis_summary': analysis_summary,
-                'toc_type': toc_type,
-                'toc_path': os.path.basename(toc_path) # Only send the filename, not the full path
-            })
-
-        except Exception as e:
-            logger.exception("An error occurred during analysis:") # Log full traceback
-            # Ensure temporary files are cleaned up even on error
-            # ... (Add cleanup logic here too) ...
-            # Retrieve filename if already set
-            if 'meetstaat' in locals() and not meetstaat_file.filename:
-                meetstaat_filename = secure_filename(meetstaat_file.filename)
-            # Return error in the expected structure if possible, or a generic error
-            return jsonify({
-                'error': f'An unexpected error occurred: {str(e)}',
-                'meetstaat_filename': meetstaat_filename if meetstaat_filename else 'Not Provided',
-                'lastenboek_filename': pdf_file.filename if pdf_file.filename else 'Unknown',
-                'analysis_summary': {
-                    'count_both': 0,
-                    'count_meetstaat_only': 0,
-                    'count_lastenboek_only': 0
-                },
-                'analysis_output': [],
-                'errors': [f'An unexpected error occurred: {str(e)}'],
-                'message': 'Processing failed.'
-                 }), 500
+            },
+            'analysis_output': [],
+            'errors': [f'An unexpected error occurred: {str(e)}'],
+            'message': 'Processing failed.'
+             }), 500
 
 # --- New Route for Discrepancy Analysis --- 
 @app.route('/start_discrepancy_analysis', methods=['POST'])
@@ -760,12 +721,26 @@ def start_discrepancy_analysis():
         return jsonify({'error': 'Internal server error accessing session data.'}), 500
     # --- End Granular Logging ---
         
-    # Check if analysis results exist in session using the CORRECT key
-    if not has_key or not is_data_present:
+    # Check if analysis results exist in session
+    if 'analysis_results' not in session or not session['analysis_results']:
         logger.error("Session check failed: 'analysis_results' key not found or data is empty.")
         return jsonify({'error': 'No analysis results found in session. Please run analysis first.'}), 400
     
-    logger.debug("Session check passed. Proceeding...") # Log success of check
+    # Check if the TOC type used implies summaries exist by checking *any* item
+    toc_type = session.get('toc_type', 'standard')
+    has_summaries = False
+    if session['analysis_results']:
+        for item in session['analysis_results']:
+            # Check if this item has lastenboek info and the summary key
+            if ('lastenboek_summary' in item and item.get('lastenboek_summary')): # Check key exists and value is not empty
+                 has_summaries = True
+                 break # Found one, no need to check further
+
+    if not has_summaries:
+         logger.warning(f"Task Placement Analysis requires TOC with summaries (vision type). Current type: {toc_type}. No summaries detected in any item.")
+         return jsonify({'error': f'This analysis requires a TOC with summaries (e.g., vision-generated). No summaries were found in the analysis data for TOC type: {toc_type}'}), 400
+
+    logger.debug(f"Session check passed, TOC type '{toc_type}' appears to have summaries. Proceeding...") 
     
     # Parse request to get selected items for analysis or analyze all
     try:
@@ -777,133 +752,96 @@ def start_discrepancy_analysis():
         logger.error(f"Error parsing request JSON: {e}", exc_info=True)
         return jsonify({'error': 'Invalid request format.'}), 400
         
-    # Use the CORRECT session key
-    try:
-        all_items_from_session = session['analysis_results'] 
-        logger.debug(f"Successfully accessed session['analysis_results'] with {len(all_items_from_session)} items.")
-    except Exception as e:
-         logger.error(f"Error accessing session['analysis_results'] after check: {e}", exc_info=True)
-         return jsonify({'error': 'Internal server error retrieving session data.'}), 500
+    all_items_from_session = session['analysis_results'] 
+    logger.debug(f"Retrieved {len(all_items_from_session)} items from session['analysis_results'].")
     
-    # --- Added Logging --- 
-    logger.debug(f"Retrieved {len(all_items_from_session)} items from session['analysis_results']. First item (sample): {all_items_from_session[0] if all_items_from_session else 'N/A'}")
-    # ---------------------
-    
-    # Log the request details
-    logger.info(f"Starting discrepancy analysis for {len(selected_codes) if selected_codes else 'all'} items using data from session['analysis_results'].")
-    
-    # Prepare items for analysis
+    # --- Prepare items for the NEW analysis --- 
     items_to_analyze = []
-    
-    # Filter for items present in both meetstaat and lastenboek
-    # Iterate over the data retrieved from the correct session key
-    logger.debug("Filtering items from session for source == 'both'...")
-    for item in all_items_from_session: 
-        # Check the 'source' field which was determined in the /analyze route
-        item_source = item.get('source')
-        if item_source != 'both':
-            logger.debug(f"  Skipping item {item.get('item_code')} (source: {item_source})")
-            continue
-            
-        # If specific codes requested, check if this item is in the list
-        if selected_codes and item.get('item_code') not in selected_codes:
-            logger.debug(f"  Skipping item {item.get('item_code')} (not in selected codes)")
-            continue
+    logger.info("Filtering items from session for Task Placement analysis:") # Changed log message
+    for i, item in enumerate(all_items_from_session):
+        item_code = item.get('item_code', 'UNKNOWN')
+        item_source = item.get('source', 'UNKNOWN')
+        summary_present = bool(item.get('lastenboek_summary')) # Check if summary key exists and is truthy
         
-        logger.debug(f"  Adding item {item.get('item_code')} to analyze list.")
-        # Construct the dictionary needed by analyze_batch_with_gemini
-        # IMPORTANT: 'lastenboek_text' is likely MISSING or empty here based on /analyze route logic
-        items_to_analyze.append({
-            'item_code': item.get('item_code'),
-            # Reconstruct meetstaat_info if needed by the LLM prompt 
-            # (assuming the flattened structure in session['analysis_results'] is sufficient)
-            'meetstaat_info': { 
-                'Description': item.get('meetstaat_description'),
-                'Quantity': item.get('meetstaat_quantity'),
-                'Unit': item.get('meetstaat_unit'),
-                'Type': item.get('meetstaat_type'),
-                'Notes': item.get('meetstaat_notes')
-            },
-            # Reconstruct lastenboek_page_range if needed by the LLM prompt
-            'lastenboek_page_range': { 
-                'title': item.get('lastenboek_title'),
-                'start': item.get('lastenboek_start_page'),
-                'end': item.get('lastenboek_end_page')
-             },
-            'lastenboek_text': item.get('lastenboek_text', '') # Likely empty/missing!
-        })
-    
-    # --- Added Logging --- 
-    logger.info(f"Prepared {len(items_to_analyze)} items for batch analysis.")
+        # Log check details for each item
+        logger.debug(f"  Item {i+1} [Code: {item_code}]: Source='{item_source}', HasSummary={summary_present}")
+
+        # ** Corrected condition: Check source and summary presence **
+        if item_source in ['both', 'lastenboek_only'] and summary_present:
+            # If specific codes requested, check if this item is in the list
+            if selected_codes and item_code not in selected_codes:
+                logger.debug(f"    -> Skipping item {item_code} (not in selected codes)")
+                continue
+            
+            logger.debug(f"    -> Adding item {item_code} to analyze list.")
+            # Construct the dictionary needed by analyze_batch_with_gemini for the NEW check
+            items_to_analyze.append({
+                'item_code': item_code,
+                'lastenboek_title': item.get('lastenboek_title'),
+                'lastenboek_start': item.get('lastenboek_start_page'), 
+                'lastenboek_end': item.get('lastenboek_end_page'),     
+                'lastenboek_summary': item.get('lastenboek_summary') 
+            })
+        else: 
+            logger.debug(f"    -> Skipping item {item_code} (Condition not met: Source='{item_source}', HasSummary={summary_present})")
+
+    logger.info(f"Prepared {len(items_to_analyze)} items for Task Placement analysis.")
     if len(items_to_analyze) > 0:
         logger.debug(f"First item to analyze (sample): {items_to_analyze[0]}")
-    # ---------------------
         
     if not items_to_analyze:
-        logger.warning("No items marked as 'both' found in session data for discrepancy analysis.")
-        # --- Added Logging --- 
-        error_payload = {'error': 'No valid items (found in both sources) available for analysis.'}
+        logger.warning("No items with Lastenboek summaries found in session data for Task Placement analysis.")
+        error_payload = {'error': 'No valid items (with Lastenboek summaries) available for analysis.'}
         logger.error(f"Returning 400 error with payload: {error_payload}")
-        # ---------------------
         return jsonify(error_payload), 400
     
-    # Process the items in batches to reduce API calls
-    batch_size = 3  # Process 3 items at a time
+    # Process the items in batches
+    batch_size = 3  # Keep batch size small for potentially longer prompts/analysis
     all_llm_results = {}
-    
-    # Split items into batches for processing
     batches = [items_to_analyze[i:i+batch_size] for i in range(0, len(items_to_analyze), batch_size)]
     
-    logger.info(f"Processing {len(batches)} batches...") # Log batch count
+    logger.info(f"Processing {len(batches)} batches for Task Placement analysis...") 
     for i, batch in enumerate(batches):
-        logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} items")
-        
-        # Send batch to the Gemini model for analysis
-        batch_llm_results = analyze_batch_with_gemini(batch)
-        logger.debug(f"LLM results for batch {i+1}: {batch_llm_results}") # Log LLM result for batch
+        logger.info(f"Processing Task Placement batch {i+1}/{len(batches)} with {len(batch)} items")
+        # ** NOTE: analyze_batch_with_gemini now performs the NEW check **
+        batch_llm_results = analyze_batch_with_gemini(batch) 
+        logger.debug(f"LLM results for batch {i+1}: {batch_llm_results}") 
         all_llm_results.update(batch_llm_results)
-        
-        # To avoid rate limiting, sleep briefly between batches
-        if i < len(batches) - 1:
-            time.sleep(1)
+        if i < len(batches) - 1: time.sleep(1)
     
-    # Store LLM results in session (optional, might not be needed)
-    session['discrepancy_analysis_llm_results'] = all_llm_results 
-    logger.info(f"Discrepancy analysis completed. LLM provided results for {len(all_llm_results)} items.")
+    session['task_placement_analysis_llm_results'] = all_llm_results # Store separately?
+    logger.info(f"Task Placement analysis completed. LLM provided results for {len(all_llm_results)} items.")
     
-    # Integrate LLM results back into a format suitable for the UI
-    # The UI expects the original analysis structure plus the LLM results
-    # We need to merge all_llm_results into the session['analysis_results'] data
-    
-    # Create the final list to send to the UI
+    # --- Integrate results back for UI --- 
     final_analysis_output_for_ui = []
-    logger.debug("Merging LLM results with original session data for UI...")
-    for item_from_session in session['analysis_results']: # Use correct key
+    logger.debug("Merging Task Placement LLM results with original session data for UI...")
+    for item_from_session in session['analysis_results']: 
         item_code = item_from_session.get('item_code')
-        # Create a structure suitable for the UI (similar to how /analyze originally returned it)
+        # Use the existing UI structure but populate llm_discrepancy_analysis with the NEW check results
         ui_item = {
              'item_code': item_code,
              'meetstaat_present': item_from_session.get('source') in ['both', 'meetstaat_only'],
              'lastenboek_toc_entry_present': item_from_session.get('source') in ['both', 'lastenboek_only'],
-             'meetstaat_info': {
+             'meetstaat_info': { # Keep meetstaat info for display even if not used in this specific analysis
                  'Description': item_from_session.get('meetstaat_description'),
                  'Quantity': item_from_session.get('meetstaat_quantity'),
                  'Unit': item_from_session.get('meetstaat_unit'),
                  'Type': item_from_session.get('meetstaat_type'),
                  'Notes': item_from_session.get('meetstaat_notes')
              } if item_from_session.get('source') in ['both', 'meetstaat_only'] else None,
-             'lastenboek_page_range': {
+             'lastenboek_page_range': { # Keep lastenboek info for display
                  'title': item_from_session.get('lastenboek_title'),
                  'start': item_from_session.get('lastenboek_start_page'),
-                 'end': item_from_session.get('lastenboek_end_page')
+                 'end': item_from_session.get('lastenboek_end_page'),
+                 'summary': item_from_session.get('lastenboek_summary') # Also include summary for display
              } if item_from_session.get('source') in ['both', 'lastenboek_only'] else None,
              'llm_discrepancy_analysis': None # Default to None
          }
         
-        # If this item was analyzed by the LLM, add the result
+        # If this item was analyzed by the LLM (new check), add the result
         if item_code in all_llm_results:
             ui_item['llm_discrepancy_analysis'] = all_llm_results[item_code]
-            logger.debug(f"  Merged LLM result for item {item_code}")
+            logger.debug(f"  Merged Task Placement result for item {item_code}")
         
         final_analysis_output_for_ui.append(ui_item)
         
@@ -911,16 +849,16 @@ def start_discrepancy_analysis():
     # Format response for the UI
     response_data = {
         'success': True,
-        'item_count': len(all_llm_results), # Count of items actually analyzed by LLM
-        'analysis_output': final_analysis_output_for_ui, # Send the merged data structure
-        'message': f"Discrepancy analysis completed. Processed {len(all_llm_results)} items with LLM.",
-        'toc_type': session.get('toc_type', 'standard'),  # Include the TOC type used in analysis
-        'toc_path': session.get('toc_path', os.path.basename(TOC_JSON_PATH))  # Include the TOC path
+        'item_count': len(all_llm_results), 
+        'analysis_output': final_analysis_output_for_ui,
+        'message': f"Task Placement analysis completed. Processed {len(all_llm_results)} items with LLM.",
+        'toc_type': session.get('toc_type', 'standard'), 
+        'toc_path': session.get('toc_path', os.path.basename(TOC_JSON_PATH)) 
     }
     
     # --- Store the final merged results in session for export --- 
-    session['final_discrepancy_results'] = final_analysis_output_for_ui
-    logger.info("Stored final discrepancy results in session['final_discrepancy_results'].")
+    session['final_discrepancy_results'] = final_analysis_output_for_ui # Overwrite with new results
+    logger.info("Stored final Task Placement results in session['final_discrepancy_results'].")
     # -----------------------------------------------------------
 
     logger.info("--- Exiting /start_discrepancy_analysis successfully ---")
