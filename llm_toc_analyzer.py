@@ -126,76 +126,175 @@ def get_toc_page_ranges_from_json(toc_data: dict) -> dict:
 
     Returns:
         A dictionary mapping item codes (e.g., "00.01", "11.03.01") to
-        {"title": str, "start": int, "end": int}.
+        a dictionary containing at least "title" and potentially "start", "end", 
+        and "lastenboek_summary". Start/end might be missing if invalid.
     """
     page_ranges = {}
     
     # Detect if this is a standard TOC or vision TOC format
-    # Vision TOC format has "start_page" and "end_page" directly in the items
     is_vision_format = False
     for code, node in toc_data.items():
-        if isinstance(node, dict) and "start_page" in node and "end_page" in node:
+        if isinstance(node, dict) and ("start_page" in node or "end_page" in node): # More lenient detection
             is_vision_format = True
-            break
-    
+            logger.info(f"Detected potential vision TOC format key in item '{code}': start_page={node.get('start_page')}, end_page={node.get('end_page')}")
+            break # Assume vision if keys are present
+            
     if is_vision_format:
-        logger.info("Detected vision TOC format with start_page/end_page keys")
-        # For vision TOC format, process recursively to get all nodes
-        def extract_vision_toc_ranges(code, node, page_ranges):
-            if isinstance(node, dict):
-                # Add this node if it has page range info
-                if "start_page" in node and "end_page" in node and "title" in node:
-                    start_page = node.get("start_page")
-                    end_page = node.get("end_page")
-                    title = node.get("title")
-                    summary = node.get("summary") # Get the summary field if it exists
-                    
-                    item_data = {
-                        "title": title
-                    }
-                    # Add summary if it exists and is not empty
-                    if summary and isinstance(summary, str) and summary.strip():
-                         item_data["lastenboek_summary"] = summary.strip()
-
-                    # Only add page ranges if start and end are valid numbers
-                    if start_page is not None and end_page is not None and isinstance(start_page, int) and isinstance(end_page, int):
-                        item_data["start"] = start_page
-                        item_data["end"] = end_page
-                        page_ranges[code] = item_data
-                    else:
-                        # Try to use parent's page range if available
-                        if "." in code:
-                            parent_code = code.rsplit(".", 1)[0]
-                            if parent_code in page_ranges:
-                                parent = page_ranges[parent_code]
-                                # Inherit parent's start/end but keep own title/summary
-                                item_data["start"] = parent.get("start") 
-                                item_data["end"] = parent.get("end")
-                                page_ranges[code] = item_data
-                                logger.info(f"Using parent page range for {code}: {parent.get('start')}-{parent.get('end')}")
-                            # else: # If parent not found or has no range, the item won't have start/end
-                            #     page_ranges[code] = item_data # Store item without page range if parent fails
-                
-                # Process sections recursively
-                sections = node.get("sections", {})
-                if isinstance(sections, dict):
-                    for subcode, subnode in sections.items():
-                        extract_vision_toc_ranges(subcode, subnode, page_ranges)
+        logger.info("Processing using vision TOC format logic (start_page/end_page keys expected)")
         
+        def _try_convert_page(page_val, page_name, code):
+            """Helper to check, convert, and log page number processing."""
+            if page_val is None:
+                logger.debug(f"Node '{code}': {page_name} is None.")
+                return None
+            if isinstance(page_val, int):
+                logger.debug(f"Node '{code}': {page_name} is already int: {page_val}")
+                return page_val
+            if isinstance(page_val, str):
+                logger.debug(f"Node '{code}': {page_name} is string '{page_val}'. Attempting conversion.")
+                try:
+                    converted = int(page_val)
+                    logger.info(f"Node '{code}': Successfully converted string {page_name} '{page_val}' to int: {converted}")
+                    return converted
+                except ValueError:
+                    logger.warning(f"Node '{code}': Failed to convert string {page_name} '{page_val}' to int.")
+                    return None
+            # Handle other unexpected types like float etc.
+            logger.warning(f"Node '{code}': Unexpected type for {page_name}: {type(page_val)}, value: {page_val}. Treating as invalid.")
+            return None
+
+        def extract_vision_toc_ranges(code, node, page_ranges, parent_code=None):
+            if not isinstance(node, dict):
+                logger.warning(f"Skipping non-dict node for code '{code}' (parent: {parent_code})")
+                return
+
+            title = node.get("title", "Untitled Section")
+            summary = node.get("summary")
+            raw_start_page = node.get("start_page")
+            raw_end_page = node.get("end_page")
+            
+            logger.debug(f"Processing node '{code}' (parent: {parent_code}): title='{title}', raw_start={raw_start_page} (type: {type(raw_start_page)}), raw_end={raw_end_page} (type: {type(raw_end_page)})")
+
+            # Prepare item data, always include title and summary if present
+            item_data = {"title": title}
+            if summary and isinstance(summary, str) and summary.strip():
+                item_data["lastenboek_summary"] = summary.strip()
+
+            # Try processing/converting page numbers
+            processed_start = _try_convert_page(raw_start_page, "start_page", code)
+            processed_end = _try_convert_page(raw_end_page, "end_page", code)
+
+            page_range_found_directly = False
+            if processed_start is not None and processed_end is not None:
+                # Basic sanity check: end >= start
+                if processed_end >= processed_start:
+                    item_data["start"] = processed_start
+                    item_data["end"] = processed_end
+                    page_ranges[code] = item_data
+                    page_range_found_directly = True
+                    logger.info(f"✅ Stored valid page range for '{code}': {processed_start}-{processed_end}")
+                else:
+                    logger.warning(f"⚠️ Invalid range logic for '{code}': end_page ({processed_end}) < start_page ({processed_start}). Skipping direct assignment.")
+            else:
+                 logger.debug(f"Node '{code}': Direct page range is invalid or incomplete (start: {processed_start}, end: {processed_end}). Will check parent.")
+
+            # If no direct valid range, try inheriting from parent
+            if not page_range_found_directly:
+                if parent_code and parent_code in page_ranges:
+                    parent_data = page_ranges[parent_code]
+                    # Check if parent HAS valid start/end keys before inheriting
+                    parent_start = parent_data.get("start")
+                    parent_end = parent_data.get("end")
+                    if parent_start is not None and parent_end is not None and isinstance(parent_start, int) and isinstance(parent_end, int):
+                        item_data["start"] = parent_start
+                        item_data["end"] = parent_end
+                        page_ranges[code] = item_data # Store item with inherited range
+                        logger.info(f"➡️ Inherited page range for '{code}' from parent '{parent_code}': {parent_start}-{parent_end}")
+                    else:
+                        logger.warning(f"⚠️ Parent '{parent_code}' found for '{code}', but parent lacks valid start/end pages. Cannot inherit range.")
+                        page_ranges[code] = item_data # Store item without page range
+                else:
+                    # No valid direct range and no valid parent range found
+                    logger.warning(f"⚠️ No valid page range found directly or via parent for '{code}'. Storing item without start/end.")
+                    page_ranges[code] = item_data # Store item without page range
+
+            # Process sections recursively, passing the current code as the parent code
+            sections = node.get("sections", {})
+            if isinstance(sections, dict):
+                for subcode, subnode in sections.items():
+                    # Make sure subcode is prefixed correctly if needed (though vision usually has full codes)
+                    # full_subcode = f"{code}.{subcode}" if not subcode.startswith(code) else subcode 
+                    extract_vision_toc_ranges(subcode, subnode, page_ranges, parent_code=code) # Pass current code as parent
+            elif sections: # Log if sections exist but aren't a dict
+                 logger.warning(f"Node '{code}' has a 'sections' key, but it's not a dictionary (type: {type(sections)}). Cannot process subsections.")
+
         # Process the top-level nodes
         for code, node in toc_data.items():
-            extract_vision_toc_ranges(code, node, page_ranges)
+            extract_vision_toc_ranges(code, node, page_ranges, parent_code=None) # Top level has no parent
+            
     else:
         # Standard TOC format - use existing traversal logic
-        logger.info("Using standard TOC format traversal")
+        logger.info("Processing using standard TOC format logic (start/end keys expected)")
+        # --- Standard TOC Helper ---
+        def _traverse_toc_for_ranges(node: dict, code: str, page_ranges: dict):
+            """
+            Internal recursive helper for standard TOC format.
+            Populates the page_ranges dictionary.
+            """
+            start = node.get("start")
+            end = node.get("end")
+            title = node.get("title", "Untitled Section")
+            summary = node.get("summary") # Also get summary here
+
+            # Prepare item data
+            item_data = {"title": title}
+            if summary and isinstance(summary, str) and summary.strip():
+                 item_data["lastenboek_summary"] = summary.strip()
+
+
+            # Store page range if valid and code exists
+            if code and isinstance(start, int) and isinstance(end, int) and start >= 0 and end >= start:
+                item_data["start"] = start
+                item_data["end"] = end
+                page_ranges[code] = item_data
+                logger.debug(f"✅ Stored valid standard page range for '{code}': {start}-{end}")
+            elif code:
+                # Store item even without valid range
+                page_ranges[code] = item_data 
+                logger.warning(f"⚠️ Invalid or missing standard page range for code {code} ('{title}'). Start: {start}, End: {end}. Storing item without range.")
+
+            # Traverse subsections if they exist
+            sub_sections = node.get("sections", {})
+            if isinstance(sub_sections, dict):
+                for subcode, subnode in sub_sections.items():
+                    if isinstance(subnode, dict):
+                        _traverse_toc_for_ranges(subnode, code=subcode, page_ranges=page_ranges)
+                    else:
+                        logger.warning(f"Standard TOC: Expected dictionary for subsection {subcode}, but got {type(subnode)}. Skipping subsection.")
+        # --- End Standard TOC Helper ---
+                        
         for top_level_code, top_level_node in toc_data.items():
             if isinstance(top_level_node, dict):
-                # Pass the top-level code itself when starting traversal for that branch
                 _traverse_toc_for_ranges(top_level_node, code=top_level_code, page_ranges=page_ranges)
             else:
-                logger.warning(f"Expected dictionary for top-level code {top_level_code}, but got {type(top_level_node)}. Skipping top-level item.")
+                logger.warning(f"Standard TOC: Expected dictionary for top-level code {top_level_code}, but got {type(top_level_node)}. Skipping top-level item.")
 
-    logger.info(f"Extracted {len(page_ranges)} item codes with page ranges from TOC data.")
+    # Final check and summary log
+    items_with_range = sum(1 for item in page_ranges.values() if 'start' in item and 'end' in item)
+    items_without_range = len(page_ranges) - items_with_range
+    logger.info(f"Finished processing TOC data. Extracted {len(page_ranges)} total items.")
+    logger.info(f"  Items with valid page ranges: {items_with_range}")
+    logger.info(f"  Items without valid page ranges: {items_without_range}")
+    # Log first few items as sample
+    sample_count = min(5, len(page_ranges))
+    if sample_count > 0:
+        logger.info(f"Sample of extracted items ({sample_count}/{len(page_ranges)}):")
+        sample_items = list(page_ranges.items())[:sample_count]
+        for code, info in sample_items:
+             range_str = f"{info.get('start', 'N/A')}-{info.get('end', 'N/A')}"
+             summary_present = "lastenboek_summary" in info
+             logger.info(f"  - '{code}': title='{info.get('title')}', range={range_str}, summary={summary_present}")
+
     return page_ranges
 
 # ----------------------------------------------------------------

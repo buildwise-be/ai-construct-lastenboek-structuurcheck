@@ -56,8 +56,8 @@ except ImportError:
 # ---------------------------
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.DEBUG) # Changed level to DEBUG - REMOVED
+# logger = logging.getLogger(__name__) # Can keep this if used elsewhere, or switch to app.logger
 
 # --- Abbreviation Mappings ---
 ABBREVIATION_MAP = {
@@ -96,6 +96,17 @@ def allowed_file(filename, allowed_extensions):
 # Initialize the Flask application
 app = Flask(__name__, instance_relative_config=True)
 
+# Set logging level directly on the Flask app logger
+app.logger.setLevel(logging.DEBUG)
+# Ensure handlers are set up if needed (often default stderr handler is sufficient)
+# Example: adding a specific handler if default isn't working
+if not app.logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    app.logger.addHandler(handler)
+app.logger.info("Flask logger configured for DEBUG level.") # Log confirmation
+
 # --- Configure Flask-Session --- 
 # Use filesystem session type (requires Flask-Session library)
 # Stores session data in a 'flask_session' directory in the instance folder
@@ -131,13 +142,13 @@ def get_latest_vision_toc_path():
     vision_toc_files = glob.glob(os.path.join(output_dir, 'vision_toc_*.json'))
     
     if not vision_toc_files:
-        logger.warning("No vision TOC files found in output directory")
+        app.logger.warning("No vision TOC files found in output directory")
         return None
     
     # Sort by modification time (most recent first)
     vision_toc_files.sort(key=os.path.getmtime, reverse=True)
     latest_file = vision_toc_files[0]
-    logger.info(f"Selected most recent vision TOC file: {latest_file}")
+    app.logger.info(f"Selected most recent vision TOC file: {latest_file}")
     return latest_file
 
 # --- Define function to get TOC path based on selected type ---
@@ -148,10 +159,10 @@ def get_toc_path_by_type(toc_type):
         vision_toc_path = os.path.join(os.path.dirname(__file__), 'output', 
                                       'uitgebreide toc met taken.json')
         if os.path.exists(vision_toc_path):
-            logger.info(f"Using hardcoded vision TOC file: {vision_toc_path}")
+            app.logger.info(f"Using hardcoded vision TOC file: {vision_toc_path}")
             return vision_toc_path
         else:
-            logger.warning(f"Hardcoded vision TOC file not found at {vision_toc_path}, falling back to standard TOC")
+            app.logger.warning(f"Hardcoded vision TOC file not found at {vision_toc_path}, falling back to standard TOC")
             return TOC_JSON_PATH
     else:  # Default to standard
         return TOC_JSON_PATH
@@ -167,24 +178,24 @@ def parse_meetstaat_csv(csv_path):
 
     for config in common_configs:
         try:
-            logger.info(f"Attempting to parse CSV with config: {config}")
+            app.logger.info(f"Attempting to parse CSV with config: {config}")
             df = pd.read_csv(csv_path, dtype={1: str}, **config) # Read column 1 (Item Code) as string
-            logger.info(f"Successfully parsed CSV with config: {config}")
+            app.logger.info(f"Successfully parsed CSV with config: {config}")
             # Add column names manually since header=None
             # Adjust these names based on the actual content/order
             df.columns = ['Col0', 'Item Code', 'Description', 'Col3', 'Unit', 'Type', 'Quantity', 'Col7', 'Notes', 'Col9'] # Example names, adjust count/names!
-            logger.info(f"Assigned column names: {list(df.columns)}")
+            app.logger.info(f"Assigned column names: {list(df.columns)}")
             break # Success, exit the loop
         except FileNotFoundError:
-            logger.error(f"Meetstaat CSV file not found at {csv_path}")
+            app.logger.error(f"Meetstaat CSV file not found at {csv_path}")
             return None # File not found is critical
         except Exception as e:
-            logger.warning(f"Failed to parse CSV with config {config}: {e}")
+            app.logger.warning(f"Failed to parse CSV with config {config}: {e}")
             last_error = e # Store the error and try the next config
 
     # If df is still None after trying all configs, raise the last error encountered
     if df is None:
-        logger.error(f"Failed to parse CSV with all tried configurations. Last error: {last_error}")
+        app.logger.error(f"Failed to parse CSV with all tried configurations. Last error: {last_error}")
         if last_error:
             raise last_error # Re-raise the last specific pandas/python error
         else:
@@ -206,7 +217,7 @@ def parse_meetstaat_csv(csv_path):
         for index, row in df.iterrows() 
         if row['Item Code'] is not None and str(row['Item Code']).strip() != '' # Also check for empty strings
     }
-    logger.info(f"Parsed {len(meetstaat_items)} items from Meetstaat CSV after normalization.")
+    app.logger.info(f"Parsed {len(meetstaat_items)} items from Meetstaat CSV after normalization.")
     return meetstaat_items
 
 # --- Helper function for number parsing ---
@@ -226,7 +237,7 @@ def parse_dutch_number(num_str):
              return None
         return float(num_str_cleaned)
     except (ValueError, TypeError):
-        logger.warning(f"Could not parse '{num_str}' as a number.")
+        app.logger.warning(f"Could not parse '{num_str}' as a number.")
         return None # Return None if parsing fails
 # ------------------------------------------
 
@@ -277,20 +288,20 @@ def analyze_item_with_gemini(
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            logger.debug(f"Sending prompt to Gemini for item {item.get('item_code')}")
+            app.logger.debug(f"Sending prompt to Gemini for item {item.get('item_code')}")
             # Note: Using generate_content which might block. Consider async if needed for many items.
             response = model.generate_content(prompt)
-            logger.debug(f"Received response from Gemini for item {item.get('item_code')}")
+            app.logger.debug(f"Received response from Gemini for item {item.get('item_code')}")
             # Accessing the text safely
             if response and response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
                  analysis_text = response.candidates[0].content.parts[0].text
                  return analysis_text.strip()
             else:
-                 logger.warning(f"Gemini response structure unexpected or empty for item {item.get('item_code')}. Response: {response}")
+                 app.logger.warning(f"Gemini response structure unexpected or empty for item {item.get('item_code')}. Response: {response}")
                  return "Error: Unexpected or empty response from Gemini."
 
         except Exception as e:
-            logger.error(f"Error calling Gemini API for item {item.get('item_code')} (Attempt {attempt + 1}/{max_retries}): {e}")
+            app.logger.error(f"Error calling Gemini API for item {item.get('item_code')} (Attempt {attempt + 1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt) # Exponential backoff
             else:
@@ -318,16 +329,16 @@ def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
     model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001")  # Using the configured model
 
     if not project_id:
-        logger.error("GOOGLE_CLOUD_PROJECT environment variable not set.")
+        app.logger.error("GOOGLE_CLOUD_PROJECT environment variable not set.")
         return {item.get("item_code", "unknown"): {"error": "Server configuration error: Project ID missing."} for item in batch}
 
     # Initialize Vertex AI
     try:
         aiplatform.init(project=project_id, location=location)
         model = GenerativeModel(model_name)
-        logger.info(f"Vertex AI initialized for project '{project_id}' in '{location}' using model {model_name}.")
+        app.logger.info(f"Vertex AI initialized for project '{project_id}' in '{location}' using model {model_name}.")
     except Exception as e:
-        logger.error(f"Failed to initialize Vertex AI: {e}")
+        app.logger.error(f"Failed to initialize Vertex AI: {e}")
         return {item.get("item_code", "unknown"): {"error": f"Server configuration error: Could not initialize Vertex AI. {e}"} for item in batch}
 
     # --- Construct the NEW batch prompt --- 
@@ -384,9 +395,9 @@ def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            logger.debug(f"Sending batch prompt to Gemini ({len(batch)} items). First item: {batch[0].get('item_code')}")
+            app.logger.debug(f"Sending batch prompt to Gemini ({len(batch)} items). First item: {batch[0].get('item_code')}")
             response = model.generate_content(prompt)
-            logger.debug(f"Received batch response from Gemini. First item: {batch[0].get('item_code')}")
+            app.logger.debug(f"Received batch response from Gemini. First item: {batch[0].get('item_code')}")
 
             if response and response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
                 response_text = response.candidates[0].content.parts[0].text
@@ -415,17 +426,17 @@ def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
                             code = item.get("item_code")
                             if code not in found_codes:
                                 batch_results[code] = {"error": "Item analysis missing in Gemini batch response."}
-                                logger.warning(f"Analysis missing for item {code} in batch response.")
+                                app.logger.warning(f"Analysis missing for item {code} in batch response.")
                                 
                         return batch_results # Success
                     else:
-                        logger.error(f"Gemini response was not a JSON list for batch starting with {batch[0].get('item_code')}. Content: {response_text[:500]}...")
+                        app.logger.error(f"Gemini response was not a JSON list for batch starting with {batch[0].get('item_code')}. Content: {response_text[:500]}...")
                         error_msg = {"error": "Gemini response was not a JSON list."}
                 except json.JSONDecodeError as json_e:
-                    logger.error(f"Failed to decode Gemini JSON response for batch starting with {batch[0].get('item_code')}: {json_e}. Response: {response_text[:500]}...")
+                    app.logger.error(f"Failed to decode Gemini JSON response for batch starting with {batch[0].get('item_code')}: {json_e}. Response: {response_text[:500]}...")
                     error_msg = {"error": f"Failed to decode Gemini JSON response. {json_e}"}
             else:
-                logger.warning(f"Gemini batch response structure unexpected or empty. Response: {response}")
+                app.logger.warning(f"Gemini batch response structure unexpected or empty. Response: {response}")
                 error_msg = {"error": "Unexpected or empty response from Gemini."}
 
             # If parsing failed or structure was wrong, fill results with the error
@@ -434,7 +445,7 @@ def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
             return batch_results # Return errors
 
         except Exception as e:
-            logger.error(f"Error calling Gemini API for batch (Attempt {attempt + 1}/{max_retries}): {e}")
+            app.logger.error(f"Error calling Gemini API for batch (Attempt {attempt + 1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt) # Exponential backoff
             else:
@@ -468,7 +479,7 @@ def analyze():
     
     # Get the selected TOC type (default to standard if not provided)
     toc_type = request.form.get('toc_type', 'standard')
-    logger.info(f"Selected TOC type: {toc_type}")
+    app.logger.info(f"Selected TOC type: {toc_type}")
 
     # --- File Validation ---
     if lastenboek_file.filename == '':
@@ -488,7 +499,7 @@ def analyze():
     lastenboek_filename = secure_filename(lastenboek_file.filename)
     lastenboek_path = os.path.join(app.config['UPLOAD_FOLDER'], lastenboek_filename)
     lastenboek_file.save(lastenboek_path)
-    logger.info(f"Saved Lastenboek PDF to: {lastenboek_path}")
+    app.logger.info(f"Saved Lastenboek PDF to: {lastenboek_path}")
 
     meetstaat_path = None
     meetstaat_filename = None
@@ -496,7 +507,7 @@ def analyze():
         meetstaat_filename = secure_filename(meetstaat_file.filename)
         meetstaat_path = os.path.join(app.config['UPLOAD_FOLDER'], meetstaat_filename)
         meetstaat_file.save(meetstaat_path)
-        logger.info(f"Saved Meetstaat CSV to: {meetstaat_path}")
+        app.logger.info(f"Saved Meetstaat CSV to: {meetstaat_path}")
 
     # --- Process Files ---
     meetstaat_items = {}
@@ -507,18 +518,18 @@ def analyze():
     try:
         # --- Load TOC JSON from File based on selected type --- 
         selected_toc_path = get_toc_path_by_type(toc_type)
-        logger.info(f"Loading TOC data from: {selected_toc_path}")
+        app.logger.info(f"Loading TOC data from: {selected_toc_path}")
         try:
             with open(selected_toc_path, 'r', encoding='utf-8') as f:
                 toc_data = json.load(f)
-            logger.info(f"Successfully loaded TOC JSON data from {selected_toc_path}.")
+            app.logger.info(f"Successfully loaded TOC JSON data from {selected_toc_path}.")
         except FileNotFoundError:
-            logger.error(f"TOC JSON file not found at: {selected_toc_path}")
+            app.logger.error(f"TOC JSON file not found at: {selected_toc_path}")
             error_messages.append(f"Critical error: TOC JSON file not found at {selected_toc_path}")
             # Stop processing if TOC is missing
             return jsonify({'error': f'Server configuration error: TOC file not found.'}), 500
         except json.JSONDecodeError as json_err:
-            logger.error(f"Error decoding TOC JSON file: {json_err}")
+            app.logger.error(f"Error decoding TOC JSON file: {json_err}")
             error_messages.append(f"Critical error: Invalid format in TOC JSON file.")
             # Stop processing if TOC is invalid
             return jsonify({'error': f'Server configuration error: Invalid TOC file format.'}), 500
@@ -618,9 +629,9 @@ def analyze():
         # --- End Generate Summary --- 
 
         # --- Added Logging --- 
-        logger.info(f"Attempting to save {len(combined_data)} items to session['analysis_results'].")
+        app.logger.info(f"Attempting to save {len(combined_data)} items to session['analysis_results'].")
         if combined_data:
-            logger.debug(f"First item sample for session: {combined_data[0]}")
+            app.logger.debug(f"First item sample for session: {combined_data[0]}")
         # --- End Added Logging ---
         
         # --- Store results in session for export AND discrepancy analysis --- 
@@ -633,12 +644,12 @@ def analyze():
 
         # --- Added Logging ---
         if 'analysis_results' in session:
-            logger.info(f"Successfully set session['analysis_results'] with {len(session['analysis_results'])} items.")
+            app.logger.info(f"Successfully set session['analysis_results'] with {len(session['analysis_results'])} items.")
         else:
-            logger.error("Failed to set session['analysis_results']!")
+            app.logger.error("Failed to set session['analysis_results']!")
         # --- End Added Logging ---
 
-        logger.info(f"Analysis complete. Returning {len(combined_data)} items for UI display.")
+        app.logger.info(f"Analysis complete. Returning {len(combined_data)} items for UI display.")
         # Return analysis output for the UI (reconstructs nested structure)
         ui_analysis_output = []
         for item in combined_data:
@@ -671,6 +682,16 @@ def analyze():
              }
              ui_analysis_output.append(ui_friendly_item)
 
+        # --- Added Logging: Check data just before sending --- 
+        if ui_analysis_output:
+            app.logger.debug("--- Sample of ui_analysis_output being sent to frontend ---")
+            sample_count_ui = min(3, len(ui_analysis_output))
+            for i in range(sample_count_ui):
+                 item_sample = ui_analysis_output[i]
+                 app.logger.debug(f"Item {i+1} Sample: code={item_sample.get('item_code')}, meetstaat_present={item_sample.get('meetstaat_present')}, lastenboek_present={item_sample.get('lastenboek_toc_entry_present')}, lastenboek_range={item_sample.get('lastenboek_page_range')}")
+            app.logger.debug("--- End sample ---")
+        # --- End Added Logging ---
+
         return jsonify({
             'message': 'Analysis complete!',
             'errors': error_messages,
@@ -683,7 +704,7 @@ def analyze():
         })
 
     except Exception as e:
-        logger.exception("An error occurred during analysis:") # Log full traceback
+        app.logger.exception("An error occurred during analysis:") # Changed Log full traceback
         # Ensure temporary files are cleaned up even on error
         # ... (Add cleanup logic here too) ...
         # Retrieve filename if already set
@@ -707,23 +728,23 @@ def analyze():
 # --- New Route for Discrepancy Analysis --- 
 @app.route('/start_discrepancy_analysis', methods=['POST'])
 def start_discrepancy_analysis():
-    logger.info("--- Entering /start_discrepancy_analysis ---") # Log entry
+    app.logger.info("--- Entering /start_discrepancy_analysis ---") # Changed Log entry
     
     # --- Granular Logging --- 
     try:
         session_keys = list(session.keys()) # Get session keys
-        logger.debug(f"Session keys at start of request: {session_keys}")
+        app.logger.debug(f"Session keys at start of request: {session_keys}")
         has_key = 'analysis_results' in session
         is_data_present = bool(session.get('analysis_results')) # Check if data is truthy
-        logger.debug(f"Checking session: has_key='{has_key}', is_data_present='{is_data_present}'")
+        app.logger.debug(f"Checking session: has_key='{has_key}', is_data_present='{is_data_present}'")
     except Exception as e:
-        logger.error(f"Error accessing session at start: {e}", exc_info=True)
+        app.logger.error(f"Error accessing session at start: {e}", exc_info=True)
         return jsonify({'error': 'Internal server error accessing session data.'}), 500
     # --- End Granular Logging ---
         
     # Check if analysis results exist in session
     if 'analysis_results' not in session or not session['analysis_results']:
-        logger.error("Session check failed: 'analysis_results' key not found or data is empty.")
+        app.logger.error("Session check failed: 'analysis_results' key not found or data is empty.")
         return jsonify({'error': 'No analysis results found in session. Please run analysis first.'}), 400
     
     # Check if the TOC type used implies summaries exist by checking *any* item
@@ -737,43 +758,43 @@ def start_discrepancy_analysis():
                  break # Found one, no need to check further
 
     if not has_summaries:
-         logger.warning(f"Task Placement Analysis requires TOC with summaries (vision type). Current type: {toc_type}. No summaries detected in any item.")
+         app.logger.warning(f"Task Placement Analysis requires TOC with summaries (vision type). Current type: {toc_type}. No summaries detected in any item.")
          return jsonify({'error': f'This analysis requires a TOC with summaries (e.g., vision-generated). No summaries were found in the analysis data for TOC type: {toc_type}'}), 400
 
-    logger.debug(f"Session check passed, TOC type '{toc_type}' appears to have summaries. Proceeding...") 
+    app.logger.debug(f"Session check passed, TOC type '{toc_type}' appears to have summaries. Proceeding...") 
     
     # Parse request to get selected items for analysis or analyze all
     try:
         req_data = request.get_json() or {}
-        logger.debug(f"Parsed request data: {req_data}")
+        app.logger.debug(f"Parsed request data: {req_data}")
         selected_codes = req_data.get('selected_codes', [])
-        logger.debug(f"Selected codes: {selected_codes}")
+        app.logger.debug(f"Selected codes: {selected_codes}")
     except Exception as e:
-        logger.error(f"Error parsing request JSON: {e}", exc_info=True)
+        app.logger.error(f"Error parsing request JSON: {e}", exc_info=True)
         return jsonify({'error': 'Invalid request format.'}), 400
         
     all_items_from_session = session['analysis_results'] 
-    logger.debug(f"Retrieved {len(all_items_from_session)} items from session['analysis_results'].")
+    app.logger.debug(f"Retrieved {len(all_items_from_session)} items from session['analysis_results'].")
     
     # --- Prepare items for the NEW analysis --- 
     items_to_analyze = []
-    logger.info("Filtering items from session for Task Placement analysis:") # Changed log message
+    app.logger.info("Filtering items from session for Task Placement analysis:") # Changed log message
     for i, item in enumerate(all_items_from_session):
         item_code = item.get('item_code', 'UNKNOWN')
         item_source = item.get('source', 'UNKNOWN')
         summary_present = bool(item.get('lastenboek_summary')) # Check if summary key exists and is truthy
         
         # Log check details for each item
-        logger.debug(f"  Item {i+1} [Code: {item_code}]: Source='{item_source}', HasSummary={summary_present}")
+        app.logger.debug(f"  Item {i+1} [Code: {item_code}]: Source='{item_source}', HasSummary={summary_present}")
 
         # ** Corrected condition: Check source and summary presence **
         if item_source in ['both', 'lastenboek_only'] and summary_present:
             # If specific codes requested, check if this item is in the list
             if selected_codes and item_code not in selected_codes:
-                logger.debug(f"    -> Skipping item {item_code} (not in selected codes)")
+                app.logger.debug(f"    -> Skipping item {item_code} (not in selected codes)")
                 continue
             
-            logger.debug(f"    -> Adding item {item_code} to analyze list.")
+            app.logger.debug(f"    -> Adding item {item_code} to analyze list.")
             # Construct the dictionary needed by analyze_batch_with_gemini for the NEW check
             items_to_analyze.append({
                 'item_code': item_code,
@@ -783,16 +804,16 @@ def start_discrepancy_analysis():
                 'lastenboek_summary': item.get('lastenboek_summary') 
             })
         else: 
-            logger.debug(f"    -> Skipping item {item_code} (Condition not met: Source='{item_source}', HasSummary={summary_present})")
+            app.logger.debug(f"    -> Skipping item {item_code} (Condition not met: Source='{item_source}', HasSummary={summary_present})")
 
-    logger.info(f"Prepared {len(items_to_analyze)} items for Task Placement analysis.")
+    app.logger.info(f"Prepared {len(items_to_analyze)} items for Task Placement analysis.")
     if len(items_to_analyze) > 0:
-        logger.debug(f"First item to analyze (sample): {items_to_analyze[0]}")
+        app.logger.debug(f"First item to analyze (sample): {items_to_analyze[0]}")
         
     if not items_to_analyze:
-        logger.warning("No items with Lastenboek summaries found in session data for Task Placement analysis.")
+        app.logger.warning("No items with Lastenboek summaries found in session data for Task Placement analysis.")
         error_payload = {'error': 'No valid items (with Lastenboek summaries) available for analysis.'}
-        logger.error(f"Returning 400 error with payload: {error_payload}")
+        app.logger.error(f"Returning 400 error with payload: {error_payload}")
         return jsonify(error_payload), 400
     
     # Process the items in batches
@@ -800,21 +821,21 @@ def start_discrepancy_analysis():
     all_llm_results = {}
     batches = [items_to_analyze[i:i+batch_size] for i in range(0, len(items_to_analyze), batch_size)]
     
-    logger.info(f"Processing {len(batches)} batches for Task Placement analysis...") 
+    app.logger.info(f"Processing {len(batches)} batches for Task Placement analysis...") 
     for i, batch in enumerate(batches):
-        logger.info(f"Processing Task Placement batch {i+1}/{len(batches)} with {len(batch)} items")
+        app.logger.info(f"Processing Task Placement batch {i+1}/{len(batches)} with {len(batch)} items")
         # ** NOTE: analyze_batch_with_gemini now performs the NEW check **
         batch_llm_results = analyze_batch_with_gemini(batch) 
-        logger.debug(f"LLM results for batch {i+1}: {batch_llm_results}") 
+        app.logger.debug(f"LLM results for batch {i+1}: {batch_llm_results}") 
         all_llm_results.update(batch_llm_results)
         if i < len(batches) - 1: time.sleep(1)
     
     session['task_placement_analysis_llm_results'] = all_llm_results # Store separately?
-    logger.info(f"Task Placement analysis completed. LLM provided results for {len(all_llm_results)} items.")
+    app.logger.info(f"Task Placement analysis completed. LLM provided results for {len(all_llm_results)} items.")
     
     # --- Integrate results back for UI --- 
     final_analysis_output_for_ui = []
-    logger.debug("Merging Task Placement LLM results with original session data for UI...")
+    app.logger.debug("Merging Task Placement LLM results with original session data for UI...")
     for item_from_session in session['analysis_results']: 
         item_code = item_from_session.get('item_code')
         # Use the existing UI structure but populate llm_discrepancy_analysis with the NEW check results
@@ -841,7 +862,7 @@ def start_discrepancy_analysis():
         # If this item was analyzed by the LLM (new check), add the result
         if item_code in all_llm_results:
             ui_item['llm_discrepancy_analysis'] = all_llm_results[item_code]
-            logger.debug(f"  Merged Task Placement result for item {item_code}")
+            app.logger.debug(f"  Merged Task Placement result for item {item_code}")
         
         final_analysis_output_for_ui.append(ui_item)
         
@@ -858,10 +879,10 @@ def start_discrepancy_analysis():
     
     # --- Store the final merged results in session for export --- 
     session['final_discrepancy_results'] = final_analysis_output_for_ui # Overwrite with new results
-    logger.info("Stored final Task Placement results in session['final_discrepancy_results'].")
+    app.logger.info("Stored final Task Placement results in session['final_discrepancy_results'].")
     # -----------------------------------------------------------
 
-    logger.info("--- Exiting /start_discrepancy_analysis successfully ---")
+    app.logger.info("--- Exiting /start_discrepancy_analysis successfully ---")
     return jsonify(response_data), 200
 # ------------------------------------------
 
@@ -888,14 +909,14 @@ def export_discrepancy_json():
     # Retrieve the discrepancy results stored in the session
     discrepancy_results = session.get('final_discrepancy_results', [])
     if not discrepancy_results:
-        logger.warning("Attempted to export discrepancy JSON, but no results found in session.")
+        app.logger.warning("Attempted to export discrepancy JSON, but no results found in session.")
         return jsonify({"error": "No discrepancy analysis results found in session. Please run discrepancy analysis first."}), 404
 
     # Create a JSON response with headers for download
     response = make_response(jsonify(discrepancy_results))
     response.headers["Content-Disposition"] = "attachment; filename=discrepancy_analysis_results.json"
     response.headers["Content-Type"] = "application/json"
-    logger.info("Exporting discrepancy analysis results as JSON.")
+    app.logger.info("Exporting discrepancy analysis results as JSON.")
     return response
 # ---------------------------------------------------------
 

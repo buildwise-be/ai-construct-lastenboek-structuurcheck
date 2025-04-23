@@ -223,7 +223,7 @@
             let lastenboekDetailsHtml = '';
             if (item.lastenboek_toc_entry_present && lastenboekInfo) {
               const tocTitle = lastenboekInfo.title || 'N/A';
-              const pageRange = `Pagina's ${lastenboekInfo.start}-${lastenboekInfo.end}`;
+              const pageRange = `Pagina's ${lastenboekInfo.start_page}-${lastenboekInfo.end_page}`;
               lastenboekDetailsHtml = `<p><strong class="font-medium text-gray-700">Lastenboek TOC:</strong> ${tocTitle} (${pageRange})</p>`;
             }
             // --- End Build Lastenboek Details ---
