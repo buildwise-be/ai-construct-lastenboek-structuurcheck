@@ -53,7 +53,9 @@
           <h2 class="text-xl font-semibold">Analysis Results</h2>
           <div> <!-- Container for buttons -->
             <!-- Discrepancy Analysis Button - Initially Hidden -->
-            <button id="discrepancy-button" class="hidden bg-yellow-500 text-white px-4 py-2 rounded text-sm hover:bg-yellow-600 mr-2 disabled:opacity-50">Analyze Discrepancies</button>
+            <button id="discrepancy-button" class="hidden bg-yellow-500 text-white px-4 py-2 rounded text-sm hover:bg-yellow-600 mr-2 disabled:opacity-50">Analyze Consistency</button>
+            <!-- NEW Task Placement Check Button -->
+            <button id="placement-button" class="hidden bg-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-blue-600 mr-2 disabled:opacity-50">Run Task Placement Check</button>
             <!-- Export Button - Initially Hidden -->
             <button id="export-button" class="hidden bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">Export Initial JSON</button>
             <!-- Export Discrepancy Button - Initially Hidden -->
@@ -69,7 +71,7 @@
       <div class="mt-10">
         <h2 class="text-xl font-semibold mb-4">Discrepancy Analysis</h2>
         <div id="discrepancy-results-area" class="hidden bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300 min-h-[100px]">
-          <p class="text-gray-500 italic">Click 'Analyze Discrepancies' above to start...</p>
+          <p class="text-gray-500 italic">Click 'Analyze Consistency' above to start...</p>
         </div>
       </div>
 
@@ -87,6 +89,7 @@
     const discrepancyButton = document.getElementById('discrepancy-button');
     const discrepancyResultsArea = document.getElementById('discrepancy-results-area');
     const exportDiscrepancyButton = document.getElementById('export-discrepancy-button');
+    const placementButton = document.getElementById('placement-button');
 
     analyzeButton.addEventListener('click', async () => {
       // Get the files
@@ -134,6 +137,7 @@
         if (result.error) {
           exportButton.classList.add('hidden');
           discrepancyButton.classList.add('hidden');
+          placementButton.classList.add('hidden');
           discrepancyResultsArea.classList.add('hidden');
           exportDiscrepancyButton.classList.add('hidden');
           throw new Error(`Backend error: ${result.error}`);
@@ -187,87 +191,35 @@
         // Update the results area with initial info + summary
         resultsArea.innerHTML = initialHtml;
 
-        // Helper function to generate item list HTML
-        const generateItemListHtml = (items, title) => {
-          let listHtml = `<h3 class="font-semibold mb-2 mt-4">${title} (${items.length} items):</h3>`;
-          if (items.length === 0) {
-            listHtml += '<p class="text-sm text-gray-500 italic">None</p>';
-            return listHtml;
-          }
-          listHtml += '<div class="space-y-3 text-sm max-h-96 overflow-y-auto border rounded p-3 bg-gray-100">'; // Increased max-height
-          items.forEach(item => {
-            const code = item.item_code;
-            const meetstaatInfo = item.meetstaat_info;
-            const lastenboekInfo = item.lastenboek_page_range;
-            const comparisonResult = item.comparison_result || 'Pending'; // Use comparison_result key
+        // Create the results table (if not already using updateTableWithResults)
+        updateTableWithResults(combinedData, 'initial-results-table'); // Generate initial table
 
-            // --- Build Meetstaat Details String --- 
-            let meetstaatDetailsHtml = '';
-            if (item.meetstaat_present && meetstaatInfo) {
-              const description = meetstaatInfo.Description || 'N/A';
-              const quantity = meetstaatInfo.Quantity !== undefined && meetstaatInfo.Quantity !== null ? meetstaatInfo.Quantity : 'N/A'; // Handle potential null/undefined
-              const unit = meetstaatInfo.Unit || ''; // Empty string if no unit
-              const type = meetstaatInfo.Type || ''; // Contains expanded text like "Vermoedelijke Hoeveelheid (VH)"
-              const notes = meetstaatInfo.Notes || ''; // Contains expanded text or original like HVAC
-              
-              meetstaatDetailsHtml = `
-                <p><strong class="font-medium text-gray-700">Meetstaat:</strong> ${description}</p>
-                <p class="text-xs ml-4 text-gray-600">
-                  Hoeveelheid: ${quantity} ${unit} (${type}) ${notes ? `- ${notes}` : ''}
-                </p>
-              `;
-            }
-            // --- End Build Meetstaat Details ---
-
-            // --- Build Lastenboek Details String ---
-            let lastenboekDetailsHtml = '';
-            if (item.lastenboek_toc_entry_present && lastenboekInfo) {
-              const tocTitle = lastenboekInfo.title || 'N/A';
-              const pageRange = `Pagina's ${lastenboekInfo.start_page}-${lastenboekInfo.end_page}`;
-              lastenboekDetailsHtml = `<p><strong class="font-medium text-gray-700">Lastenboek TOC:</strong> ${tocTitle} (${pageRange})</p>`;
-            }
-            // --- End Build Lastenboek Details ---
-
-            listHtml += `
-              <div class="border-b border-gray-200 pb-3 mb-3">
-                <p class="font-semibold text-gray-800 mb-1">Code: ${code}</p>
-                ${meetstaatDetailsHtml}
-                ${lastenboekDetailsHtml}
-                <p class="mt-1 text-xs text-gray-500 italic">Vergelijking: ${comparisonResult}</p>
-              </div>
-            `;
-          });
-          listHtml += '</div>'; // Close scrollable container
-          return listHtml;
-        };
-
-        // Generate HTML for each detailed section
-        let detailHtml = generateItemListHtml(foundInBoth, 'Items Found in Both Meetstaat and Lastenboek TOC');
-        detailHtml += generateItemListHtml(onlyInMeetstaat, 'Items Found Only in Meetstaat');
-        detailHtml += generateItemListHtml(onlyInTOC, 'Items Found Only in Lastenboek TOC');
-
-        // Append the detailed lists to the results area
-        // Use insertAdjacentHTML to add after the summary/errors/files info
-        resultsArea.insertAdjacentHTML('beforeend', detailHtml);
-
-        // Show action buttons if analysis was successful and has data
-        if (combinedData.length > 0) {
-            exportButton.classList.remove('hidden');
+        // Show the appropriate buttons after initial analysis
+        exportButton.classList.remove('hidden');
+        // Show consistency button only if meetstaat was provided
+        if (meetstaatInput.files[0]) {
             discrepancyButton.classList.remove('hidden');
-            exportDiscrepancyButton.classList.add('hidden');
-            // Keep discrepancy results area hidden until analysis is triggered
         } else {
-            exportButton.classList.add('hidden');
             discrepancyButton.classList.add('hidden');
-            discrepancyResultsArea.classList.add('hidden');
-            exportDiscrepancyButton.classList.add('hidden');
         }
+        // Show placement button only if TOC type is 'vision' (implies summaries)
+        if (selectedTocType === 'vision') {
+             placementButton.classList.remove('hidden');
+        } else {
+             placementButton.classList.add('hidden');
+        }
+        discrepancyResultsArea.innerHTML = '<p class="text-gray-500 italic">Select an analysis type above to begin...</p>'; // Clear previous results
+        discrepancyResultsArea.classList.add('hidden'); // Ensure it's hidden
+        exportDiscrepancyButton.classList.add('hidden'); // Hide export until discrepancy run
+
+        // --- END Initial Results Display ---
 
       } catch (error) {
-        console.error('Error during analysis or display:', error);
-        resultsArea.innerHTML = `<p class="text-red-600 font-semibold">An error occurred: ${error.message}</p>`;
+        console.error('Error during analysis:', error);
+        resultsArea.innerHTML = `<p class="text-red-600 font-semibold">Error: ${error.message || 'Could not complete analysis.'}</p>`;
         exportButton.classList.add('hidden');
         discrepancyButton.classList.add('hidden');
+        placementButton.classList.add('hidden'); // Also hide on error
         discrepancyResultsArea.classList.add('hidden');
         exportDiscrepancyButton.classList.add('hidden');
       } finally {
@@ -277,211 +229,229 @@
       }
     });
 
-    // --- Add event listener for Export Button ---
+    // --- Discrepancy Analysis (Consistency Check) Event Listener ---
+    discrepancyButton.addEventListener('click', () => {
+      // Add 'disabled' state while running
+      discrepancyButton.disabled = true;
+      placementButton.disabled = true; // Disable other button too
+      discrepancyButton.textContent = 'Analyzing...';
+      // Call a function to handle the secondary analysis request
+      runSecondaryAnalysis('consistency');
+    });
+
+    // --- NEW Task Placement Analysis Event Listener ---
+    placementButton.addEventListener('click', () => {
+        // Add 'disabled' state while running
+        placementButton.disabled = true;
+        discrepancyButton.disabled = true; // Disable other button too
+        placementButton.textContent = 'Analyzing...';
+        // Call the function to handle the secondary analysis request
+        runSecondaryAnalysis('task_placement');
+    });
+
+
+    // --- Function to Handle Secondary Analysis (Consistency or Placement) ---
+    async function runSecondaryAnalysis(analysisType) {
+        // Determine which button to update based on type
+        const currentButton = (analysisType === 'consistency') ? discrepancyButton : placementButton;
+
+        // Clear previous discrepancy results and show loading
+        discrepancyResultsArea.innerHTML = `<p class="text-blue-600 font-semibold">Running ${analysisType.replace('_', ' ')} analysis... Please wait.</p>`;
+        discrepancyResultsArea.classList.remove('hidden');
+        exportDiscrepancyButton.classList.add('hidden'); // Hide export button during analysis
+
+        try {
+            // Get selected item codes (optional, if you add checkboxes)
+            const selectedCodes = []; // Example: Get selected codes from checkboxes if implemented
+            // If no codes selected, backend analyzes all applicable items
+
+            // Send request to backend
+            const response = await fetch('/start_discrepancy_analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    selected_codes: selectedCodes,
+                    analysis_type: analysisType // Pass the type
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: `HTTP error! status: ${response.status}` }));
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (!result.success || result.error) {
+                 throw new Error(result.error || result.message || 'Analysis failed on the server.');
+            }
+
+            // --- Display Discrepancy/Placement Results ---
+             discrepancyResultsArea.innerHTML = `
+                <h3 class="font-semibold mb-2">${analysisType.replace('_', ' ').toUpperCase()} Analysis Results:</h3>
+                <p class="mb-4">${result.message || 'Analysis complete.'}</p>
+            `;
+
+            // Check if results exist and update the table
+            if (result.analysis_output && result.analysis_output.length > 0) {
+                 updateTableWithResults(result.analysis_output, 'discrepancy-results-table', true); // Use table update function
+                 exportDiscrepancyButton.classList.remove('hidden'); // Show export button
+            } else {
+                 discrepancyResultsArea.innerHTML += '<p class="text-gray-500 italic">No items were processed or returned by the LLM.</p>';
+                 exportDiscrepancyButton.classList.add('hidden');
+            }
+             // --- End Display Results ---
+
+        } catch (error) {
+            console.error(`Error during ${analysisType} analysis:`, error);
+            discrepancyResultsArea.innerHTML = `<p class="text-red-600 font-semibold">Error during ${analysisType.replace('_', ' ')} analysis: ${error.message || 'Could not complete analysis.'}</p>`;
+            exportDiscrepancyButton.classList.add('hidden');
+        } finally {
+            // Re-enable buttons
+            currentButton.disabled = false;
+            currentButton.textContent = (analysisType === 'consistency') ? 'Analyze Consistency' : 'Run Task Placement Check';
+             // Re-enable the other button too, if it exists and wasn't the one clicked
+             if (analysisType === 'consistency' && placementButton) placementButton.disabled = false;
+             if (analysisType === 'task_placement' && discrepancyButton) discrepancyButton.disabled = false;
+        }
+    }
+
+
+    // --- Function to Update Table (Initial or Discrepancy) ---
+    function updateTableWithResults(data, tableId, isDiscrepancyAnalysis = false) {
+        let tableHtml = `
+            <div class="overflow-x-auto">
+             <table id="${tableId}" class="min-w-full divide-y divide-gray-200 shadow border border-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meetstaat Details</th>
+                        <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lastenboek TOC Details</th>
+                        ${isDiscrepancyAnalysis ? '<th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">LLM Analysis</th>' : ''}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+        `;
+
+        if (!data || data.length === 0) {
+            tableHtml += '<tr><td colspan="4" class="px-4 py-3 text-sm text-gray-500 italic text-center">No data available.</td></tr>';
+        } else {
+            data.forEach(item => {
+                const code = item.item_code || 'N/A';
+
+                // --- Meetstaat Info ---
+                let meetstaatHtml = '<td class="px-4 py-3 whitespace-normal align-top text-sm text-gray-500">'; // Use normal whitespace
+                if (item.meetstaat_present && item.meetstaat_info) {
+                    const mInfo = item.meetstaat_info;
+                    const description = mInfo.Description || 'N/A';
+                    const quantity = mInfo.Quantity !== undefined && mInfo.Quantity !== null ? mInfo.Quantity : 'N/A';
+                    const unit = mInfo.Unit || '';
+                    const type = mInfo.Type || ''; // Contains expanded text
+                    const notes = mInfo.Notes || '';
+                    meetstaatHtml += `
+                        <p class="font-medium text-gray-900">${description}</p>
+                        <p class="text-xs text-gray-600 mt-1">Qty: ${quantity} ${unit} (${type}) ${notes ? `- ${notes}` : ''}</p>
+                    `;
+                } else {
+                    meetstaatHtml += '<span class="italic text-gray-400">N/A</span>';
+                }
+                meetstaatHtml += '</td>';
+
+                // --- Lastenboek Info ---
+                let lastenboekHtml = '<td class="px-4 py-3 whitespace-normal align-top text-sm text-gray-500">'; // Use normal whitespace
+                if (item.lastenboek_toc_entry_present && item.lastenboek_page_range) {
+                    const lInfo = item.lastenboek_page_range;
+                    const title = lInfo.title || 'N/A';
+                    const pageRange = `P. ${lInfo.start || '?'}-${lInfo.end || '?'}`;
+                    const summary = lInfo.summary || ''; // Get summary if available
+                    lastenboekHtml += `
+                        <p class="font-medium text-gray-900">${title} <span class="text-xs">(${pageRange})</span></p>
+                        ${summary ? `<p class="text-xs text-gray-600 mt-1 italic">Summary: ${summary.substring(0, 150)}...</p>` : ''}
+                    `;
+                } else {
+                    lastenboekHtml += '<span class="italic text-gray-400">N/A</span>';
+                }
+                lastenboekHtml += '</td>';
+
+                // --- LLM Analysis Info (Only if isDiscrepancyAnalysis is true) ---
+                let llmHtml = '';
+                if (isDiscrepancyAnalysis) {
+                    llmHtml = '<td class="px-4 py-3 whitespace-normal align-top text-sm text-gray-500">'; // Use normal whitespace
+                    const analysis = item.llm_discrepancy_analysis; // Use the correct key
+                    if (analysis) {
+                         if (analysis.error) {
+                             llmHtml += `<span class="text-red-600 font-semibold">Error:</span> <span class="text-xs">${analysis.error}</span>`;
+                         } else {
+                             const checks = analysis.checks || {};
+                             // Display result from either 'consistency' or 'task_placement' check
+                             const checkResult = checks.consistency || checks.task_placement; 
+                             
+                             if (checkResult) {
+                                 const issueFound = checkResult.issue_found;
+                                 const description = checkResult.description || 'No description.';
+                                 const significant = checkResult.significant;
+                                 const bgColor = issueFound ? (significant ? 'bg-red-100' : 'bg-yellow-100') : 'bg-green-100';
+                                 const icon = issueFound ? (significant ? '❗️' : '⚠️') : '✅';
+                                 
+                                 llmHtml += `
+                                     <div class="p-2 rounded ${bgColor}">
+                                        <p class="font-medium text-gray-900">${icon} ${issueFound ? (significant ? 'Significant Issue Found' : 'Potential Issue Found') : 'No Issue Found'}</p>
+                                        <p class="text-xs text-gray-700 mt-1">${description}</p>
+                                        ${analysis.summary ? `<p class="text-xs italic text-gray-500 mt-1">LLM Summary: ${analysis.summary}</p>` : ''}
+                                     </div>
+                                 `;
+                             } else {
+                                llmHtml += '<span class="italic text-gray-400">Analysis structure unexpected.</span>';
+                             }
+                         }
+                    } else {
+                         llmHtml += '<span class="italic text-gray-400">Pending / Not Analyzed</span>';
+                    }
+                    llmHtml += '</td>';
+                }
+
+
+                // --- Table Row ---
+                tableHtml += `
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap align-top text-sm font-medium text-gray-900">${code}</td>
+                        ${meetstaatHtml}
+                        ${lastenboekHtml}
+                        ${llmHtml}
+                    </tr>
+                `;
+            });
+        }
+
+        tableHtml += `
+                </tbody>
+             </table>
+            </div>
+        `;
+
+        // Place the table in the correct area
+        if (isDiscrepancyAnalysis) {
+             // Prepend the table to the discrepancy area (keeps messages visible above)
+             discrepancyResultsArea.insertAdjacentHTML('beforeend', tableHtml);
+        } else {
+             // Replace content of initial results area
+             resultsArea.innerHTML += tableHtml; // Append table after summary info
+        }
+    }
+
+
+    // --- Export Button Event Listener (Initial Analysis) ---
     exportButton.addEventListener('click', () => {
         // Redirect the browser to the export endpoint
         window.location.href = '/export_json';
     });
 
-    // --- Add event listener for Discrepancy Analysis Button ---
-    discrepancyButton.addEventListener('click', async () => {
-        discrepancyResultsArea.classList.remove('hidden'); // Show the results area
-        discrepancyResultsArea.innerHTML = '<p class="text-blue-600 font-semibold">Starting discrepancy analysis with Gemini... Please wait (this may take a while).</p>';
-        discrepancyButton.disabled = true;
-        discrepancyButton.textContent = 'Analyzing...';
-        exportDiscrepancyButton.classList.add('hidden'); // Hide during analysis
-
-        try {
-            const response = await fetch('/start_discrepancy_analysis', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json' // Keep header
-                },
-                body: JSON.stringify({}) // Add an empty JSON object as the body
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: "Unknown error during discrepancy analysis." }));
-                throw new Error(`HTTP error ${response.status}: ${errorData.error || response.statusText}`);
-            }
-
-            const result = await response.json();
-
-            if (result.error) {
-                throw new Error(`Backend error: ${result.error}`);
-            }
-
-            // --- Display Discrepancy Results ---
-            let discrepancyHtml = `
-              <h3 class="font-semibold mb-2">Analysis Status:</h3>
-              <p class="mb-4">${result.message || 'Analysis complete.'}</p>
-              <p class="mb-4 text-sm text-gray-600">TOC Type Used: ${result.toc_type || 'standard'} (${result.toc_path || 'default path'})</p>
-              <h3 class="font-semibold mb-2 mt-4">Discrepancy Findings (for items in both sources):</h3>
-            `;
-
-            const analysisOutput = result.analysis_output || [];
-            // Filter items that have actual LLM analysis results
-            const analyzedItems = analysisOutput.filter(item => 
-                item.llm_discrepancy_analysis !== null && 
-                item.llm_discrepancy_analysis !== undefined
-            );
-
-            if (analyzedItems.length === 0) {
-                discrepancyHtml += '<p class="text-sm text-gray-500 italic">No items found in both sources to analyze.</p>';
-            } else {
-                 discrepancyHtml += '<div class="space-y-3 text-sm max-h-96 overflow-y-auto border rounded p-3 bg-gray-100">'; // Scrollable container
-                 analyzedItems.forEach(item => {
-                    // Check for error cases first
-                    let isError = false;
-                    let errorText = 'Unknown error occurred'; // Default error message
-                    if (item.error) { // Check top-level error key first
-                        isError = true;
-                        errorText = item.error;
-                    } else if (item.llm_discrepancy_analysis) {
-                        if (typeof item.llm_discrepancy_analysis === 'string' && item.llm_discrepancy_analysis.toLowerCase().startsWith('error:')) {
-                            // It's an error string
-                            isError = true;
-                            errorText = item.llm_discrepancy_analysis;
-                        } else if (typeof item.llm_discrepancy_analysis === 'object' && item.llm_discrepancy_analysis !== null && item.llm_discrepancy_analysis.error) {
-                            // It's an error object returned from the LLM batch function
-                            isError = true;
-                            errorText = item.llm_discrepancy_analysis.error;
-                        } // Note: A successful object analysis doesn't trigger an error here
-                    } else {
-                         // Handle case where llm_discrepancy_analysis is missing entirely or null/undefined
-                         isError = true; 
-                         errorText = 'Analysis result missing or invalid.';
-                    }
-
-                    if (isError) {
-                        discrepancyHtml += `
-                            <div class="border-b border-gray-200 pb-3 mb-3 p-2 rounded bg-red-50">
-                                <p class="font-semibold text-gray-800 mb-1">Code: ${item.item_code}</p>
-                                <p class="text-red-600">${errorText}</p>
-                            </div>
-                        `;
-                        return; // Skip to next item
-                    }
-
-                    // --- If not an error, proceed with parsing/displaying structured data ---
-
-                    // Parse the structured response
-                    let analysisData;
-                    try {
-                        // Handle both string format and already parsed format
-                        if (typeof item.llm_discrepancy_analysis === 'string') {
-                            // Try to parse if it's a JSON string
-                            if (item.llm_discrepancy_analysis.trim().startsWith('{')) {
-                                analysisData = JSON.parse(item.llm_discrepancy_analysis);
-                            } else {
-                                // Legacy format - simple text
-                                const isSignificant = item.llm_discrepancy_analysis.endsWith('Significant discrepancy.');
-                                discrepancyHtml += `
-                                    <div class="border-b border-gray-200 pb-3 mb-3 p-2 rounded ${isSignificant ? 'bg-red-100' : 'bg-gray-100'}">
-                                        <p class="font-semibold text-gray-800 mb-1">Code: ${item.item_code}</p>
-                                        <p class="${isSignificant ? 'text-red-800 font-medium' : 'text-gray-700'}">${item.llm_discrepancy_analysis}</p>
-                                    </div>
-                                `;
-                                return; // Skip to next item
-                            }
-                        } else {
-                            // Already parsed as object
-                            analysisData = item.llm_discrepancy_analysis;
-                        }
-                        
-                        // Only proceed if we actually have a checks object
-                        if (!analysisData || !analysisData.checks) {
-                            throw new Error("Missing checks data");
-                        }
-                        
-                        // Determine if this item has any significant issues
-                        const hasSignificantIssue = analysisData.has_significant_issue || 
-                            (analysisData.checks.consistency && analysisData.checks.consistency.significant) ||
-                            (analysisData.checks.location && analysisData.checks.location.significant);
-                        
-                        // Start building the item card
-                        discrepancyHtml += `
-                            <div class="border-b border-gray-200 pb-3 mb-3 p-2 rounded ${hasSignificantIssue ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}">
-                                <p class="font-semibold text-gray-800 mb-1 flex justify-between">
-                                    <span>Code: ${item.item_code}</span>
-                                    ${hasSignificantIssue ? '<span class="text-red-600 text-xs px-2 py-1 bg-red-100 rounded-full">Significant Issues</span>' : ''}
-                                </p>
-                        `;
-                        
-                        // Add summary if available
-                        if (analysisData.summary) {
-                            discrepancyHtml += `<p class="mb-2 ${hasSignificantIssue ? 'text-red-700 font-medium' : 'text-gray-700'}">${analysisData.summary}</p>`;
-                        }
-                        
-                        // Add check sections with collapsible details
-                        // 1. Consistency Check
-                        const consistencyCheck = analysisData.checks.consistency || {};
-                        discrepancyHtml += `
-                            <div class="mt-2 p-1 rounded ${consistencyCheck.significant ? 'bg-red-100' : (consistencyCheck.issue_found ? 'bg-yellow-50' : 'bg-gray-100')}">
-                                <p class="text-sm font-medium ${consistencyCheck.significant ? 'text-red-700' : (consistencyCheck.issue_found ? 'text-yellow-700' : 'text-gray-600')}">
-                                    <span class="mr-1">🔍</span> Consistency Check: 
-                                    ${consistencyCheck.issue_found ? 'Issue Found' : 'No Issues'}
-                                    ${consistencyCheck.significant ? ' (Significant)' : ''}
-                                </p>
-                                <p class="text-xs ml-6 mt-1">${consistencyCheck.description || 'No details available'}</p>
-                            </div>
-                        `;
-                        
-                        // 2. Location Check
-                        const locationCheck = analysisData.checks.location || {};
-                        discrepancyHtml += `
-                            <div class="mt-2 p-1 rounded ${locationCheck.significant ? 'bg-red-100' : (locationCheck.issue_found ? 'bg-yellow-50' : 'bg-gray-100')}">
-                                <p class="text-sm font-medium ${locationCheck.significant ? 'text-red-700' : (locationCheck.issue_found ? 'text-yellow-700' : 'text-gray-600')}">
-                                    <span class="mr-1">📍</span> Location/Task Check: 
-                                    ${locationCheck.issue_found ? 'Issue Found' : 'No Issues'}
-                                    ${locationCheck.significant ? ' (Significant)' : ''}
-                                </p>
-                                <p class="text-xs ml-6 mt-1">${locationCheck.description || 'No details available'}</p>
-                            </div>
-                        `;
-                        
-                        // Close the item card
-                        discrepancyHtml += `</div>`;
-                        
-                    } catch (e) {
-                        // Fallback for parsing errors or unexpected formats
-                        console.error('Error parsing analysis data for item', item.item_code, e);
-                        discrepancyHtml += `
-                            <div class="border-b border-gray-200 pb-3 mb-3 p-2 rounded bg-gray-100">
-                                <p class="font-semibold text-gray-800 mb-1">Code: ${item.item_code}</p>
-                                <p class="text-gray-700">${item.llm_discrepancy_analysis || 'Analysis data format error'}</p>
-                            </div>
-                        `;
-                    }
-                 });
-                 discrepancyHtml += '</div>'; // Close scrollable container
-            }
-            discrepancyResultsArea.innerHTML = discrepancyHtml;
-            
-            // --- Show the export discrepancy button on success ---
-            if (analyzedItems.length > 0) {
-                exportDiscrepancyButton.classList.remove('hidden');
-            } else {
-                exportDiscrepancyButton.classList.add('hidden');
-            }
-            // -----------------------------------------------------
-
-        } catch (error) {
-            console.error('Error during discrepancy analysis:', error);
-            discrepancyResultsArea.innerHTML = `<p class="text-red-600 font-semibold">An error occurred during discrepancy analysis: ${error.message}</p>`;
-            exportDiscrepancyButton.classList.add('hidden'); // Hide on error
-        } finally {
-            discrepancyButton.disabled = false;
-            discrepancyButton.textContent = 'Analyze Discrepancies';
-        }
-    });
-    // ---------------------------------------------------------
-
-    // --- Add event listener for Export Discrepancy Button --- 
+    // --- Export Discrepancy Button Event Listener --- 
     exportDiscrepancyButton.addEventListener('click', () => {
         window.location.href = '/export_discrepancy_json';
     });
-    // ----------------------------------------------------------
 
   </script>
 

@@ -41,6 +41,7 @@ import json # <-- Import json
 import re # Import regex for number parsing
 import time # For potential backoff in LLM calls
 import glob # For globbing files
+import random # <-- Add import for random
 
 # Import the refactored function
 from llm_toc_analyzer import get_toc_page_ranges_from_json
@@ -49,6 +50,8 @@ from llm_toc_analyzer import get_toc_page_ranges_from_json
 try:
     from google.cloud import aiplatform
     from vertexai.generative_models import GenerativeModel, Part
+    # Import specific exceptions for retry logic
+    from google.api_core import exceptions as api_core_exceptions 
     VERTEX_AI_AVAILABLE = True
 except ImportError:
     VERTEX_AI_AVAILABLE = False
@@ -133,41 +136,24 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # app.config['SECRET_KEY'] = os.urandom(24) # Remove or comment out duplicate
 
 # --- Define path to the TOC JSON file --- 
-TOC_JSON_PATH = os.path.join(os.path.dirname(__file__), 'step1_toc', 'chapters.json')
-# TOC_JSON_PATH = r"C:\Users\gr\Documents\GitHub\Meetstaatincorp\step1_toc\chapters.json" # User specified absolute path - REVERTED
+TOC_JSON_PATH = r"C:\\Users\\gr\\Documents\\GitHub\\Meetstaatincorp\\step1_toc\\chapters.json" # User specified absolute path - REVERTED
 # app.logger.info(f"Default standard TOC path set to: {TOC_JSON_PATH}") # REVERTED
 # --- End Define path ---
-
-# --- Define function to get the most recent vision TOC file ---
-def get_latest_vision_toc_path():
-    """Returns the path to the most recent vision TOC file in the output directory."""
-    output_dir = os.path.join(os.path.dirname(__file__), 'output')
-    vision_toc_files = glob.glob(os.path.join(output_dir, 'vision_toc_*.json'))
-    
-    if not vision_toc_files:
-        app.logger.warning("No vision TOC files found in output directory")
-        return None
-    
-    # Sort by modification time (most recent first)
-    vision_toc_files.sort(key=os.path.getmtime, reverse=True)
-    latest_file = vision_toc_files[0]
-    app.logger.info(f"Selected most recent vision TOC file: {latest_file}")
-    return latest_file
 
 # --- Define function to get TOC path based on selected type ---
 def get_toc_path_by_type(toc_type):
     """Returns the path to the appropriate TOC file based on the selected type."""
     if toc_type == "vision":
-        # Hardcode the path to the existing vision TOC file instead of searching
-        vision_toc_path = os.path.join(os.path.dirname(__file__), 'output', 
-                                      'uitgebreide toc met taken.json')
+        # Use the specific, pre-processed TOC file when 'vision' is selected
+        vision_toc_path = r"C:\\Users\\gr\\Documents\\GitHub\\Meetstaatincorp\\output\\plint_toc_with_summaries_tasks.json"
         if os.path.exists(vision_toc_path):
-            app.logger.info(f"Using hardcoded vision TOC file: {vision_toc_path}")
+            app.logger.info(f"Using specific vision TOC file: {vision_toc_path}")
             return vision_toc_path
         else:
-            app.logger.warning(f"Hardcoded vision TOC file not found at {vision_toc_path}, falling back to standard TOC")
-            return TOC_JSON_PATH
+            app.logger.warning(f"Specific vision TOC file not found at {vision_toc_path}, falling back to standard TOC")
+            return TOC_JSON_PATH # Fallback to standard if the specific vision file is missing
     else:  # Default to standard
+        app.logger.info(f"Using standard TOC file: {TOC_JSON_PATH}")
         return TOC_JSON_PATH
 
 def parse_meetstaat_csv(csv_path):
@@ -330,7 +316,7 @@ def analyze_batch_with_gemini(batch: list[dict], analysis_type: str) -> dict[str
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "europe-west1")
     # Allow overriding the model per analysis type if needed in the future, otherwise use default
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001") 
+    model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-pro-002") # UPDATED Default Model to specific version
 
     if not project_id:
         app.logger.error("GOOGLE_CLOUD_PROJECT environment variable not set.")
@@ -355,9 +341,13 @@ def analyze_batch_with_gemini(batch: list[dict], analysis_type: str) -> dict[str
             "For EACH item provided below (representing a section in the TOC), perform the following check:",
             
             "\\n--- CHECK 1: TASK PLACEMENT CHECK ---",
-            "Evaluate if the tasks described in the 'TOC Summary' seem contextually appropriate for the section defined by the 'Item Code' and 'TOC Title'.",
-            "Look for tasks described in the summary that seem misplaced given the section's title or typical hierarchical placement.",
-            "Examples of potential misplacements: painting tasks described under a woodworking code/title (e.g., 34.xx), detailed electrical work summarized under a structural chapter (e.g., 2x.xx), foundation work details appearing in a finishing chapter (e.g., 4x.xx or higher).",
+            "Evaluate if the tasks described in the 'TOC Summary' and 'TOC Tasks' seem contextually appropriate for the section defined by the 'Item Code' and 'TOC Title'.",
+            "Look for summaries or tasks described that seem misplaced given the section's title or typical hierarchical placement within construction specifications.",
+            "Examples of potential misplacements:",
+            " - Painting tasks described under a woodworking code/title (e.g., 34.xx).",
+            " - Detailed electrical work summarized under a structural chapter (e.g., 2x.xx).",
+            " - Foundation work details appearing in a finishing chapter (e.g., 4x.xx or higher).",
+            " - Specific tasks for an item (e.g., painting wooden skirting boards) described within the article for the item itself (e.g., the skirting board article, like 4X.XX.Y) instead of the general chapter for that type of work (e.g., the painting chapter, like 5X.XX).",
             
             "\\nFormat your analysis for EACH item as a JSON object in this exact structure:",
             "{",
@@ -447,13 +437,17 @@ def analyze_batch_with_gemini(batch: list[dict], analysis_type: str) -> dict[str
     # Initialize results dict with error placeholders
     batch_results = {item.get("item_code"): {"error": "Analysis not received for this item in batch."} for item in batch}
 
-    # --- Call the LLM --- 
+    # --- Call the LLM with Retry Logic --- 
     max_retries = 3
-    for attempt in range(max_retries):
+    initial_delay = 5 # seconds
+    current_retry = 0
+    error_msg = {} # Initialize error message dict
+
+    while current_retry <= max_retries:
         try:
-            app.logger.debug(f"Sending batch prompt to Gemini ({len(batch)} items). First item: {batch[0].get('item_code')}")
+            app.logger.debug(f"Sending batch prompt to Gemini ({len(batch)} items). Attempt {current_retry + 1}/{max_retries + 1}")
             response = model.generate_content(prompt)
-            app.logger.debug(f"Received batch response from Gemini for {analysis_type}. First item: {batch[0].get('item_code')}") # Log type
+            app.logger.debug(f"Received batch response from Gemini for {analysis_type}.") # Log type
 
             if response and response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
                 response_text = response.candidates[0].content.parts[0].text
@@ -481,35 +475,75 @@ def analyze_batch_with_gemini(batch: list[dict], analysis_type: str) -> dict[str
                         for item in batch:
                             code = item.get("item_code")
                             if code not in found_codes:
-                                batch_results[code] = {"error": f"Item analysis missing in Gemini {analysis_type} batch response."} # Log type
+                                batch_results[code] = {"error": f"Item analysis missing in Gemini {analysis_type} batch response."}
                                 app.logger.warning(f"Analysis missing for item {code} in {analysis_type} batch response.")
                                 
-                        return batch_results # Success
+                        return batch_results # Success - exit the while loop and function
                     else:
-                        app.logger.error(f"Gemini response was not a JSON list for {analysis_type} batch starting with {batch[0].get('item_code')}. Content: {response_text[:500]}...") # Log type
-                        error_msg = {"error": f"Gemini response was not a JSON list ({analysis_type})."} # Log type
+                        app.logger.error(f"Gemini response was not a JSON list for {analysis_type} batch. Content: {response_text[:500]}...")
+                        # Treat as a potentially recoverable error initially, will retry
+                        error_msg = {"error": f"Gemini response was not a JSON list ({analysis_type})."}
+                        # Raise an exception to trigger retry logic below
+                        raise ValueError(f"LLM response format error: Expected list, got {type(parsed_results)}")
                 except json.JSONDecodeError as json_e:
-                    app.logger.error(f"Failed to decode Gemini JSON response for {analysis_type} batch starting with {batch[0].get('item_code')}: {json_e}. Response: {response_text[:500]}...") # Log type
-                    error_msg = {"error": f"Failed to decode Gemini JSON response ({analysis_type}). {json_e}"} # Log type
+                    app.logger.error(f"Failed to decode Gemini JSON response for {analysis_type} batch: {json_e}. Response: {response_text[:500]}...")
+                    # Treat as a potentially recoverable error initially
+                    error_msg = {"error": f"Failed to decode Gemini JSON response ({analysis_type}). {json_e}"}
+                    # Raise an exception to trigger retry logic below
+                    raise ValueError(f"LLM response JSON parsing error: {json_e}")
             else:
-                app.logger.warning(f"Gemini {analysis_type} batch response structure unexpected or empty. Response: {response}") # Log type
-                error_msg = {"error": f"Unexpected or empty response from Gemini ({analysis_type})."} # Log type
+                app.logger.warning(f"Gemini {analysis_type} batch response structure unexpected or empty. Response: {response}")
+                # Treat as potentially recoverable
+                error_msg = {"error": f"Unexpected or empty response from Gemini ({analysis_type})."}
+                # Raise an exception to trigger retry logic below
+                raise ValueError("LLM response structure unexpected or empty")
 
-            # If parsing failed or structure was wrong, fill results with the error
-            for item_code in batch_results:
-                 batch_results[item_code] = error_msg # Propagate parsing error to all items in batch
-            return batch_results # Return errors
-
+        except api_core_exceptions.ResourceExhausted as quota_error:
+            # Specific handling for Quota errors with exponential backoff
+            current_retry += 1
+            error_msg = {"error": f"Quota Error ({analysis_type}): {quota_error}"} # Store specific error
+            if current_retry <= max_retries:
+                 jitter = random.uniform(0, 1) 
+                 sleep_time = initial_delay * (2 ** (current_retry -1)) + jitter
+                 app.logger.warning(f"{error_msg['error']} (Attempt {current_retry}/{max_retries}). Retrying in {sleep_time:.2f} seconds...")
+                 time.sleep(sleep_time)
+            else:
+                 app.logger.error(f"Quota Error: Failed analysis for {analysis_type} batch after {max_retries} attempts. Last error: {quota_error}")
+                 # Final error after retries, break loop
+                 error_msg = {"error": f"Quota exceeded after {max_retries} attempts ({analysis_type}). {quota_error}"}
+                 break # Exit the while loop
+        
         except Exception as e:
-            app.logger.error(f"Error calling Gemini API for {analysis_type} batch (Attempt {attempt + 1}/{max_retries}): {e}") # Log type
-            if attempt < max_retries - 1:
-                time.sleep(2 ** attempt) # Exponential backoff
+            # Generic handling for other potentially transient errors (ValueError from parsing, etc.)
+            current_retry += 1
+            # Use the error_msg set in the try block if it was a parsing/structure error, else use generic
+            if not error_msg:
+                 error_msg = {"error": f"API Error ({analysis_type}): {e}"} 
+                 
+            app.logger.error(f"Error during {analysis_type} batch processing (Attempt {current_retry}/{max_retries}): {error_msg['error']}")
+            if current_retry <= max_retries:
+                # Use exponential backoff for generic errors too
+                sleep_time = initial_delay * (2 ** (current_retry -1)) + random.uniform(0,1)
+                app.logger.info(f"Retrying in {sleep_time:.2f} seconds...")
+                time.sleep(sleep_time)
             else:
-                error_msg = {"error": f"Failed to get analysis after {max_retries} attempts ({analysis_type}). Last error: {e}"} # Log type
-                # Fill results with the final error
-                for item_code in batch_results:
-                    batch_results[item_code] = error_msg
-            batch_results[item_code] = {"error": f"Unexpected error in batch analysis ({analysis_type})."} # Log type
+                app.logger.error(f"Failed analysis for {analysis_type} batch after {max_retries} attempts. Last Error: {e}")
+                # Final error after retries, update error_msg and break loop
+                error_msg = {"error": f"Failed after {max_retries} attempts ({analysis_type}). Last error: {e}"}
+                break # Exit the while loop
+                
+        # Clear error message if retry is happening, so it gets updated on next failure
+        if current_retry <= max_retries:
+             error_msg = {}
+
+    # --- After Loop (if all retries failed or break was called) ---
+    # If we exited the loop due to failures, error_msg should contain the final error
+    if error_msg:
+         app.logger.error(f"Analysis failed for batch after all retries. Final error: {error_msg['error']}")
+         # Fill all results in this batch with the final error message
+         for item_key in batch_results:
+             batch_results[item_key] = error_msg
+             
     return batch_results
 # -----------------------------------------------------
 
@@ -680,7 +714,7 @@ def analyze():
                      analysis_summary['count_lastenboek_only'] += 1
         # --- End Generate Summary --- 
 
-        # --- Added Logging --- 
+        # --- Added Logging ---
         app.logger.info(f"Attempting to save {len(combined_data)} items to session['analysis_results'].")
         if combined_data:
             app.logger.debug(f"First item sample for session: {combined_data[0]}")
@@ -719,8 +753,9 @@ def analyze():
              if item['source'] in ['both', 'lastenboek_only']:
                  readable_lastenboek_info = {
                      'title': item['lastenboek_title'],
-                     'start_page': item['lastenboek_start_page'],
-                     'end_page': item['lastenboek_end_page']
+                     'start': item['lastenboek_start_page'],
+                     'end': item['lastenboek_end_page'],
+                     'summary': item.get('lastenboek_summary')
                  }
              
              # Construct a more UI-friendly output structure
@@ -993,12 +1028,6 @@ def export_discrepancy_json():
     app.logger.info("Exporting discrepancy analysis results as JSON.")
     return response
 # ---------------------------------------------------------
-
-# --- Default File Paths (Modify if needed) ---
-# Define reasonable defaults, perhaps relative to the script directory or a common data folder
-DEFAULT_JSON_INPUT_PATH = r"C:\\Users\\gr\\Documents\\GitHub\\Meetstaatincorp\\output\\plint_toc_with_summaries_tasks.json" # UPDATED
-DEFAULT_PDF_INPUT_PATH = r"C:\\Users\\gr\\Documents\\GitHub\\Meetstaatincorp\\samengevoegdamsterdamlastenboek.pdf"   # UPDATED
-# ... existing code ...
 
 # Run the Flask app
 if __name__ == '__main__':
