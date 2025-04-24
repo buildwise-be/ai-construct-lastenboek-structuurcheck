@@ -297,14 +297,14 @@ def analyze_item_with_gemini(
                 return f"Error: Failed to get analysis after {max_retries} attempts. Last error: {e}"
     return "Error: Analysis failed after retries." # Should not be reached
 
-def analyze_batch_with_gemini(batch: list[dict], analysis_type: str) -> dict[str, dict]:
+def analyze_batch_with_gemini(batch: list[dict], analysis_type: str, model_name: str) -> dict[str, dict]:
     """
     Sends a batch of items to Gemini for analysis using a single API call.
     The type of analysis depends on the `analysis_type` parameter.
-
     Args:
         batch: A list of item dictionaries containing relevant info for the chosen analysis.
         analysis_type: The type of analysis to perform ('task_placement' or 'consistency').
+        model_name: The specific Vertex AI model name to use.
 
     Returns:
         A dictionary mapping item_code to its analysis result (structured JSON object).
@@ -315,8 +315,8 @@ def analyze_batch_with_gemini(batch: list[dict], analysis_type: str) -> dict[str
     # Get Vertex AI config from environment variables
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "europe-west1")
-    # Allow overriding the model per analysis type if needed in the future, otherwise use default
-    model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-pro-002") # UPDATED Default Model to specific version
+    # Model name is now passed as an argument, remove os.getenv default here
+    # model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-pro-002") # UPDATED Default Model to specific version
 
     if not project_id:
         app.logger.error("GOOGLE_CLOUD_PROJECT environment variable not set.")
@@ -856,7 +856,15 @@ def start_discrepancy_analysis():
         app.logger.debug(f"Parsed request data: {req_data}")
         selected_codes = req_data.get('selected_codes', [])
         analysis_type = req_data.get('analysis_type', 'task_placement') # Get analysis type, default to task_placement
-        app.logger.info(f"Requested analysis type: {analysis_type}") # Log the type
+        # Get the selected model name, default to 1.5 Pro 002 if not provided
+        selected_model = req_data.get('model_name', 'gemini-1.5-pro-002') 
+        # Optional: Add validation for allowed model names
+        allowed_models = ['gemini-1.5-pro-002', 'gemini-2.0-flash-001'] # Add others if needed
+        if selected_model not in allowed_models:
+            app.logger.warning(f"Invalid model requested: '{selected_model}'. Falling back to default.")
+            selected_model = 'gemini-1.5-pro-002' # Fallback to a known default
+            
+        app.logger.info(f"Requested analysis type: {analysis_type} using model: {selected_model}") # Log the type and model
         app.logger.debug(f"Selected codes: {selected_codes}")
     except Exception as e:
         app.logger.error(f"Error parsing request JSON: {e}", exc_info=True)
@@ -928,11 +936,11 @@ def start_discrepancy_analysis():
     all_llm_results = {}
     batches = [items_to_analyze[i:i+batch_size] for i in range(0, len(items_to_analyze), batch_size)]
     
-    app.logger.info(f"Processing {len(batches)} batches for {analysis_type} analysis...") # Log type
+    app.logger.info(f"Processing {len(batches)} batches for {analysis_type} analysis using {selected_model}...") # Log type and model
     for i, batch in enumerate(batches):
-        app.logger.info(f"Processing {analysis_type} batch {i+1}/{len(batches)} with {len(batch)} items") # Log type
-        # Pass the analysis_type to the LLM function
-        batch_llm_results = analyze_batch_with_gemini(batch, analysis_type) 
+        app.logger.info(f"Processing {analysis_type} batch {i+1}/{len(batches)} with {len(batch)} items using {selected_model}") # Log type and model
+        # Pass the analysis_type AND selected_model to the LLM function
+        batch_llm_results = analyze_batch_with_gemini(batch, analysis_type, selected_model) 
         app.logger.debug(f"LLM results for batch {i+1} ({analysis_type}): {batch_llm_results}") # Log type
         all_llm_results.update(batch_llm_results)
         if i < len(batches) - 1: time.sleep(1)

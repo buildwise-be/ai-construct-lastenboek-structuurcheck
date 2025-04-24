@@ -2,20 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Doc Analyzer</title>
+  <title>Lastenboek Checker</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-900">
   <div class="flex h-screen">
     <!-- Sidebar -->
     <aside class="w-64 bg-white shadow-md p-6">
-      <h1 class="text-2xl font-bold mb-6">📄 Doc Analyzer</h1>
+      <h1 class="text-2xl font-bold mb-6">📄 Lastenboek Checker</h1>
       <nav class="space-y-4">
-        <button class="w-full text-left font-medium hover:text-blue-600">Upload</button>
-        <button class="w-full text-left font-medium hover:text-blue-600">View Meetstaat</button>
-        <button class="w-full text-left font-medium hover:text-blue-600">Compare Sections</button>
-        <button class="w-full text-left font-medium hover:text-blue-600">Discrepancies</button>
-        <button class="w-full text-left font-medium hover:text-blue-600">Export Report</button>
+        <button class="w-full text-left font-medium hover:text-blue-600">Upload / Analyze</button>
       </nav>
     </aside>
 
@@ -49,17 +45,20 @@
 
       <!-- Placeholder for results -->
       <div class="mt-10">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold">Analysis Results</h2>
-          <div> <!-- Container for buttons -->
-            <!-- Discrepancy Analysis Button - Initially Hidden -->
-            <button id="discrepancy-button" class="hidden bg-yellow-500 text-white px-4 py-2 rounded text-sm hover:bg-yellow-600 mr-2 disabled:opacity-50">Analyze Consistency</button>
-            <!-- NEW Task Placement Check Button -->
-            <button id="placement-button" class="hidden bg-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-blue-600 mr-2 disabled:opacity-50">Run Task Placement Check</button>
-            <!-- Export Button - Initially Hidden -->
+        <div class="flex justify-between items-center mb-4 flex-wrap">
+          <h2 class="text-xl font-semibold mb-2 md:mb-0">Analysis Results</h2>
+          <div class="flex items-center space-x-2 flex-wrap">
+            <div class="mb-2 md:mb-0">
+              <label for="model-select" class="text-xs font-medium text-gray-600 mr-1">Model:</label>
+              <select id="model-select" name="model_select" class="text-xs border border-gray-300 rounded p-1">
+                <option value="gemini-1.5-pro-002" selected>Gemini 1.5 Pro</option>
+                <option value="gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+              </select>
+            </div>
+            <button id="discrepancy-button" class="hidden bg-yellow-500 text-white px-4 py-2 rounded text-sm hover:bg-yellow-600 disabled:opacity-50">Analyze Consistency</button>
+            <button id="placement-button" class="hidden bg-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-blue-600 disabled:opacity-50">Run Task Placement Check</button>
             <button id="export-button" class="hidden bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">Export Initial JSON</button>
-            <!-- Export Discrepancy Button - Initially Hidden -->
-            <button id="export-discrepancy-button" class="hidden bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700 ml-2">Export Discrepancy JSON</button>
+            <button id="export-discrepancy-button" class="hidden bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700">Export Discrepancy JSON</button>
           </div>
         </div>
         <div id="results-area" class="bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300 min-h-[100px]">
@@ -90,6 +89,7 @@
     const discrepancyResultsArea = document.getElementById('discrepancy-results-area');
     const exportDiscrepancyButton = document.getElementById('export-discrepancy-button');
     const placementButton = document.getElementById('placement-button');
+    const modelSelect = document.getElementById('model-select');
 
     analyzeButton.addEventListener('click', async () => {
       // Get the files
@@ -195,7 +195,7 @@
         updateTableWithResults(combinedData, 'initial-results-table'); // Generate initial table
 
         // Show the appropriate buttons after initial analysis
-        exportButton.classList.remove('hidden');
+            exportButton.classList.remove('hidden');
         // Show consistency button only if meetstaat was provided
         if (meetstaatInput.files[0]) {
             discrepancyButton.classList.remove('hidden');
@@ -254,16 +254,21 @@
     async function runSecondaryAnalysis(analysisType) {
         // Determine which button to update based on type
         const currentButton = (analysisType === 'consistency') ? discrepancyButton : placementButton;
+        const modelSelect = document.getElementById('model-select'); // Get model select element
 
         // Clear previous discrepancy results and show loading
-        discrepancyResultsArea.innerHTML = `<p class="text-blue-600 font-semibold">Running ${analysisType.replace('_', ' ')} analysis... Please wait.</p>`;
+        discrepancyResultsArea.innerHTML = `<p class="text-blue-600 font-semibold">Running ${analysisType.replace('_', ' ')} analysis using ${modelSelect.options[modelSelect.selectedIndex].text}... Please wait.</p>`; // Show selected model
         discrepancyResultsArea.classList.remove('hidden');
         exportDiscrepancyButton.classList.add('hidden'); // Hide export button during analysis
+        // Disable model select during analysis
+        modelSelect.disabled = true;
 
         try {
             // Get selected item codes (optional, if you add checkboxes)
             const selectedCodes = []; // Example: Get selected codes from checkboxes if implemented
             // If no codes selected, backend analyzes all applicable items
+            
+            const selectedModel = modelSelect.value; // Get the selected model value
 
             // Send request to backend
             const response = await fetch('/start_discrepancy_analysis', {
@@ -273,7 +278,8 @@
                 },
                 body: JSON.stringify({
                     selected_codes: selectedCodes,
-                    analysis_type: analysisType // Pass the type
+                    analysis_type: analysisType, // Pass the type
+                    model_name: selectedModel // Pass the selected model
                 }),
             });
 
@@ -291,7 +297,7 @@
             // --- Display Discrepancy/Placement Results ---
              discrepancyResultsArea.innerHTML = `
                 <h3 class="font-semibold mb-2">${analysisType.replace('_', ' ').toUpperCase()} Analysis Results:</h3>
-                <p class="mb-4">${result.message || 'Analysis complete.'}</p>
+              <p class="mb-4">${result.message || 'Analysis complete.'}</p>
             `;
 
             // Check if results exist and update the table
@@ -315,6 +321,8 @@
              // Re-enable the other button too, if it exists and wasn't the one clicked
              if (analysisType === 'consistency' && placementButton) placementButton.disabled = false;
              if (analysisType === 'task_placement' && discrepancyButton) discrepancyButton.disabled = false;
+             // Re-enable model select
+             modelSelect.disabled = false;
         }
     }
 
@@ -400,13 +408,13 @@
                                         <p class="font-medium text-gray-900">${icon} ${issueFound ? (significant ? 'Significant Issue Found' : 'Potential Issue Found') : 'No Issue Found'}</p>
                                         <p class="text-xs text-gray-700 mt-1">${description}</p>
                                         ${analysis.summary ? `<p class="text-xs italic text-gray-500 mt-1">LLM Summary: ${analysis.summary}</p>` : ''}
-                                     </div>
-                                 `;
+                                    </div>
+                                `;
                              } else {
                                 llmHtml += '<span class="italic text-gray-400">Analysis structure unexpected.</span>';
                              }
-                         }
-                    } else {
+                            }
+                        } else {
                          llmHtml += '<span class="italic text-gray-400">Pending / Not Analyzed</span>';
                     }
                     llmHtml += '</td>';
@@ -428,14 +436,14 @@
         tableHtml += `
                 </tbody>
              </table>
-            </div>
-        `;
-
+                            </div>
+                        `;
+                        
         // Place the table in the correct area
         if (isDiscrepancyAnalysis) {
              // Prepend the table to the discrepancy area (keeps messages visible above)
              discrepancyResultsArea.insertAdjacentHTML('beforeend', tableHtml);
-        } else {
+            } else {
              // Replace content of initial results area
              resultsArea.innerHTML += tableHtml; // Append table after summary info
         }
