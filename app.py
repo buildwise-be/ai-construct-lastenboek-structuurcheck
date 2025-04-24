@@ -97,7 +97,7 @@ def allowed_file(filename, allowed_extensions):
 app = Flask(__name__, instance_relative_config=True)
 
 # Set logging level directly on the Flask app logger
-app.logger.setLevel(logging.DEBUG)
+app.logger.setLevel(logging.INFO) # Set the logging level to INFO
 # Ensure handlers are set up if needed (often default stderr handler is sufficient)
 # Example: adding a specific handler if default isn't working
 if not app.logger.handlers:
@@ -105,7 +105,7 @@ if not app.logger.handlers:
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     app.logger.addHandler(handler)
-app.logger.info("Flask logger configured for DEBUG level.") # Log confirmation
+app.logger.info("Flask logger configured for INFO level.") # Log confirmation
 
 # --- Configure Flask-Session --- 
 # Use filesystem session type (requires Flask-Session library)
@@ -134,6 +134,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # --- Define path to the TOC JSON file --- 
 TOC_JSON_PATH = os.path.join(os.path.dirname(__file__), 'step1_toc', 'chapters.json')
+# TOC_JSON_PATH = r"C:\Users\gr\Documents\GitHub\Meetstaatincorp\step1_toc\chapters.json" # User specified absolute path - REVERTED
+# app.logger.info(f"Default standard TOC path set to: {TOC_JSON_PATH}") # REVERTED
+# --- End Define path ---
 
 # --- Define function to get the most recent vision TOC file ---
 def get_latest_vision_toc_path():
@@ -308,14 +311,14 @@ def analyze_item_with_gemini(
                 return f"Error: Failed to get analysis after {max_retries} attempts. Last error: {e}"
     return "Error: Analysis failed after retries." # Should not be reached
 
-def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
+def analyze_batch_with_gemini(batch: list[dict], analysis_type: str) -> dict[str, dict]:
     """
-    Sends a batch of items to Gemini for Task Placement analysis using a single API call.
-    (This version focuses ONLY on Lastenboek TOC item titles and summaries).
+    Sends a batch of items to Gemini for analysis using a single API call.
+    The type of analysis depends on the `analysis_type` parameter.
 
     Args:
-        batch: A list of item dictionaries containing Lastenboek TOC info 
-               (item_code, lastenboek_title, lastenboek_start, lastenboek_end, lastenboek_summary).
+        batch: A list of item dictionaries containing relevant info for the chosen analysis.
+        analysis_type: The type of analysis to perform ('task_placement' or 'consistency').
 
     Returns:
         A dictionary mapping item_code to its analysis result (structured JSON object).
@@ -326,7 +329,8 @@ def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
     # Get Vertex AI config from environment variables
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "europe-west1")
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001")  # Using the configured model
+    # Allow overriding the model per analysis type if needed in the future, otherwise use default
+    model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001") 
 
     if not project_id:
         app.logger.error("GOOGLE_CLOUD_PROJECT environment variable not set.")
@@ -336,57 +340,109 @@ def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
     try:
         aiplatform.init(project=project_id, location=location)
         model = GenerativeModel(model_name)
-        app.logger.info(f"Vertex AI initialized for project '{project_id}' in '{location}' using model {model_name}.")
+        app.logger.info(f"Vertex AI initialized for project '{project_id}' in '{location}' using model {model_name} for {analysis_type} analysis.") # Log type
     except Exception as e:
         app.logger.error(f"Failed to initialize Vertex AI: {e}")
         return {item.get("item_code", "unknown"): {"error": f"Server configuration error: Could not initialize Vertex AI. {e}"} for item in batch}
 
-    # --- Construct the NEW batch prompt --- 
-    prompt_parts = [
-        "You are an expert construction contract analyst reviewing a Lastenboek (Specifications) Table of Contents (TOC).",
-        "For EACH item provided below (representing a section in the TOC), perform the following check:",
-        
-        "\n--- CHECK 1: TASK PLACEMENT CHECK ---",
-        "Evaluate if the tasks described in the 'TOC Summary' seem contextually appropriate for the section defined by the 'Item Code' and 'TOC Title'.",
-        "Look for tasks described in the summary that seem misplaced given the section's title or typical hierarchical placement.",
-        "Examples of potential misplacements: painting tasks described under a woodworking code/title (e.g., 34.xx), detailed electrical work summarized under a structural chapter (e.g., 2x.xx), foundation work details appearing in a finishing chapter (e.g., 4x.xx or higher).",
-        
-        "\nFormat your analysis for EACH item as a JSON object in this exact structure:",
-        "{",
-        "  \"item_code\": \"the item code\",",
-        "  \"checks\": {",
-        "    \"task_placement\": {", # Renamed check
-        "      \"issue_found\": true/false,",
-        "      \"description\": \"Detailed description of the misplaced task(s) or 'Tasks seem appropriately placed.'\",",
-        "      \"significant\": true/false", # Significance based on how out-of-place it seems
-        "    }",
-        "  },",
-        "  \"summary\": \"Brief summary of any placement issues, or 'No placement issues identified.'\",",
-        "  \"has_significant_issue\": true/false",
-        "}",
-        
-        "\nGuidelines:",
-        "1. Base your judgment *only* on the provided Item Code, TOC Title, and TOC Summary.",
-        "2. Set 'significant' to true ONLY for tasks that seem clearly and significantly misplaced.",
-        "3. Set 'has_significant_issue' to true if the 'task_placement' check has 'significant' set to true.",
-        "4. If 'issue_found' is false, set 'description' to 'Tasks seem appropriately placed.' and 'significant' to false.",
-        "5. For 'summary', briefly describe the misplaced task and why it seems out of place. If no issues, use 'No placement issues identified.'",
-        
-        "\n--- ITEMS FOR ANALYSIS ---"
-    ]
+    # --- Construct the prompt based on analysis_type ---
+    prompt_parts = []
+    item_details_parts = []
 
-    # Add ONLY Lastenboek TOC details for each item
-    for item in batch:
-        prompt_parts.append("\n---") # Separator
-        prompt_parts.append(f"Item Code: {item.get('item_code', 'N/A')}")
-        prompt_parts.append(f"TOC Title: {item.get('lastenboek_title', 'N/A')}")
-        # Page range might not be directly needed for this check, but can provide context
-        prompt_parts.append(f"Page Range: {item.get('lastenboek_start', '?')} - {item.get('lastenboek_end', '?')}") 
-        prompt_parts.append(f"TOC Summary (Context): {item.get('lastenboek_summary', 'N/A')}") # Summary is crucial
+    if analysis_type == 'task_placement':
+        prompt_parts = [
+            "You are an expert construction contract analyst reviewing a Lastenboek (Specifications) Table of Contents (TOC).",
+            "For EACH item provided below (representing a section in the TOC), perform the following check:",
+            
+            "\\n--- CHECK 1: TASK PLACEMENT CHECK ---",
+            "Evaluate if the tasks described in the 'TOC Summary' seem contextually appropriate for the section defined by the 'Item Code' and 'TOC Title'.",
+            "Look for tasks described in the summary that seem misplaced given the section's title or typical hierarchical placement.",
+            "Examples of potential misplacements: painting tasks described under a woodworking code/title (e.g., 34.xx), detailed electrical work summarized under a structural chapter (e.g., 2x.xx), foundation work details appearing in a finishing chapter (e.g., 4x.xx or higher).",
+            
+            "\\nFormat your analysis for EACH item as a JSON object in this exact structure:",
+            "{",
+            "  \"item_code\": \"the item code\",",
+            "  \"checks\": {",
+            "    \"task_placement\": {",
+            "      \"issue_found\": true/false,",
+            "      \"description\": \"Detailed description of the misplaced task(s) or 'Tasks seem appropriately placed.'\",",
+            "      \"significant\": true/false", # Significance based on how out-of-place it seems
+            "    }",
+            "  },",
+            "  \"summary\": \"Brief summary of any placement issues, or 'No placement issues identified.'\",",
+            "  \"has_significant_issue\": true/false",
+            "}",
+            
+            "\\nGuidelines:",
+            "1. Base your judgment *only* on the provided Item Code, TOC Title, and TOC Summary.",
+            "2. Set 'significant' to true ONLY for tasks that seem clearly and significantly misplaced.",
+            "3. Set 'has_significant_issue' to true if the 'task_placement' check has 'significant' set to true.",
+            "4. If 'issue_found' is false, set 'description' to 'Tasks seem appropriately placed.' and 'significant' to false.",
+            "5. For 'summary', briefly describe the misplaced task and why it seems out of place. If no issues, use 'No placement issues identified.'",
+            
+            "\\n--- ITEMS FOR ANALYSIS ---"
+        ]
+        # Add ONLY Lastenboek TOC details for each item for task placement
+        for item in batch:
+            item_details_parts.append("\\n---") # Separator
+            item_details_parts.append(f"Item Code: {item.get('item_code', 'N/A')}")
+            item_details_parts.append(f"TOC Title: {item.get('lastenboek_title', 'N/A')}")
+            item_details_parts.append(f"Page Range: {item.get('lastenboek_start', '?')} - {item.get('lastenboek_end', '?')}")
+            item_details_parts.append(f"TOC Summary (Context): {item.get('lastenboek_summary', 'N/A')}")
 
-    prompt_parts.append("\n--- END ITEMS --- ")
-    prompt_parts.append("\nReturn your analysis as a JSON array of objects with the exact structure specified above, one object per item.")
-    prompt = "\n".join(prompt_parts)
+    elif analysis_type == 'consistency':
+        prompt_parts = [
+            "You are an expert construction contract analyst. Your task is to compare the Meetstaat (Bill of Quantities) details with the corresponding Lastenboek (Specifications) section title and page range for EACH item provided below.",
+            "Identify potential discrepancies, inconsistencies, or ambiguities between them. Focus *only* on mismatches in scope, materials, quantities, units, or descriptions apparent from comparing the Meetstaat details and the Lastenboek TOC Title.",
+            "For example, does the Lastenboek title suggest one type of work while the Meetstaat details imply something significantly different? Is the unit or quantity in the Meetstaat plausible given the Lastenboek title?",
+            "IMPORTANT: You do NOT have the actual text from the Lastenboek pages, only the TOC Title and page range.",
+            
+            "\\nFormat your analysis for EACH item as a JSON object in this exact structure:",
+            "{",
+            "  \"item_code\": \"the item code\",",
+            "  \"checks\": {",
+            "    \"consistency\": {", # Changed check key
+            "      \"issue_found\": true/false,",
+            "      \"description\": \"Detailed description of the discrepancy or 'No significant discrepancies found based on provided details.'\",",
+            "      \"significant\": true/false", # Assess significance of the discrepancy
+            "    }",
+            "  },",
+            "  \"summary\": \"Brief summary of any consistency issues, or 'No consistency issues identified.'\",",
+            "  \"has_significant_issue\": true/false",
+            "}",
+
+            "\\nGuidelines:",
+            "1. Base your judgment *only* on the comparison between Meetstaat details and the Lastenboek TOC Title/Range.",
+            "2. Set 'issue_found' to true if there's any apparent mismatch, ambiguity, or potential inconsistency.",
+            "3. Set 'significant' to true ONLY for discrepancies that seem clearly problematic or contradictory.",
+            "4. Set 'has_significant_issue' to true if the 'consistency' check has 'significant' set to true.",
+            "5. If 'issue_found' is false, set 'description' to 'No significant discrepancies found based on provided details.' and 'significant' to false.",
+            "6. For 'summary', briefly describe the main discrepancy. If no issues, use 'No consistency issues identified.'",
+
+            "\\n--- ITEMS FOR ANALYSIS ---"
+        ]
+        # Add Meetstaat AND Lastenboek TOC details for each item for consistency check
+        for item in batch:
+            item_details_parts.append("\\n--- MEETSTAAT DETAILS ---")
+            item_details_parts.append(f"Item Code: {item.get('item_code', 'N/A')}")
+            item_details_parts.append(f"Description: {item.get('meetstaat_description', 'N/A')}")
+            item_details_parts.append(f"Quantity: {item.get('meetstaat_quantity', 'N/A')}")
+            item_details_parts.append(f"Unit: {item.get('meetstaat_unit', 'N/A')}")
+            item_details_parts.append(f"Type: {item.get('meetstaat_type', 'N/A')}")
+            item_details_parts.append(f"Notes: {item.get('meetstaat_notes', 'N/A')}")
+            item_details_parts.append("\\n--- LASTENBOEK TOC DETAILS ---")
+            item_details_parts.append(f"TOC Title: {item.get('lastenboek_title', 'N/A')}")
+            item_details_parts.append(f"Page Range: {item.get('lastenboek_start_page', '?')} - {item.get('lastenboek_end_page', '?')}")
+
+    else:
+        app.logger.error(f"Unknown analysis_type requested: {analysis_type}")
+        return {item.get("item_code", "unknown"): {"error": f"Server configuration error: Unknown analysis type '{analysis_type}'."} for item in batch}
+
+    # Combine prompt parts
+    prompt_parts.extend(item_details_parts)
+    prompt_parts.append("\\n--- END ITEMS --- ")
+    prompt_parts.append("\\nReturn your analysis as a JSON array of objects, with one object per item, following the exact structure specified above for the '{analysis_type}' check.") # Dynamically mention type
+    prompt = "\\n".join(prompt_parts)
 
     # Initialize results dict with error placeholders
     batch_results = {item.get("item_code"): {"error": "Analysis not received for this item in batch."} for item in batch}
@@ -397,7 +453,7 @@ def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
         try:
             app.logger.debug(f"Sending batch prompt to Gemini ({len(batch)} items). First item: {batch[0].get('item_code')}")
             response = model.generate_content(prompt)
-            app.logger.debug(f"Received batch response from Gemini. First item: {batch[0].get('item_code')}")
+            app.logger.debug(f"Received batch response from Gemini for {analysis_type}. First item: {batch[0].get('item_code')}") # Log type
 
             if response and response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
                 response_text = response.candidates[0].content.parts[0].text
@@ -425,19 +481,19 @@ def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
                         for item in batch:
                             code = item.get("item_code")
                             if code not in found_codes:
-                                batch_results[code] = {"error": "Item analysis missing in Gemini batch response."}
-                                app.logger.warning(f"Analysis missing for item {code} in batch response.")
+                                batch_results[code] = {"error": f"Item analysis missing in Gemini {analysis_type} batch response."} # Log type
+                                app.logger.warning(f"Analysis missing for item {code} in {analysis_type} batch response.")
                                 
                         return batch_results # Success
                     else:
-                        app.logger.error(f"Gemini response was not a JSON list for batch starting with {batch[0].get('item_code')}. Content: {response_text[:500]}...")
-                        error_msg = {"error": "Gemini response was not a JSON list."}
+                        app.logger.error(f"Gemini response was not a JSON list for {analysis_type} batch starting with {batch[0].get('item_code')}. Content: {response_text[:500]}...") # Log type
+                        error_msg = {"error": f"Gemini response was not a JSON list ({analysis_type})."} # Log type
                 except json.JSONDecodeError as json_e:
-                    app.logger.error(f"Failed to decode Gemini JSON response for batch starting with {batch[0].get('item_code')}: {json_e}. Response: {response_text[:500]}...")
-                    error_msg = {"error": f"Failed to decode Gemini JSON response. {json_e}"}
+                    app.logger.error(f"Failed to decode Gemini JSON response for {analysis_type} batch starting with {batch[0].get('item_code')}: {json_e}. Response: {response_text[:500]}...") # Log type
+                    error_msg = {"error": f"Failed to decode Gemini JSON response ({analysis_type}). {json_e}"} # Log type
             else:
-                app.logger.warning(f"Gemini batch response structure unexpected or empty. Response: {response}")
-                error_msg = {"error": "Unexpected or empty response from Gemini."}
+                app.logger.warning(f"Gemini {analysis_type} batch response structure unexpected or empty. Response: {response}") # Log type
+                error_msg = {"error": f"Unexpected or empty response from Gemini ({analysis_type})."} # Log type
 
             # If parsing failed or structure was wrong, fill results with the error
             for item_code in batch_results:
@@ -445,19 +501,15 @@ def analyze_batch_with_gemini(batch: list[dict]) -> dict[str, dict]:
             return batch_results # Return errors
 
         except Exception as e:
-            app.logger.error(f"Error calling Gemini API for batch (Attempt {attempt + 1}/{max_retries}): {e}")
+            app.logger.error(f"Error calling Gemini API for {analysis_type} batch (Attempt {attempt + 1}/{max_retries}): {e}") # Log type
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt) # Exponential backoff
             else:
-                error_msg = {"error": f"Failed to get analysis after {max_retries} attempts. Last error: {e}"}
+                error_msg = {"error": f"Failed to get analysis after {max_retries} attempts ({analysis_type}). Last error: {e}"} # Log type
                 # Fill results with the final error
                 for item_code in batch_results:
                     batch_results[item_code] = error_msg
-                return batch_results # Return final errors
-
-    # Fallback - should not be reached if loop completes, but for safety
-    for item_code in batch_results:
-        batch_results[item_code] = {"error": "Unexpected error in batch analysis."}
+            batch_results[item_code] = {"error": f"Unexpected error in batch analysis ({analysis_type})."} # Log type
     return batch_results
 # -----------------------------------------------------
 
@@ -768,6 +820,8 @@ def start_discrepancy_analysis():
         req_data = request.get_json() or {}
         app.logger.debug(f"Parsed request data: {req_data}")
         selected_codes = req_data.get('selected_codes', [])
+        analysis_type = req_data.get('analysis_type', 'task_placement') # Get analysis type, default to task_placement
+        app.logger.info(f"Requested analysis type: {analysis_type}") # Log the type
         app.logger.debug(f"Selected codes: {selected_codes}")
     except Exception as e:
         app.logger.error(f"Error parsing request JSON: {e}", exc_info=True)
@@ -776,43 +830,61 @@ def start_discrepancy_analysis():
     all_items_from_session = session['analysis_results'] 
     app.logger.debug(f"Retrieved {len(all_items_from_session)} items from session['analysis_results'].")
     
-    # --- Prepare items for the NEW analysis --- 
+    # --- Prepare items for the chosen analysis --- 
     items_to_analyze = []
-    app.logger.info("Filtering items from session for Task Placement analysis:") # Changed log message
+    app.logger.info(f"Filtering items from session for '{analysis_type}' analysis:") # Log type
     for i, item in enumerate(all_items_from_session):
         item_code = item.get('item_code', 'UNKNOWN')
         item_source = item.get('source', 'UNKNOWN')
-        summary_present = bool(item.get('lastenboek_summary')) # Check if summary key exists and is truthy
+        summary_present = bool(item.get('lastenboek_summary')) # Still useful to know
         
         # Log check details for each item
         app.logger.debug(f"  Item {i+1} [Code: {item_code}]: Source='{item_source}', HasSummary={summary_present}")
 
-        # ** Corrected condition: Check source and summary presence **
-        if item_source in ['both', 'lastenboek_only'] and summary_present:
-            # If specific codes requested, check if this item is in the list
+        include_item = False
+        if analysis_type == 'task_placement':
+            # Condition: Must have lastenboek entry and a summary
+            if item_source in ['both', 'lastenboek_only'] and summary_present:
+                include_item = True
+            else:
+                 app.logger.debug(f"    -> Skipping item {item_code} for task_placement (Condition not met: Source='{item_source}', HasSummary={summary_present})")
+        elif analysis_type == 'consistency':
+             # Condition: Must be present in both sources
+             if item_source == 'both':
+                 include_item = True
+             else:
+                 app.logger.debug(f"    -> Skipping item {item_code} for consistency (Condition not met: Source='{item_source}')")
+        else:
+             # Should not happen if route validated type, but good practice
+             app.logger.warning(f"    -> Skipping item {item_code} due to unknown analysis type '{analysis_type}'")
+             continue # Skip to next item if type is unknown
+
+        # If the item passes the type-specific filter:
+        if include_item:
+            # If specific codes were requested, check if this item is selected
             if selected_codes and item_code not in selected_codes:
-                app.logger.debug(f"    -> Skipping item {item_code} (not in selected codes)")
+                app.logger.debug(f"    -> Skipping item {item_code} (not in selected codes list)")
                 continue
             
-            app.logger.debug(f"    -> Adding item {item_code} to analyze list.")
-            # Construct the dictionary needed by analyze_batch_with_gemini for the NEW check
-            items_to_analyze.append({
-                'item_code': item_code,
-                'lastenboek_title': item.get('lastenboek_title'),
-                'lastenboek_start': item.get('lastenboek_start_page'), 
-                'lastenboek_end': item.get('lastenboek_end_page'),     
-                'lastenboek_summary': item.get('lastenboek_summary') 
-            })
-        else: 
-            app.logger.debug(f"    -> Skipping item {item_code} (Condition not met: Source='{item_source}', HasSummary={summary_present})")
+            app.logger.debug(f"    -> Adding item {item_code} to '{analysis_type}' analysis list.")
+            # Add the item - it contains all fields needed by either analysis type already
+            items_to_analyze.append(item) 
 
-    app.logger.info(f"Prepared {len(items_to_analyze)} items for Task Placement analysis.")
+
+    app.logger.info(f"Prepared {len(items_to_analyze)} items for {analysis_type} analysis.")
     if len(items_to_analyze) > 0:
-        app.logger.debug(f"First item to analyze (sample): {items_to_analyze[0]}")
+        app.logger.debug(f"First item to analyze (sample for {analysis_type}): {items_to_analyze[0]}")
         
     if not items_to_analyze:
-        app.logger.warning("No items with Lastenboek summaries found in session data for Task Placement analysis.")
-        error_payload = {'error': 'No valid items (with Lastenboek summaries) available for analysis.'}
+        # Tailor error message based on why no items were found
+        error_message = f"No items found matching the criteria for '{analysis_type}' analysis."
+        if analysis_type == 'task_placement':
+             error_message += " (Requires items present in Lastenboek TOC with summaries)."
+        elif analysis_type == 'consistency':
+             error_message += " (Requires items present in both Meetstaat and Lastenboek TOC)."
+             
+        app.logger.warning(error_message)
+        error_payload = {'error': error_message}
         app.logger.error(f"Returning 400 error with payload: {error_payload}")
         return jsonify(error_payload), 400
     
@@ -821,24 +893,26 @@ def start_discrepancy_analysis():
     all_llm_results = {}
     batches = [items_to_analyze[i:i+batch_size] for i in range(0, len(items_to_analyze), batch_size)]
     
-    app.logger.info(f"Processing {len(batches)} batches for Task Placement analysis...") 
+    app.logger.info(f"Processing {len(batches)} batches for {analysis_type} analysis...") # Log type
     for i, batch in enumerate(batches):
-        app.logger.info(f"Processing Task Placement batch {i+1}/{len(batches)} with {len(batch)} items")
-        # ** NOTE: analyze_batch_with_gemini now performs the NEW check **
-        batch_llm_results = analyze_batch_with_gemini(batch) 
-        app.logger.debug(f"LLM results for batch {i+1}: {batch_llm_results}") 
+        app.logger.info(f"Processing {analysis_type} batch {i+1}/{len(batches)} with {len(batch)} items") # Log type
+        # Pass the analysis_type to the LLM function
+        batch_llm_results = analyze_batch_with_gemini(batch, analysis_type) 
+        app.logger.debug(f"LLM results for batch {i+1} ({analysis_type}): {batch_llm_results}") # Log type
         all_llm_results.update(batch_llm_results)
         if i < len(batches) - 1: time.sleep(1)
     
-    session['task_placement_analysis_llm_results'] = all_llm_results # Store separately?
-    app.logger.info(f"Task Placement analysis completed. LLM provided results for {len(all_llm_results)} items.")
+    # Store the specific LLM results separately for potential debugging/different export?
+    session[f'{analysis_type}_analysis_llm_results'] = all_llm_results 
+    app.logger.info(f"{analysis_type.capitalize()} analysis completed. LLM provided results for {len(all_llm_results)} items.")
     
     # --- Integrate results back for UI --- 
     final_analysis_output_for_ui = []
-    app.logger.debug("Merging Task Placement LLM results with original session data for UI...")
+    app.logger.debug(f"Merging {analysis_type} LLM results with original session data for UI...") # Log type
     for item_from_session in session['analysis_results']: 
         item_code = item_from_session.get('item_code')
-        # Use the existing UI structure but populate llm_discrepancy_analysis with the NEW check results
+        # Use the existing UI structure but populate llm_discrepancy_analysis 
+        # with the results from the analysis that was just run.
         ui_item = {
              'item_code': item_code,
              'meetstaat_present': item_from_session.get('source') in ['both', 'meetstaat_only'],
@@ -859,30 +933,30 @@ def start_discrepancy_analysis():
              'llm_discrepancy_analysis': None # Default to None
          }
         
-        # If this item was analyzed by the LLM (new check), add the result
+        # If this item was analyzed by the LLM in the *current* run, add the result
         if item_code in all_llm_results:
             ui_item['llm_discrepancy_analysis'] = all_llm_results[item_code]
-            app.logger.debug(f"  Merged Task Placement result for item {item_code}")
+            app.logger.debug(f"  Merged {analysis_type} result for item {item_code}") # Log type
         
         final_analysis_output_for_ui.append(ui_item)
-        
     
     # Format response for the UI
     response_data = {
         'success': True,
         'item_count': len(all_llm_results), 
         'analysis_output': final_analysis_output_for_ui,
-        'message': f"Task Placement analysis completed. Processed {len(all_llm_results)} items with LLM.",
+        'message': f"{analysis_type.capitalize()} analysis completed. Processed {len(all_llm_results)} items with LLM.", # Use type
         'toc_type': session.get('toc_type', 'standard'), 
         'toc_path': session.get('toc_path', os.path.basename(TOC_JSON_PATH)) 
     }
     
     # --- Store the final merged results in session for export --- 
-    session['final_discrepancy_results'] = final_analysis_output_for_ui # Overwrite with new results
-    app.logger.info("Stored final Task Placement results in session['final_discrepancy_results'].")
+    # Overwrite 'final_discrepancy_results' with the output of the *latest* analysis run
+    session['final_discrepancy_results'] = final_analysis_output_for_ui 
+    app.logger.info(f"Stored final {analysis_type} results in session['final_discrepancy_results'].") # Log type
     # -----------------------------------------------------------
 
-    app.logger.info("--- Exiting /start_discrepancy_analysis successfully ---")
+    app.logger.info(f"--- Exiting /start_discrepancy_analysis successfully for {analysis_type} ---") # Log type
     return jsonify(response_data), 200
 # ------------------------------------------
 
@@ -919,6 +993,12 @@ def export_discrepancy_json():
     app.logger.info("Exporting discrepancy analysis results as JSON.")
     return response
 # ---------------------------------------------------------
+
+# --- Default File Paths (Modify if needed) ---
+# Define reasonable defaults, perhaps relative to the script directory or a common data folder
+DEFAULT_JSON_INPUT_PATH = r"C:\\Users\\gr\\Documents\\GitHub\\Meetstaatincorp\\output\\plint_toc_with_summaries_tasks.json" # UPDATED
+DEFAULT_PDF_INPUT_PATH = r"C:\\Users\\gr\\Documents\\GitHub\\Meetstaatincorp\\samengevoegdamsterdamlastenboek.pdf"   # UPDATED
+# ... existing code ...
 
 # Run the Flask app
 if __name__ == '__main__':
