@@ -1,0 +1,1804 @@
+{
+  "00": {
+    "start": 7,
+    "end": 10,
+    "title": "ALGEMENE WERFORGANISATIE",
+    "sections": {
+      "00.00": {
+        "start": 7,
+        "end": 7,
+        "title": "Algemene werforganisatie"
+      },
+      "00.01": {
+        "start": 7,
+        "end": 10,
+        "title": "WERFINSTALLATIE",
+        "sections": {
+          "00.01.10": {
+            "start": 7,
+            "end": 7,
+            "title": "Installatie van de werf"
+          },
+          "00.01.20": {
+            "start": 7,
+            "end": 7,
+            "title": "Aankondiging werf"
+          },
+          "00.01.21": {
+            "start": 7,
+            "end": 7,
+            "title": "Werfbord"
+          },
+          "00.01.40": {
+            "start": 8,
+            "end": 8,
+            "title": "Beschermingsmaatregelen"
+          },
+          "00.01.70": {
+            "start": 8,
+            "end": 8,
+            "title": "Veiligheidsvoorschriften"
+          },
+          "00.01.80": {
+            "start": 8,
+            "end": 8,
+            "title": "Arbeidsmiddelen - werken op hoogte"
+          },
+          "00.01.81": {
+            "start": 8,
+            "end": 8,
+            "title": "Arbeidsmiddelen - werken op hoogte/ladders"
+          },
+          "00.01.82": {
+            "start": 8,
+            "end": 9,
+            "title": "Arbeidsmiddelen - werken op hoogte/steigers"
+          },
+          "00.01.90": {
+            "start": 9,
+            "end": 9,
+            "title": "Werfcondities"
+          },
+          "00.01.91": {
+            "start": 9,
+            "end": 9,
+            "title": "Werfcondities - orde en netheid"
+          },
+          "00.01.92": {
+            "start": 9,
+            "end": 10,
+            "title": "Werfcondities - geluids- en stofhinder"
+          },
+          "00.01.93": {
+            "start": 10,
+            "end": 10,
+            "title": "Werfcondities - nazorg"
+          }
+        }
+      }
+    }
+  },
+  "01": {
+    "start": 11,
+    "end": 50,
+    "title": "VOORAFGAANDE WERKEN EN SLOOPWERKEN",
+    "sections": {
+      "01.00": {
+        "start": 11,
+        "end": 11,
+        "title": "voorafgaande werken en sloopwerken"
+      },
+      "01.01": {
+        "start": 11,
+        "end": 12,
+        "title": "Inrichten van de bouwplaats",
+        "sections": {
+          "01.01.10": {
+            "start": 11,
+            "end": 11,
+            "title": "Voorlopige omheining"
+          },
+          "01.01.12": {
+            "start": 11,
+            "end": 11,
+            "title": "Voorlopige omheining uit een draadnet"
+          },
+          "01.01.16": {
+            "start": 11,
+            "end": 12,
+            "title": "Bebakening en signalisatie"
+          },
+          "01.01.40": {
+            "start": 12,
+            "end": 12,
+            "title": "Plaatsbeschrijvingen"
+          },
+          "01.01.42": {
+            "start": 12,
+            "end": 12,
+            "title": "Plaatsbeschrijving van de binnen de bouwplaats gelegen gebouwen opgemaakt door een erkend expert"
+          }
+        }
+      },
+      "01.04": {
+        "start": 13,
+        "end": 14,
+        "title": "slopen van volledige bouwwerken en van ruwbouwelementen",
+        "sections": {
+          "01.04.40": {
+            "start": 13,
+            "end": 13,
+            "title": "Slopen van metselwerk"
+          },
+          "01.04.41": {
+            "start": 13,
+            "end": 14,
+            "title": "Slopen van een metselwerkelement",
+            "sections": {
+              "01.04.41.C": {
+                "start": 13,
+                "end": 13,
+                "title": "Slopen van een licht ongewapend metselwerkelement"
+              },
+              "01.04.41.D": {
+                "start": 14,
+                "end": 14,
+                "title": "Slopen van een zwaar ongewapend metselwerkelement"
+              }
+            }
+          }
+        }
+      },
+      "01.07": {
+        "start": 14,
+        "end": 15,
+        "title": "SLOPEN VAN GEVELELEMENTEN",
+        "sections": {
+          "01.07.20": {
+            "start": 14,
+            "end": 14,
+            "title": "Uitnemen van buitenramen en -deuren"
+          },
+          "01.07.21": {
+            "start": 14,
+            "end": 15,
+            "title": "Uiteennemen van een buitendeur of -venster"
+          }
+        }
+      },
+      "01.08": {
+        "start": 15,
+        "end": 16,
+        "title": "VERWIJDEREN VAN AAN- EN AFVOERLEIDINGEN",
+        "sections": {
+          "01.08.30": {
+            "start": 15,
+            "end": 15,
+            "title": "Verwijderen van leidingen"
+          },
+          "01.08.32": {
+            "start": 15,
+            "end": 15,
+            "title": "Verwijderen van een leiding in kokers"
+          },
+          "01.08.33": {
+            "start": 15,
+            "end": 16,
+            "title": "Verwijderen van een leiding in opbouw"
+          },
+          "01.08.35": {
+            "start": 16,
+            "end": 16,
+            "title": "Verwijderen van een leiding in verlaagde plafonds"
+          }
+        }
+      },
+      "01.09": {
+        "start": 16,
+        "end": 25,
+        "title": "VERWIJDEREN VAN VLOERBEDEKKINGEN EN DEKVLOEREN",
+        "sections": {
+          "01.09.10": {
+            "start": 16,
+            "end": 16,
+            "title": "Verwijderen van plinten"
+          },
+          "01.09.11": {
+            "start": 16,
+            "end": 17,
+            "title": "Verwijderen van een plint",
+            "sections": {
+              "01.09.11.A": {
+                "start": 16,
+                "end": 17,
+                "title": "Verwijderen van tegel plinten"
+              },
+              "01.09.11.B": {
+                "start": 17,
+                "end": 17,
+                "title": "Verwijderen van houten plinten"
+              }
+            }
+          },
+          "01.09.30": {
+            "start": 17,
+            "end": 17,
+            "title": "Verwijderen van soepele vloerbedekkingen"
+          },
+          "01.09.31": {
+            "start": 17,
+            "end": 18,
+            "title": "Verwijderen van een soepele vloerbedekking"
+          },
+          "01.09.40": {
+            "start": 17,
+            "end": 17,
+            "title": "Opbreken van vloerbedekkingen uit tegels"
+          },
+          "01.09.41": {
+            "start": 18,
+            "end": 18,
+            "title": "Opbreken van een vloerbedekking uit tegels"
+          },
+          "01.09.50": {
+            "start": 18,
+            "end": 18,
+            "title": "Opbreken van houten vloerbedekkingen"
+          },
+          "01.09.51": {
+            "start": 18,
+            "end": 19,
+            "title": "Opbreken van een houten vloerbedekking"
+          },
+          "01.09.52": {
+            "start": 19,
+            "end": 19,
+            "title": "Opbreken van estrade"
+          },
+          "01.09.60": {
+            "start": 19,
+            "end": 19,
+            "title": "Opbreken van dekvloeren en bedrijfsvloeren"
+          },
+          "01.09.61": {
+            "start": 19,
+            "end": 20,
+            "title": "Opbreken van een dekvloer"
+          }
+        }
+      },
+      "01.10": {
+        "start": 20,
+        "end": 28,
+        "title": "SLOPEN VAN BINNENWANDELEMENTEN",
+        "sections": {
+          "01.10.20": {
+            "start": 20,
+            "end": 20,
+            "title": "Verwijderen van binnendeuren, -vensters, kozijnen en omlijstingen"
+          },
+          "01.10.21": {
+            "start": 20,
+            "end": 20,
+            "title": "Verwijderen van een binnendeur"
+          },
+          "01.10.22": {
+            "start": 20,
+            "end": 21,
+            "title": "Verwijderen van een binnenvenster"
+          },
+          "01.10.25": {
+            "start": 20,
+            "end": 21,
+            "title": "Verwijderen van accesoires binnendeuren"
+          },
+          "01.10.40": {
+            "start": 21,
+            "end": 21,
+            "title": "Uitbreken van lichte binnenwanden"
+          },
+          "01.10.41": {
+            "start": 21,
+            "end": 21,
+            "title": "Uitbreken van een lichte binnenwand"
+          },
+          "01.10.60": {
+            "start": 21,
+            "end": 21,
+            "title": "Verwijderen van binnenwand- en binnenkolombekledingen"
+          },
+          "01.10.61": {
+            "start": 21,
+            "end": 22,
+            "title": "Verwijderen van een binnenwand- en binnenkolombekleding"
+          },
+          "01.10.64": {
+            "start": 22,
+            "end": 22,
+            "title": "Verwijderen van een binnenwandbekleding - faience"
+          },
+          "01.10.90": {
+            "start": 22,
+            "end": 22,
+            "title": "Verwijderen van accesoires op de muren"
+          },
+          "01.10.91": {
+            "start": 22,
+            "end": 22,
+            "title": "Verwijderen toebehoren en bevestiging op de muren"
+          },
+          "01.11": {
+            "start": 22,
+            "end": 23,
+            "title": "verwijderen van plafonds",
+            "sections": {
+              "01.11.30": {
+                "start": 22,
+                "end": 22,
+                "title": "Verwijderen van verlaagde plafonds"
+              },
+              "01.11.32": {
+                "start": 23,
+                "end": 23,
+                "title": "Verwijderen van een verlaagd plafond op metalen draagconstructie"
+              },
+              "01.11.40": {
+                "start": 23,
+                "end": 23,
+                "title": "Verwijderen van plafondbekledingen"
+              },
+              "01.11.41": {
+                "start": 23,
+                "end": 24,
+                "title": "Verwijderen van een plafondbekleding"
+              }
+            }
+          },
+          "01.14": {
+            "start": 23,
+            "end": 25,
+            "title": "verwijderen van sanitaire toestellen",
+            "sections": {
+              "01.14.10": {
+                "start": 23,
+                "end": 23,
+                "title": "Verwijderen van sanitair toebehoren en kraanwerk"
+              },
+              "01.14.11": {
+                "start": 24,
+                "end": 24,
+                "title": "Verwijderen van sanitair toebehoren"
+              },
+              "01.14.20": {
+                "start": 24,
+                "end": 24,
+                "title": "Verwijderen van sanitaire toestellen"
+              },
+              "01.14.21": {
+                "start": 24,
+                "end": 24,
+                "title": "Verwijderen van een sanitair toestel"
+              },
+              "01.14.22": {
+                "start": 24,
+                "end": 25,
+                "title": "Afvoer gestockeerde sanitaire toestellen en toebehoren"
+              }
+            }
+          },
+          "01.20": {
+            "start": 25,
+            "end": 28,
+            "title": "administratieve elementen en diversen",
+            "sections": {
+              "01.20.10": {
+                "start": 25,
+                "end": 25,
+                "title": "Opmaak en levering van een werkplanning"
+              },
+              "01.20.11": {
+                "start": 25,
+                "end": 26,
+                "title": "Opmaak en levering van een werkplanning"
+              },
+              "01.20.20": {
+                "start": 25,
+                "end": 25,
+                "title": "Opmaak en levering van een as-builtdossier"
+              },
+              "01.20.21": {
+                "start": 25,
+                "end": 26,
+                "title": "Opmaak en levering van een as-builtdossier - gedeelte civiele bouwkunde"
+              },
+              "01.20.22": {
+                "start": 27,
+                "end": 27,
+                "title": "Opmaak en levering van een as-builtdossier - gedeelte elektriciteit"
+              },
+              "01.20.23": {
+                "start": 27,
+                "end": 28,
+                "title": "Opmaak en levering van een asbuiltdossier - gedeelte HVAC"
+              }
+            }
+          }
+        }
+      },
+      "03": {
+        "start": 29,
+        "end": 50,
+        "title": "OPEN RUWBOUW",
+        "sections": {
+          "03.00": {
+            "start": 29,
+            "end": 29,
+            "title": "OPEN RUWBOUW"
+          },
+          "03.02": {
+            "start": 29,
+            "end": 39,
+            "title": "Muren en tussenwanden van metselwerk uit kleine elementen",
+            "sections": {
+              "03.02.00": {
+                "start": 29,
+                "end": 35,
+                "title": "Muren en tussenwanden van metselwerk - Algemeen"
+              },
+              "03.02.10": {
+                "start": 35,
+                "end": 35,
+                "title": "Muren en scheidingswanden uit metselwerk van baksteen - Algemeen"
+              },
+              "03.02.13": {
+                "start": 35,
+                "end": 39,
+                "title": "Niet-dragende muren en scheidingswanden uit metselwerk van baksteen - Metselwerk uit blokken en stenen ander dan gevelmetselwerk - Geperforeerde blokken en stenen",
+                "sections": {
+                  "03.02.13.A": {
+                    "start": 39,
+                    "end": 39,
+                    "title": "Niet-dragende muren en scheidingswanden uit metselwerk van baksteen - Metselwerk ander dan gevelmetselwerk- Geperforeerde blokken en stenen - Volumemassa",
+                    "sections": {
+                      "03.02.13.A.02": {
+                        "start": 39,
+                        "end": 39,
+                        "title": "Niet-dragende muren en scheidingswanden uit metselwerk van baksteen -- Metselwerk ander dan gevelmetselwerk- Geperforeerde blokken en stenen - Volumemassa - dikte = 14 cm"
+                      },
+                      "03.02.13.A.03": {
+                        "start": 39,
+                        "end": 39,
+                        "title": "Niet-dragende muren en scheidingswanden uit metselwerk van baksteen -- Metselwerk ander dan gevelmetselwerk- Geperforeerde blokken en stenen - Volumemassa - dikte = 19 cm"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "03.14": {
+            "start": 39,
+            "end": 50,
+            "title": "HOUTEN STRUCTUURELEMENTEN",
+            "sections": {
+              "03.14.20": {
+                "start": 39,
+                "end": 39,
+                "title": "Timmerwerk uit hout"
+              },
+              "03.14.21": {
+                "start": 40,
+                "end": 40,
+                "title": "Houten balken",
+                "sections": {
+                  "03.14.21.D": {
+                    "start": 40,
+                    "end": 40,
+                    "title": "Controle van de balkenlaag"
+                  }
+                }
+              },
+              "03.14.30": {
+                "start": 40,
+                "end": 40,
+                "title": "Panelen vervaardigd op basis van hout"
+              },
+              "03.14.32": {
+                "start": 40,
+                "end": 50,
+                "title": "Panelen vervaardigd met dunne, lange georiënteerde lamellen"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "03": {
+    "start": 46,
+    "end": 46,
+    "title": "OPEN RUWBOUW",
+    "sections": {
+      "03.14": {
+        "start": 46,
+        "end": 46,
+        "title": "HOUTEN STRUCTUURELEMENTEN",
+        "sections": {
+          "03.14.32": {
+            "start": 46,
+            "end": 46,
+            "title": "Panelen vervaardigd met dunne, lange georiënteerde lamellen"
+          }
+        }
+      }
+    }
+  },
+  "07": {
+    "start": 46,
+    "end": 83,
+    "title": "GEVELSLUITINGEN",
+    "sections": {
+      "07.01": {
+        "start": 46,
+        "end": 63,
+        "title": "BUITENDEUREN EN -VENSTERS",
+        "sections": {
+          "07.01.00": {
+            "start": 46,
+            "end": 49,
+            "title": "Buitendeuren en -vensters - Algemeen"
+          },
+          "07.01.10": {
+            "start": 49,
+            "end": 50,
+            "title": "Houten profielen - algemeen"
+          },
+          "07.01.11": {
+            "start": 51,
+            "end": 51,
+            "title": "Houten profielen - gebeitst",
+            "sections": {
+              "07.01.11.C": {
+                "start": 51,
+                "end": 51,
+                "title": "Houten profielen - gebeitst - kipraam"
+              },
+              "07.01.11.M": {
+                "start": 51,
+                "end": 52,
+                "title": "Houten profielen - gebeitst - samengesteld buitendeurgeheel"
+              }
+            }
+          },
+          "07.01.12": {
+            "start": 52,
+            "end": 53,
+            "title": "Houten profielen - geverfd",
+            "sections": {
+              "07.01.12.I": {
+                "start": 53,
+                "end": 53,
+                "title": "Houten profielen - geverfd - schuin / hellend raam"
+              }
+            }
+          },
+          "07.01.50": {
+            "start": 53,
+            "end": 53,
+            "title": "Hang-en-sluitwerk - algemeen"
+          },
+          "07.01.51": {
+            "start": 54,
+            "end": 54,
+            "title": "Hang-en-sluitwerk - scharnieren en paumellen"
+          },
+          "07.01.52": {
+            "start": 54,
+            "end": 55,
+            "title": "Hang-en-sluitwerk - sloten"
+          },
+          "07.01.53": {
+            "start": 55,
+            "end": 55,
+            "title": "Hang- en-sluitwerk - raamkrukken, spanjoletten"
+          },
+          "07.01.54": {
+            "start": 56,
+            "end": 56,
+            "title": "Hang-en-sluitwerk - deurkrukken"
+          },
+          "07.01.58": {
+            "start": 56,
+            "end": 56,
+            "title": "Nazicht en renovatie bestaande hang-en sluitwerk"
+          }
+        }
+      },
+      "07.02": {
+        "start": 56,
+        "end": 83,
+        "title": "BUITENBEGLAZING EN VULELEMENTEN",
+        "sections": {
+          "07.02.00": {
+            "start": 56,
+            "end": 58,
+            "title": "Buitenbeglazing en vulelementen - algemeen"
+          },
+          "07.02.20": {
+            "start": 59,
+            "end": 59,
+            "title": "Isolerende beglazing - algemeen"
+          },
+          "07.02.21": {
+            "start": 60,
+            "end": 60,
+            "title": "Isolerende beglazing - klaar glas"
+          },
+          "07.02.30": {
+            "start": 60,
+            "end": 61,
+            "title": "Thermisch verbeterde beglazing - algemeen"
+          },
+          "07.02.50": {
+            "start": 61,
+            "end": 61,
+            "title": "Veiligheidsbeglazing - algemeen"
+          },
+          "07.02.54": {
+            "start": 62,
+            "end": 63,
+            "title": "Veiligheidsbeglazing - thermisch isolerend / gehard"
+          }
+        }
+      }
+    }
+  },
+  "08": {
+    "start": 64,
+    "end": 83,
+    "title": "AANVOER- EN AFVOERLEIDINGEN",
+    "sections": {
+      "08.00": {
+        "start": 64,
+        "end": 64,
+        "title": "Aanvoer- en afvoerleidingen",
+        "sections": {
+          "08.00.10": {
+            "start": 64,
+            "end": 64,
+            "title": "Studie van de toevoer- en afvoerleidingen"
+          }
+        }
+      },
+      "08.02": {
+        "start": 64,
+        "end": 74,
+        "title": "AANVOERLEIDINGEN",
+        "sections": {
+          "08.02.10": {
+            "start": 64,
+            "end": 68,
+            "title": "Waterleidingen"
+          },
+          "08.02.11": {
+            "start": 69,
+            "end": 71,
+            "title": "Waterleiding uit gegalvaniseerd staal",
+            "sections": {
+              "08.02.11.C": {
+                "start": 70,
+                "end": 71,
+                "title": "Waterleiding uit gegalvaniseerd staal, ND 20 mm"
+              }
+            }
+          },
+          "08.02.13": {
+            "start": 71,
+            "end": 74,
+            "title": "Waterleiding uit kunststof",
+            "sections": {
+              "08.02.13.A": {
+                "start": 74,
+                "end": 74,
+                "title": "Waterleiding uit kunststof, buitendiameter ND 16 mm"
+              },
+              "08.02.13.B": {
+                "start": 74,
+                "end": 74,
+                "title": "Waterleiding uit kunststof, buitendiameter ND 20 mm"
+              }
+            }
+          }
+        }
+      },
+      "08.03": {
+        "start": 74,
+        "end": 75,
+        "title": "KRANEN EN KLEPPEN",
+        "sections": {
+          "08.03.10": {
+            "start": 74,
+            "end": 74,
+            "title": "Afsluitkranen voor water"
+          },
+          "08.03.11": {
+            "start": 74,
+            "end": 75,
+            "title": "Afsluitkraan uit messing",
+            "sections": {
+              "08.03.11.B": {
+                "start": 75,
+                "end": 75,
+                "title": "Afsluitkraan uit messing, DN 16"
+              },
+              "08.03.11.C": {
+                "start": 75,
+                "end": 75,
+                "title": "Afsluitkraan uit messing, DN 20"
+              }
+            }
+          }
+        }
+      },
+      "08.05": {
+        "start": 75,
+        "end": 83,
+        "title": "AFVOER- EN VERLUCHTINGSLEIDINGEN",
+        "sections": {
+          "08.05.10": {
+            "start": 75,
+            "end": 78,
+            "title": "Afvoerleidingen"
+          },
+          "08.05.12": {
+            "start": 79,
+            "end": 80,
+            "title": "Afvoerleiding uit polyethyleen",
+            "sections": {
+              "08.05.12.B": {
+                "start": 80,
+                "end": 80,
+                "title": "Afvoerleiding uit polyethyleen, ND 50 mm"
+              },
+              "08.05.12.D": {
+                "start": 80,
+                "end": 80,
+                "title": "Afvoerleiding uit polyethyleen, ND 75 mm"
+              },
+              "08.05.12.E": {
+                "start": 80,
+                "end": 80,
+                "title": "Afvoerleiding uit polyethyleen, ND 90 mm"
+              },
+              "08.05.12.F": {
+                "start": 80,
+                "end": 80,
+                "title": "Afvoerleiding uit polyethyleen, ND 110 mm"
+              }
+            }
+          },
+          "08.05.20": {
+            "start": 80,
+            "end": 80,
+            "title": "Sanitaire verluchtingsbuizen"
+          },
+          "08.05.22": {
+            "start": 80,
+            "end": 81,
+            "title": "Verluchtingsleiding uit polyethyleen",
+            "sections": {
+              "08.05.22.B": {
+                "start": 81,
+                "end": 81,
+                "title": "Verluchtingsleiding uit polyethyleen, ND 40 mm"
+              }
+            }
+          },
+          "08.05.23": {
+            "start": 81,
+            "end": 81,
+            "title": "Verluchtingsleiding - beluchtingsventiel"
+          },
+          "08.06": {
+            "start": 82,
+            "end": 83,
+            "title": "ONTVANGERS VOOR BINNEN HET GEBOUW",
+            "sections": {
+              "08.06.20": {
+                "start": 82,
+                "end": 82,
+                "title": "Afvoerputten met waterslot"
+              },
+              "08.06.23": {
+                "start": 82,
+                "end": 82,
+                "title": "Afvoerput uit roestvast staal met waterslot"
+              },
+              "08.06.60": {
+                "start": 82,
+                "end": 82,
+                "title": "Deksels binnen het gebouw"
+              },
+              "08.06.63": {
+                "start": 83,
+                "end": 83,
+                "title": "Hermetisch sluitend deksel uit roestvrij staal binnen het gebouw",
+                "sections": {
+                  "08.06.63.A": {
+                    "start": 83,
+                    "end": 83,
+                    "title": "Hermetisch sluitend deksel uit roestvrij staal binnen het gebouw, 500 x 500 mm"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "09": {
+    "start": 84,
+    "end": 95,
+    "title": "VLOEREN",
+    "sections": {
+      "09.00": {
+        "start": 84,
+        "end": 84,
+        "title": "VLOEREN"
+      },
+      "09.01": {
+        "start": 84,
+        "end": 84,
+        "title": "DRAAGVLOEREN OP VOLLE GROND EN VLOERONDERLAGEN",
+        "sections": {
+          "09.01.50": {
+            "start": 84,
+            "end": 84,
+            "title": "Vochtwerende lagen in vloeren"
+          },
+          "09.01.52": {
+            "start": 84,
+            "end": 85,
+            "title": "Waterkerende laag uit kunststof",
+            "sections": {
+              "09.01.52.A": {
+                "start": 84,
+                "end": 85,
+                "title": "dikte 0,1 mm"
+              }
+            }
+          }
+        }
+      },
+      "09.02": {
+        "start": 85,
+        "end": 86,
+        "title": "DEKVLOEREN",
+        "sections": {
+          "09.02.10": {
+            "start": 85,
+            "end": 85,
+            "title": "Cementgebonden dekvloeren"
+          },
+          "09.02.13": {
+            "start": 85,
+            "end": 86,
+            "title": "Niet-hechtende cementgebonden dekvloer",
+            "sections": {
+              "09.02.13.A": {
+                "start": 85,
+                "end": 85,
+                "title": "dikte tot 7 cm"
+              },
+              "09.02.13.D": {
+                "start": 85,
+                "end": 86,
+                "title": "Meerprijs per cm"
+              }
+            }
+          }
+        }
+      },
+      "09.04": {
+        "start": 86,
+        "end": 86,
+        "title": "VLOERBEKLEDINGEN MET TEGELS",
+        "sections": {
+          "09.04.10": {
+            "start": 86,
+            "end": 86,
+            "title": "Vloerbekledingen met ceramische tegels"
+          },
+          "09.04.12": {
+            "start": 86,
+            "end": 87,
+            "title": "Geglazuurde tegels uit fijn verglaasd geperst gres"
+          }
+        }
+      },
+      "09.05": {
+        "start": 86,
+        "end": 88,
+        "title": "VLOERBEKLEDINGEN UIT HOUT EN SOEPELE VLOERBEKLEDINGEN",
+        "sections": {
+          "09.05.10": {
+            "start": 86,
+            "end": 86,
+            "title": "Houten vloerbekledingen"
+          },
+          "09.05.12": {
+            "start": 87,
+            "end": 87,
+            "title": "vloerbekleding met watervaste multiplexplaten",
+            "sections": {
+              "09.05.12.A": {
+                "start": 87,
+                "end": 87,
+                "title": "dikte 18 mm"
+              }
+            }
+          },
+          "09.05.40": {
+            "start": 87,
+            "end": 87,
+            "title": "Vloerbekledingen uit polyvinylchloride"
+          },
+          "09.05.41": {
+            "start": 88,
+            "end": 88,
+            "title": "Homogene vinylvloerbekleding"
+          }
+        }
+      },
+      "09.08": {
+        "start": 88,
+        "end": 90,
+        "title": "PLINTEN",
+        "sections": {
+          "09.08.10": {
+            "start": 88,
+            "end": 88,
+            "title": "Ceramische plinten"
+          },
+          "09.08.12": {
+            "start": 88,
+            "end": 88,
+            "title": "Geglazuurde plinten uit fijn verglaasd geperst gres"
+          },
+          "09.08.60": {
+            "start": 89,
+            "end": 89,
+            "title": "Houten plinten"
+          },
+          "09.08.66": {
+            "start": 89,
+            "end": 90,
+            "title": "MDF plinten"
+          }
+        }
+      },
+      "09.09": {
+        "start": 90,
+        "end": 90,
+        "title": "TUSSENDORPELS",
+        "sections": {
+          "09.09.50": {
+            "start": 90,
+            "end": 90,
+            "title": "Scheidingsprofielen tussen vloerbekledingen"
+          },
+          "09.09.52": {
+            "start": 90,
+            "end": 91,
+            "title": "Scheidingsprofiel uit roestvrij staal tussen vloerbekledingen"
+          }
+        }
+      },
+      "09.10": {
+        "start": 90,
+        "end": 91,
+        "title": "BIJHORIGHEDEN VOOR VLOERBEKLEDINGEN",
+        "sections": {
+          "09.10.10": {
+            "start": 90,
+            "end": 90,
+            "title": "Dichting van voegen in vloerbekledingen"
+          },
+          "09.10.12": {
+            "start": 91,
+            "end": 91,
+            "title": "Elastische voegvulling in vloerbekleding"
+          }
+        }
+      },
+      "09.12": {
+        "start": 91,
+        "end": 95,
+        "title": "TRAPBEKLEDINGEN",
+        "sections": {
+          "09.12.50": {
+            "start": 91,
+            "end": 91,
+            "title": "Trapneuzen"
+          },
+          "09.12.52": {
+            "start": 91,
+            "end": 92,
+            "title": "Trapneus uit kunststof",
+            "sections": {
+              "09.12.52.B": {
+                "start": 92,
+                "end": 92,
+                "title": "harde PVC met anti-slipribben"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "10": {
+    "start": 93,
+    "end": 117,
+    "title": "WANDEN",
+    "sections": {
+      "10.00": {
+        "start": 93,
+        "end": 93,
+        "title": "WANDEN"
+      },
+      "10.01": {
+        "start": 93,
+        "end": 97,
+        "title": "BINNENWANDEN IN SCHRIJNWERK",
+        "sections": {
+          "10.01.10": {
+            "start": 93,
+            "end": 93,
+            "title": "Vaste scheidingswanden"
+          },
+          "10.01.12": {
+            "start": 93,
+            "end": 95,
+            "title": "Vaste scheidingswand met gipskartonplaten op metalen structuur",
+            "sections": {
+              "10.01.12.A": {
+                "start": 94,
+                "end": 94,
+                "title": "type A, dikte 12,5 mm, enkele beplating"
+              },
+              "10.01.12.B": {
+                "start": 94,
+                "end": 95,
+                "title": "type H2, hoge waterweerstand, dikte 12,5 mm, enkele beplating"
+              }
+            }
+          },
+          "10.01.40": {
+            "start": 95,
+            "end": 95,
+            "title": "Sanitaire binnenwanden"
+          },
+          "10.01.41": {
+            "start": 95,
+            "end": 96,
+            "title": "Sanitaire binnenwand in schrijnwerk"
+          },
+          "10.01.50": {
+            "start": 95,
+            "end": 95,
+            "title": "Uitbekleding sanitaire toestellen"
+          },
+          "10.01.51": {
+            "start": 95,
+            "end": 96,
+            "title": "Te betegelen plaat - cementplaat"
+          }
+        }
+      },
+      "10.03": {
+        "start": 96,
+        "end": 97,
+        "title": "BINNENWAND BEKLEDINGEN",
+        "sections": {
+          "10.03.50": {
+            "start": 96,
+            "end": 96,
+            "title": "Binnenwandbekledingen met tegels"
+          },
+          "10.03.54": {
+            "start": 97,
+            "end": 97,
+            "title": "Binnenwandbekleding met tegels van geglazuurde faïence",
+            "sections": {
+              "10.03.54.B": {
+                "start": 97,
+                "end": 97,
+                "title": "mod. afm. 150 x 150 mm"
+              }
+            }
+          },
+          "10.03.70": {
+            "start": 97,
+            "end": 97,
+            "title": "Vochtwerende lagen in wanden"
+          },
+          "10.03.71": {
+            "start": 97,
+            "end": 98,
+            "title": "Waterkerende laag uit kunststof"
+          }
+        }
+      },
+      "10.04": {
+        "start": 98,
+        "end": 100,
+        "title": "BINNENWANDBEPLEISTERING",
+        "sections": {
+          "10.04.20": {
+            "start": 98,
+            "end": 98,
+            "title": "Waterwerende binnenwandbepleisteringen"
+          },
+          "10.04.21": {
+            "start": 98,
+            "end": 99,
+            "title": "Waterwerende binnenwandbepleistering met cemenmortel"
+          },
+          "10.04.30": {
+            "start": 99,
+            "end": 99,
+            "title": "Gipshoudende binnenwandbepleisteringen"
+          },
+          "10.04.32": {
+            "start": 99,
+            "end": 100,
+            "title": "Gipshoudende binnenwandbepleisteringen met fabrieksmortel",
+            "sections": {
+              "10.04.32.A": {
+                "start": 100,
+                "end": 100,
+                "title": "in één laag"
+              }
+            }
+          }
+        }
+      },
+      "10.05": {
+        "start": 100,
+        "end": 101,
+        "title": "VENSTERBANKEN",
+        "sections": {
+          "10.05.10": {
+            "start": 100,
+            "end": 100,
+            "title": "Houten vensterbanken"
+          },
+          "10.05.12": {
+            "start": 100,
+            "end": 101,
+            "title": "Vensterbank met multiplexplaten"
+          }
+        }
+      },
+      "10.06": {
+        "start": 101,
+        "end": 101,
+        "title": "BINNENDEUROMLIJSTINGEN",
+        "sections": {
+          "10.06.10": {
+            "start": 101,
+            "end": 101,
+            "title": "Houten binnendeuromlijstingen"
+          },
+          "10.06.11": {
+            "start": 101,
+            "end": 102,
+            "title": "Binnendeuromlijsting met binnenkast uit massief hout",
+            "sections": {
+              "10.06.11.A": {
+                "start": 101,
+                "end": 101,
+                "title": "enkele deur"
+              },
+              "10.06.11.D": {
+                "start": 101,
+                "end": 102,
+                "title": "dubbele deur met bovendeel"
+              }
+            }
+          }
+        }
+      },
+      "10.07": {
+        "start": 102,
+        "end": 107,
+        "title": "HOUTEN BINNENDEURVLEUGELS EN BOVENPANELEN",
+        "sections": {
+          "10.07.30": {
+            "start": 102,
+            "end": 102,
+            "title": "Houten binnendeurvleugels en bovenpanelen bekleed met hogedruk laminaatplaten"
+          },
+          "10.07.31": {
+            "start": 103,
+            "end": 104,
+            "title": "Houten binnendeurvleugel bekleed met hogedruk laminaatplaten",
+            "sections": {
+              "10.07.31.B": {
+                "start": 104,
+                "end": 104,
+                "title": "vleugelbreedte 0,93 m"
+              },
+              "10.07.31.G": {
+                "start": 104,
+                "end": 104,
+                "title": "vleugelbreedte 2 x 1,03 m"
+              }
+            }
+          },
+          "10.07.33": {
+            "start": 104,
+            "end": 105,
+            "title": "Houten bovenpaneel van binnendeur bekleed met hogedruk laminaatplaten"
+          }
+        }
+      },
+      "10.11": {
+        "start": 105,
+        "end": 107,
+        "title": "BRANDWERENDE DEUREN",
+        "sections": {
+          "10.11.10": {
+            "start": 105,
+            "end": 105,
+            "title": "Houten brandwerende deuren"
+          },
+          "10.11.15": {
+            "start": 105,
+            "end": 107,
+            "title": "Beglaasde houten brandwerende deur Rf 1 h",
+            "sections": {
+              "10.11.15.F": {
+                "start": 107,
+                "end": 107,
+                "title": "vleugelbreedte tot 2 x 0,83 m"
+              },
+              "10.11.15.H": {
+                "start": 107,
+                "end": 107,
+                "title": "vleugelbreedte 2 x 1,03 m"
+              }
+            }
+          },
+          "10.11.17": {
+            "start": 107,
+            "end": 108,
+            "title": "Bovenpaneel van houten brandwerende deur Rf 1 h"
+          }
+        }
+      },
+      "10.20": {
+        "start": 108,
+        "end": 117,
+        "title": "BIJHORIGHEDEN VOOR BINNENWANDEN EN DEUREN",
+        "sections": {
+          "10.20.10": {
+            "start": 108,
+            "end": 108,
+            "title": "Deurdrangers"
+          },
+          "10.20.12": {
+            "start": 108,
+            "end": 109,
+            "title": "Deursluiter met glijarm",
+            "sections": {
+              "10.20.12.A": {
+                "start": 109,
+                "end": 109,
+                "title": "enkele deur"
+              },
+              "10.20.12.B": {
+                "start": 109,
+                "end": 110,
+                "title": "dubbele deur inclusief het sluitsysteem"
+              }
+            }
+          },
+          "10.20.20": {
+            "start": 109,
+            "end": 109,
+            "title": "Hang- en sluitwerk - scharnieren en paumellen"
+          },
+          "10.20.23": {
+            "start": 110,
+            "end": 110,
+            "title": "hang- en sluitwerk - scharnieren en paumellen/roestvast staal - nieuwe deuren"
+          },
+          "10.20.25": {
+            "start": 110,
+            "end": 110,
+            "title": "hang- en sluitwerk - deursloten/klaviersloten - nieuwe deuren"
+          },
+          "10.20.27": {
+            "start": 110,
+            "end": 111,
+            "title": "hang- en sluitwerk - deurkrukken/RVS - nieuwe deuren"
+          },
+          "10.20.30": {
+            "start": 111,
+            "end": 111,
+            "title": "Deurstoppen"
+          },
+          "10.20.33": {
+            "start": 111,
+            "end": 111,
+            "title": "Deurstop met bolschijf"
+          },
+          "10.20.50": {
+            "start": 111,
+            "end": 111,
+            "title": "Binnendeur en binnenmuurroosters"
+          },
+          "10.20.52": {
+            "start": 112,
+            "end": 112,
+            "title": "Deurrooster uit gemoffeld aluminium"
+          },
+          "10.20.70": {
+            "start": 112,
+            "end": 112,
+            "title": "Antipanieksluitingen"
+          },
+          "10.20.71": {
+            "start": 112,
+            "end": 113,
+            "title": "Panieksluiting met vertikale vergrendeling"
+          }
+        }
+      }
+    }
+  },
+  "11": {
+    "start": 113,
+    "end": 115,
+    "title": "PLAFONDS",
+    "sections": {
+      "11.00": {
+        "start": 113,
+        "end": 113,
+        "title": "PLAFONDS"
+      },
+      "11.01": {
+        "start": 113,
+        "end": 115,
+        "title": "VERLAAGDE PLAFONDS",
+        "sections": {
+          "11.01.40": {
+            "start": 114,
+            "end": 114,
+            "title": "Verlaagde plafonds met platen op metalen ophangsysteem"
+          },
+          "11.01.41": {
+            "start": 114,
+            "end": 114,
+            "title": "Verlaagd plafond op metalen ophangsysteem"
+          },
+          "11.01.43": {
+            "start": 114,
+            "end": 114,
+            "title": "Verlaagd plafond met gipskartonplaten op metaal ophangsysteem"
+          },
+          "11.01.50": {
+            "start": 115,
+            "end": 115,
+            "title": "Rasterplafonds"
+          },
+          "11.01.52": {
+            "start": 115,
+            "end": 116,
+            "title": "Rasterplafond uit minerale vezels"
+          }
+        }
+      }
+    }
+  },
+  "13": {
+    "start": 116,
+    "end": 117,
+    "title": "VASTE UITRUSTINGEN",
+    "sections": {
+      "13.02": {
+        "start": 116,
+        "end": 116,
+        "title": "SANITAIR MEUBILAIR",
+        "sections": {
+          "13.02.70": {
+            "start": 116,
+            "end": 116,
+            "title": "Wastafeltabletten"
+          },
+          "13.02.72": {
+            "start": 116,
+            "end": 117,
+            "title": "Wastafeltablet uit hogedruk laminaatplaten"
+          }
+        }
+      },
+      "13.10": {
+        "start": 116,
+        "end": 117,
+        "title": "INFORMATIE EN SIGNALISATIE",
+        "sections": {
+          "13.10.40": {
+            "start": 117,
+            "end": 117,
+            "title": "Pictogrammen"
+          },
+          "13.10.41": {
+            "start": 117,
+            "end": 117,
+            "title": "Veiligheidspictogram"
+          },
+          "13.10.42": {
+            "start": 117,
+            "end": 117,
+            "title": "Sanitaire pictogram"
+          },
+          "13.10.43": {
+            "start": 117,
+            "end": 118,
+            "title": "Evacuatieplan"
+          }
+        }
+      }
+    }
+  },
+  "14": {
+    "start": 118,
+    "end": 134,
+    "title": "SANITAIRE TOESTELLEN",
+    "sections": {
+      "14.00": {
+        "start": 118,
+        "end": 118,
+        "title": "SANITAIRE TOESTELLEN"
+      },
+      "14.02": {
+        "start": 118,
+        "end": 119,
+        "title": "CLOSETPOTTEN",
+        "sections": {
+          "14.02.20": {
+            "start": 118,
+            "end": 118,
+            "title": "Wand closetpotten"
+          },
+          "14.02.21": {
+            "start": 118,
+            "end": 119,
+            "title": "Wandclosetpot uit sanitaire vuurklei of sanitair porselein",
+            "sections": {
+              "14.02.21.A": {
+                "start": 119,
+                "end": 119,
+                "title": "met inbouw jachtbak"
+              }
+            }
+          }
+        }
+      },
+      "14.03": {
+        "start": 119,
+        "end": 120,
+        "title": "WASTAFELS EN HANDWASTAFELS",
+        "sections": {
+          "14.03.30": {
+            "start": 119,
+            "end": 119,
+            "title": "Inbouwwastafels"
+          },
+          "14.03.32": {
+            "start": 119,
+            "end": 120,
+            "title": "Inbouwwastafel uit sanitaire vuurklei of sanitair porselein",
+            "sections": {
+              "14.03.32.B": {
+                "start": 120,
+                "end": 120,
+                "title": "voor koud en warm water"
+              }
+            }
+          },
+          "14.03.50": {
+            "start": 120,
+            "end": 120,
+            "title": "Toebehoren voor wastafels en handwastafels"
+          },
+          "14.03.52": {
+            "start": 120,
+            "end": 121,
+            "title": "Spiegel uit glas",
+            "sections": {
+              "14.03.52.B": {
+                "start": 120,
+                "end": 120,
+                "title": "afmeting 4000mm x 1000mm"
+              },
+              "14.03.52.C": {
+                "start": 120,
+                "end": 121,
+                "title": "afmeting 1800mm x 1000mm"
+              }
+            }
+          }
+        }
+      },
+      "14.04": {
+        "start": 121,
+        "end": 122,
+        "title": "BADTOESTELLEN",
+        "sections": {
+          "14.04.34": {
+            "start": 121,
+            "end": 122,
+            "title": "thermostatische mengkraan + douchesproeikop",
+            "sections": {
+              "14.04.34.D": {
+                "start": 121,
+                "end": 122,
+                "title": " "
+              }
+            }
+          }
+        }
+      },
+      "14.06": {
+        "start": 122,
+        "end": 123,
+        "title": "URINOIRS",
+        "sections": {
+          "14.06.20": {
+            "start": 122,
+            "end": 122,
+            "title": "Wandurinoirs"
+          },
+          "14.06.21": {
+            "start": 122,
+            "end": 123,
+            "title": "Wandurinoir uit sanitaire vuurklei of sanitair porselein"
+          },
+          "14.06.30": {
+            "start": 123,
+            "end": 123,
+            "title": "Automatische spoelinrichtingen voor urinoirs"
+          },
+          "14.06.31": {
+            "start": 123,
+            "end": 123,
+            "title": "Individuele automatische spoeling voor urinoir"
+          },
+          "14.06.40": {
+            "start": 123,
+            "end": 123,
+            "title": "Scheidingsschermen voor urinoirs"
+          },
+          "14.06.41": {
+            "start": 123,
+            "end": 124,
+            "title": "Scheidingsscherm uit kunststof voor urinoirs"
+          }
+        }
+      },
+      "14.07": {
+        "start": 124,
+        "end": 124,
+        "title": "UITGIETBAKKEN",
+        "sections": {
+          "14.07.10": {
+            "start": 124,
+            "end": 124,
+            "title": "Uitgietbakken"
+          },
+          "14.07.11": {
+            "start": 124,
+            "end": 125,
+            "title": "Uitgietbak uit sanitaire vuurklei of sanitair porselein",
+            "sections": {
+              "14.07.11.A": {
+                "start": 124,
+                "end": 125,
+                "title": "type ND 450"
+              }
+            }
+          }
+        }
+      },
+      "14.08": {
+        "start": 125,
+        "end": 134,
+        "title": "TOEBEHOREN VAN SANITAIRE LOKALEN",
+        "sections": {
+          "14.08.30": {
+            "start": 125,
+            "end": 125,
+            "title": "Toebehoren uit kunststof"
+          },
+          "14.08.31": {
+            "start": 125,
+            "end": 125,
+            "title": "Papierrolhouder uit kunststof"
+          },
+          "14.08.32": {
+            "start": 125,
+            "end": 125,
+            "title": "Zeepbakje uit kunststof"
+          },
+          "14.08.35": {
+            "start": 126,
+            "end": 126,
+            "title": "Kleerhaak uit kunststof"
+          },
+          "14.08.40": {
+            "start": 126,
+            "end": 126,
+            "title": "Verdelers"
+          },
+          "14.08.41": {
+            "start": 126,
+            "end": 126,
+            "title": "Zeepverdeler"
+          },
+          "14.08.42": {
+            "start": 126,
+            "end": 127,
+            "title": "Papierverdeler"
+          }
+        }
+      }
+    }
+  },
+  "15": {
+    "start": 127,
+    "end": 133,
+    "title": "SCHILDER - EN BEHANGWERKEN",
+    "sections": {
+      "15.00": {
+        "start": 127,
+        "end": 127,
+        "title": "SCHILDER - EN BEHANGWERKEN"
+      },
+      "15.04": {
+        "start": 127,
+        "end": 128,
+        "title": "SCHILDERWERKEN OP PLEISTERWERK EN GIPSKARTONPLATEN",
+        "sections": {
+          "15.04.20": {
+            "start": 127,
+            "end": 127,
+            "title": "Binnenschilderwerken op pleisterwerk en gipskartonplaten"
+          },
+          "15.04.21": {
+            "start": 127,
+            "end": 129,
+            "title": "Verf voor binnen op basis van kunstharsen in dispersie op pleisterwerk en gipskartonplaten",
+            "sections": {
+              "15.04.21.A": {
+                "start": 128,
+                "end": 128,
+                "title": "wanden"
+              },
+              "15.04.21.B": {
+                "start": 128,
+                "end": 129,
+                "title": "plafonds"
+              },
+              "15.04.21.C": {
+                "start": 129,
+                "end": 129,
+                "title": "Aantrede trap"
+              }
+            }
+          }
+        }
+      },
+      "15.05": {
+        "start": 129,
+        "end": 131,
+        "title": "SCHILDERWERKEN OP HOUT EN HOUTACHTIGE PLATEN",
+        "sections": {
+          "15.05.20": {
+            "start": 129,
+            "end": 129,
+            "title": "Binnenschilderwerken op hout en houtachtige platen"
+          },
+          "15.05.21": {
+            "start": 129,
+            "end": 130,
+            "title": "Verf voor binnen op basis van alkydharsen op hout en houtachtige platen",
+            "sections": {
+              "15.05.21.K": {
+                "start": 130,
+                "end": 130,
+                "title": "plinten"
+              }
+            }
+          }
+        }
+      },
+      "15.06": {
+        "start": 130,
+        "end": 131,
+        "title": "SCHILDERWERKEN OP METAAL",
+        "sections": {
+          "15.06.20": {
+            "start": 130,
+            "end": 130,
+            "title": "Binnenschilderwerken op blank staal en gietijzer"
+          },
+          "15.06.21": {
+            "start": 131,
+            "end": 131,
+            "title": "Verf voor binnen op basis van alkydharsen op blank staal en gietijzer",
+            "sections": {
+              "15.06.21.F": {
+                "start": 131,
+                "end": 131,
+                "title": "leuningen en borstweringen - restauratie trap"
+              }
+            }
+          }
+        }
+      },
+      "15.55": {
+        "start": 131,
+        "end": 133,
+        "title": "ONDERHOUDSSCHILDERWERKEN OP HOUT EN HOUTACHTIGE PLATEN",
+        "sections": {
+          "15.55.20": {
+            "start": 131,
+            "end": 131,
+            "title": "Onderhoudsbinnenschilderwerken op hout en houtachtige platen"
+          },
+          "15.55.21": {
+            "start": 132,
+            "end": 133,
+            "title": "Onderhoudsbinnenschilderwerk op basis van alkydharsen op hout en houtachtige platen",
+            "sections": {
+              "15.55.21.C": {
+                "start": 133,
+                "end": 134,
+                "title": "ramen en buitendeuren"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "20": {
+    "start": 134,
+    "end": 134,
+    "title": "ONVOORZIENE LEVERINGEN EN WERKEN",
+    "sections": {
+      "20.00": {
+        "start": 134,
+        "end": 134,
+        "title": "ONVOORZIENE LEVERINGEN EN WERKEN"
+      },
+      "20.01": {
+        "start": 134,
+        "end": 134,
+        "title": "ONVOORZIENE LEVERINGEN EN WERKEN",
+        "sections": {
+          "20.01.10": {
+            "start": 134,
+            "end": 134,
+            "title": "Voorbehouden verrekenbare som"
+          }
+        }
+      }
+    }
+  }
+}

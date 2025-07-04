@@ -1,0 +1,60 @@
+{
+  "summary": "Found 3 potential placement issues",
+  "total_issues": 3,
+  "issues_by_severity": {
+    "high": 1,
+    "medium": 0,
+    "low": 2
+  },
+  "issues": [
+    {
+      "task_id": "sample_001",
+      "task_description": "Install electrical outlets in office areas",
+      "current_section": "03.01",
+      "issue_type": "misplaced_task",
+      "severity": "high",
+      "confidence": 0.7000000000000001,
+      "suggested_sections": [
+        "00.03.02",
+        "11.06",
+        "12.03"
+      ],
+      "reasoning": "Task appears misplaced. Better suited for sections with electrical content",
+      "content_context": "No content available"
+    },
+    {
+      "task_id": "sample_002",
+      "task_description": "Remove existing concrete flooring",
+      "current_section": "02.01",
+      "issue_type": "uncertain_classification",
+      "severity": "low",
+      "confidence": 0.3,
+      "suggested_sections": [],
+      "reasoning": "Unable to determine optimal section placement",
+      "content_context": "No content available"
+    },
+    {
+      "task_id": "sample_003",
+      "task_description": "Install HVAC ductwork throughout building",
+      "current_section": "15.01",
+      "issue_type": "uncertain_classification",
+      "severity": "low",
+      "confidence": 0.3,
+      "suggested_sections": [],
+      "reasoning": "Unable to determine optimal section placement",
+      "content_context": "No content available"
+    }
+  ],
+  "analysis_metadata": {
+    "total_sections_analyzed": 353,
+    "classification_categories": [
+      "administrative",
+      "demolition",
+      "structural",
+      "hvac",
+      "electrical",
+      "plumbing",
+      "finishes"
+    ]
+  }
+}

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Enhanced Placement Checker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        .issue-card {
+            border-left: 4px solid;
+        }
+        .issue-high { border-color: #ef4444; } /* red-500 */
+        .issue-medium { border-color: #f97316; } /* orange-500 */
+        .issue-low { border-color: #eab308; } /* yellow-500 */
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-md p-6 flex flex-col">
+            <div>
+                <h1 class="text-2xl font-bold mb-6 text-[#0087b7]">Enhanced Placement Checker</h1>
+                <nav class="space-y-4">
+                    <button class="w-full text-left font-medium hover:text-blue-600">Analysis</button>
+                </nav>
+            </div>
+            <div class="mt-auto">
+                <img src="/static/logo/BWlogo.png" alt="Buildwise Logo" class="h-16 mx-auto mb-4">
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-10 overflow-auto">
+            <div class="bg-white rounded-2xl shadow p-8">
+                <h2 class="text-xl font-semibold mb-4">Run Analysis</h2>
+                <p class="text-gray-600 mb-4">
+                    This tool analyzes the placement of tasks within the document structure based on the full text of each section. It uses the latest processed OCR output file found on the server.
+                </p>
+                <form id="analysis-form" class="space-y-4">
+                    <div>
+                        <label for="analysis-file-select" class="block text-sm font-medium text-gray-700">Select Analysis File:</label>
+                        <select id="analysis-file-select" name="analysis_file" class="mt-1 block w-full border border-gray-300 rounded p-2">
+                            <option>Loading files...</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="toc_type" value="enhanced">
+                    <button type="button" id="analyze-button" class="bg-[#0087b7] text-white px-4 py-2 rounded hover:bg-[#00739e] disabled:opacity-50">
+                        Run Enhanced Placement Check
+                    </button>
+                </form>
+            </div>
+
+            <!-- Results Area -->
+            <div class="mt-10">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Analysis Results</h2>
+                    <button id="export-button" class="hidden bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
+                        Export Full JSON
+                    </button>
+                </div>
+                <div id="results-area" class="bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300 min-h-[100px]">
+                    <p class="text-gray-500 italic">Results will appear here after running the analysis.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const analyzeButton = document.getElementById('analyze-button');
+        const resultsArea = document.getElementById('results-area');
+        const exportButton = document.getElementById('export-button');
+        const fileSelect = document.getElementById('analysis-file-select');
+
+        // --- New: Load files on page load ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/get_analysis_files');
+                const files = await response.json();
+                
+                if (response.ok) {
+                    fileSelect.innerHTML = ''; // Clear "Loading..."
+                    if (files.length > 0) {
+                        files.forEach(file => {
+                            const option = document.createElement('option');
+                            option.value = file;
+                            option.textContent = file;
+                            fileSelect.appendChild(option);
+                        });
+                    } else {
+                        fileSelect.innerHTML = '<option>No analysis files found</option>';
+                        analyzeButton.disabled = true;
+                    }
+                } else {
+                    throw new Error(files.error || 'Failed to load files.');
+                }
+            } catch (error) {
+                console.error('Error loading analysis files:', error);
+                fileSelect.innerHTML = `<option>Error: ${error.message}</option>`;
+                analyzeButton.disabled = true;
+            }
+        });
+        // --- End New ---
+
+        analyzeButton.addEventListener('click', async () => {
+            resultsArea.innerHTML = '<p class="text-blue-600 font-semibold">Analyzing... This may take a few moments.</p>';
+            analyzeButton.disabled = true;
+            analyzeButton.textContent = 'Analyzing...';
+            exportButton.classList.add('hidden');
+
+            try {
+                // Step 1: Start the analysis
+                const analyzeResponse = await fetch('/analyze', {
+                    method: 'POST',
+                    body: new FormData(document.getElementById('analysis-form'))
+                });
+
+                const analyzeResult = await analyzeResponse.json();
+
+                if (!analyzeResponse.ok || analyzeResult.error) {
+                    throw new Error(analyzeResult.error || `HTTP error! status: ${analyzeResponse.status}`);
+                }
+
+                resultsArea.innerHTML = `<p class="text-green-600 font-semibold">${analyzeResult.message}. Fetching detailed results...</p>`;
+
+                // Step 2: Fetch the detailed results
+                const resultsResponse = await fetch('/get_enhanced_results');
+                const resultsData = await resultsResponse.json();
+
+                if (!resultsResponse.ok || resultsData.error) {
+                    throw new Error(resultsData.error || 'Failed to fetch detailed results.');
+                }
+                
+                displayResults(resultsData);
+                exportButton.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error during analysis:', error);
+                resultsArea.innerHTML = `<p class="text-red-600 font-semibold">Error: ${error.message}</p>`;
+            } finally {
+                analyzeButton.disabled = false;
+                analyzeButton.textContent = 'Run Enhanced Placement Check';
+            }
+        });
+        
+        exportButton.addEventListener('click', () => {
+            window.location.href = '/export_enhanced_json';
+        });
+
+        function displayResults(data) {
+            if (!Array.isArray(data)) {
+                resultsArea.innerHTML = '<p class="text-red-600">Error: Invalid data format received from server.</p>';
+                return;
+            }
+
+            let html = '';
+            let totalIssues = 0;
+
+            data.forEach(chapter => {
+                const issues = chapter.analysis?.issues_found;
+                if (issues && issues.length > 0) {
+                    totalIssues += issues.length;
+                    html += `<div class="mb-6 bg-white p-4 rounded-lg shadow">`;
+                    html += `<h3 class="text-lg font-bold text-gray-800">${chapter.title}</h3>`;
+                    html += `<p class="text-sm text-gray-500 mb-4">Chapter: ${chapter.number} | Path: ${chapter.toc_path}</p>`;
+                    
+                    issues.forEach(issue => {
+                        const severityClass = issue.severity.toLowerCase();
+                        html += `
+                            <div class="issue-card issue-${severityClass} p-3 my-2 rounded-md bg-white">
+                                <p class="font-semibold text-gray-900">${issue.task_description}</p>
+                                <p class="text-sm text-gray-700 mt-1"><strong class="font-medium">Problem:</strong> ${issue.problem}</p>
+                                <p class="text-sm text-gray-700 mt-1"><strong class="font-medium">Reasoning:</strong> ${issue.reasoning}</p>
+                                <div class="mt-2 text-xs font-medium">
+                                    <span class="inline-block bg-gray-200 rounded-full px-2 py-1">Severity: ${issue.severity}</span>
+                                    <span class="inline-block bg-gray-200 rounded-full px-2 py-1 ml-2">Suggested Location: ${issue.suggested_location}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+            });
+
+            if (totalIssues === 0) {
+                resultsArea.innerHTML = '<p class="text-green-600 font-semibold">Analysis complete. No placement issues found.</p>';
+            } else {
+                resultsArea.innerHTML = `<h3 class="font-bold text-lg mb-4">Found ${totalIssues} potential issues:</h3>` + html;
+            }
+        }
+
+    </script>
+</body>
+</html> 

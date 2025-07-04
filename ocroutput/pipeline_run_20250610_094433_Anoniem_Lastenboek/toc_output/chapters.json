@@ -1,0 +1,1823 @@
+{
+  "00": {
+    "start": 3,
+    "end": 6,
+    "title": "ALGEMENE BEPALINGEN",
+    "sections": {
+      "00.01": {
+        "start": 3,
+        "end": 3,
+        "title": "MONSTERS, STALEN, MODELLEN."
+      },
+      "00.02": {
+        "start": 3,
+        "end": 3,
+        "title": "UITVOERING EN ΟΡΜΕΤΕΝ."
+      },
+      "00.03": {
+        "start": 4,
+        "end": 4,
+        "title": "MEETCODE"
+      },
+      "00.03.00": {
+        "start": 4,
+        "end": 4,
+        "title": "ALGEMEENHEDEN"
+      },
+      "00.03.01": {
+        "start": 4,
+        "end": 4,
+        "title": "AFKORTINGEN"
+      },
+      "00.03.02": {
+        "start": 4,
+        "end": 4,
+        "title": "AFRONDINGEN OPGENOMEN IN DE SAMENVATTENDE OPMETINGEN"
+      },
+      "00.03.03": {
+        "start": 4,
+        "end": 4,
+        "title": "MATEN"
+      },
+      "00.03.04": {
+        "start": 4,
+        "end": 4,
+        "title": "VASTLEGGEN VAN HOEVEELHEDEN"
+      },
+      "00.03.05": {
+        "start": 4,
+        "end": 4,
+        "title": "DUBBELE METING"
+      },
+      "00.03.06": {
+        "start": 4,
+        "end": 4,
+        "title": "OPENINGEN EN BETON"
+      },
+      "00.03.07": {
+        "start": 4,
+        "end": 4,
+        "title": "VERWIJZINGEN"
+      },
+      "00.04": {
+        "start": 5,
+        "end": 5,
+        "title": "TEKENINGEN VAN DE AANNEMER EN REVISIETEKENINGEN"
+      },
+      "00.04.01": {
+        "start": 5,
+        "end": 5,
+        "title": "TEKENINGEN VOOR UITVOERING"
+      },
+      "00.04.02": {
+        "start": 5,
+        "end": 5,
+        "title": "WERFTEKENINGEN"
+      },
+      "00.05.0A": {
+        "start": 6,
+        "end": 6,
+        "title": "PLANNENLIJST ARCHITECTUUR EN STABILITEIT"
+      }
+    }
+  },
+  "09": {
+    "start": 7,
+    "end": 7,
+    "title": "VEILIGHEID",
+    "sections": {
+      "09.10": {
+        "start": 7,
+        "end": 7,
+        "title": "VEILIGHEIDSPLAN ONTWERP"
+      },
+      "09.20": {
+        "start": 7,
+        "end": 7,
+        "title": "VEILIGHEIDSCOORDINATOR ONTWERP EN VERWEZENLIJKING"
+      },
+      "09.30": {
+        "start": 7,
+        "end": 7,
+        "title": "VEILIGHEIDSVOORZIENINGEN"
+      }
+    }
+  },
+  "11": {
+    "start": 8,
+    "end": 23,
+    "title": "INRICHTEN VAN DE BOUWPLAATS",
+    "sections": {
+      "11.00": {
+        "start": 8,
+        "end": 8,
+        "title": "BODEMONDERZOEK"
+      },
+      "11.00.10": {
+        "start": 8,
+        "end": 8,
+        "title": "SONDEERRAPPORT"
+      },
+      "11.02": {
+        "start": 9,
+        "end": 9,
+        "title": "VOORAFGAANDE WERKZAAMHEDEN."
+      },
+      "11.02.10": {
+        "start": 10,
+        "end": 10,
+        "title": "BIJZONDERE VOORWAARDEN"
+      },
+      "11.03": {
+        "start": 11,
+        "end": 15,
+        "title": "INRICHTEN VAN DE BOUWPLAATS"
+      },
+      "11.03.00": {
+        "start": 11,
+        "end": 11,
+        "title": "ALGEMEEN"
+      },
+      "11.03.01": {
+        "start": 11,
+        "end": 11,
+        "title": "VOORLOPIGE BOUWPLAATS-AFSLUITING."
+      },
+      "11.03.02": {
+        "start": 12,
+        "end": 12,
+        "title": "WERFPANEEL"
+      },
+      "11.03.03": {
+        "start": 13,
+        "end": 13,
+        "title": "KANTOORLOKALEN."
+      },
+      "11.03.04": {
+        "start": 14,
+        "end": 14,
+        "title": "DOCUMENTEN."
+      },
+      "11.03.05": {
+        "start": 15,
+        "end": 15,
+        "title": "BOUWKETEN - KLOSETS - OPSLAGRUIMTEN EN LOODSEN."
+      },
+      "11.03.06": {
+        "start": 15,
+        "end": 15,
+        "title": "VERLICHTING VAN DE BOUWPLAATS."
+      },
+      "11.03.07": {
+        "start": 15,
+        "end": 15,
+        "title": "DIVERSE VERSCHILLENDE AANSLUITINGEN."
+      },
+      "11.03.08": {
+        "start": 16,
+        "end": 16,
+        "title": "OPSTELLING VAN DE WERFINRICHTING."
+      },
+      "11.03.09": {
+        "start": 16,
+        "end": 16,
+        "title": "WERFTOEGANG"
+      },
+      "11.04": {
+        "start": 16,
+        "end": 17,
+        "title": "BOUWRIJP MAKEN VAN BOUWTERREIN."
+      },
+      "11.04.01": {
+        "start": 16,
+        "end": 16,
+        "title": "OPRUIMEN VAN PLANTENGROEI."
+      },
+      "11.04.02": {
+        "start": 16,
+        "end": 16,
+        "title": "WATERAFVOER."
+      },
+      "11.04.03": {
+        "start": 16,
+        "end": 16,
+        "title": "KABELS EN LEIDINGEN."
+      },
+      "11.05": {
+        "start": 17,
+        "end": 17,
+        "title": "INPLANTING VAN DE GEBOUWEN."
+      },
+      "11.05.01": {
+        "start": 17,
+        "end": 17,
+        "title": "BOUWLIJN EN HOOGTEPEILEN."
+      },
+      "11.05.02": {
+        "start": 17,
+        "end": 17,
+        "title": "WERKENTRACE."
+      },
+      "11.05.03": {
+        "start": 17,
+        "end": 17,
+        "title": "AFBAKENEN."
+      },
+      "11.06": {
+        "start": 18,
+        "end": 18,
+        "title": "UITVOERINGEN VAN WERKEN IN WINTERSEIZOEN."
+      },
+      "11.07": {
+        "start": 18,
+        "end": 18,
+        "title": "OPRUIMEN EN REINIGING."
+      },
+      "11.08": {
+        "start": 18,
+        "end": 18,
+        "title": "STELLINGEN EN STUTWERK"
+      },
+      "11.09": {
+        "start": 19,
+        "end": 19,
+        "title": "STAAT VAN BEVINDING."
+      },
+      "11.10": {
+        "start": 20,
+        "end": 22,
+        "title": "VERZEKERINGEN"
+      },
+      "11.99": {
+        "start": 23,
+        "end": 23,
+        "title": "LUCHTDICHTHEIDSMETING"
+      }
+    }
+  },
+  "12": {
+    "start": 24,
+    "end": 30,
+    "title": "GRONDWERKEN",
+    "sections": {
+      "12.00": {
+        "start": 24,
+        "end": 24,
+        "title": "ALGEMEEN"
+      },
+      "12.01": {
+        "start": 24,
+        "end": 25,
+        "title": "GESCHIKT MAKEN VAN HET BOUWTERREIN."
+      },
+      "12.01.01": {
+        "start": 24,
+        "end": 24,
+        "title": "NIVELLEREN"
+      },
+      "12.01.03": {
+        "start": 24,
+        "end": 24,
+        "title": "TRANSPORT VAN DE GROND OP DE BOUWPLAATS."
+      },
+      "12.01.04": {
+        "start": 25,
+        "end": 25,
+        "title": "OPRUIMEN ONDERGRONDSE MATERIALEN"
+      },
+      "12.02": {
+        "start": 25,
+        "end": 26,
+        "title": "AFGRAVEN VAN BOUWPUTTEN."
+      },
+      "12.02.01.10": {
+        "start": 25,
+        "end": 25,
+        "title": "AFMETINGEN VAN BOUWPUTTEN EN SLEUVEN"
+      },
+      "12.02.01.20": {
+        "start": 26,
+        "end": 26,
+        "title": "DIEPTE VAN BOUWPUTTEN EN SLEUVEN"
+      },
+      "12.02.02": {
+        "start": 26,
+        "end": 27,
+        "title": "WEGRUIMEN UIT BOUWPUTTEN - FUNDERINGEN - E.D.M."
+      },
+      "12.02.02.0A": {
+        "start": 27,
+        "end": 27,
+        "title": "WEGRUIMEN UIT BOUWPUTTEN (KK)"
+      },
+      "12.02.02.0B": {
+        "start": 27,
+        "end": 27,
+        "title": "WEGRUIMEN UIT FUNDERINGSSLEUVEN EN ZOLEN"
+      },
+      "12.02.02.0G": {
+        "start": 27,
+        "end": 27,
+        "title": "WEGRUIMEN UIT SLEUVEN VOOR RIOLERINGEN E.D.M."
+      },
+      "12.03": {
+        "start": 28,
+        "end": 28,
+        "title": "WATER IN BOUWPUTTEN EN SLEUVEN"
+      },
+      "12.03.01": {
+        "start": 28,
+        "end": 28,
+        "title": "DROOGHOUDEN VAN DE BOUWPUTTEN"
+      },
+      "12.03.02": {
+        "start": 28,
+        "end": 28,
+        "title": "ONDERGROND EN WERKVLOER"
+      },
+      "12.04": {
+        "start": 29,
+        "end": 30,
+        "title": "AANAARDING."
+      },
+      "12.04.01": {
+        "start": 29,
+        "end": 29,
+        "title": "AANAARDING TEGEN GEBOUWEN"
+      },
+      "12.04.02": {
+        "start": 29,
+        "end": 29,
+        "title": "OPVULLEN VAN SLEUVEN VOOR LEIDINGEN"
+      },
+      "12.04.03": {
+        "start": 30,
+        "end": 30,
+        "title": "AANAARDEN ONDER DE VLOEREN"
+      },
+      "12.04.04": {
+        "start": 30,
+        "end": 30,
+        "title": "TEELAARDE 30CM"
+      },
+      "12.05.0A": {
+        "start": 30,
+        "end": 30,
+        "title": "AANVULLINGEN MET GESTABILISEERD ZAND (V.H.)"
+      },
+      "12.90": {
+        "start": 30,
+        "end": 30,
+        "title": "AARDINGSLUS"
+      }
+    }
+  },
+  "20": {
+    "start": 31,
+    "end": 33,
+    "title": "ALGEMENE VOORSCHRIFTEN VOOR RUWBOUWWERKEN.",
+    "sections": {
+      "20.01": {
+        "start": 31,
+        "end": 31,
+        "title": "MORTELS"
+      },
+      "20.01.01": {
+        "start": 31,
+        "end": 31,
+        "title": "MORTELBEREIDING"
+      },
+      "20.01.01.0A": {
+        "start": 31,
+        "end": 31,
+        "title": "VOOR METSELWERKEN BOVEN DE GROND."
+      },
+      "20.01.01.0B": {
+        "start": 31,
+        "end": 31,
+        "title": "VOOR METSELWERKEN ONDER DE GROND:"
+      },
+      "20.01.02": {
+        "start": 31,
+        "end": 31,
+        "title": "VOEGMORTELS"
+      },
+      "20.02": {
+        "start": 32,
+        "end": 32,
+        "title": "DOORBREKINGEN EN KLOSSEN."
+      },
+      "20.03": {
+        "start": 33,
+        "end": 33,
+        "title": "TOLERANTIES"
+      },
+      "20.03.01": {
+        "start": 33,
+        "end": 33,
+        "title": "ALGEMEEN"
+      },
+      "20.03.02": {
+        "start": 33,
+        "end": 33,
+        "title": "TOLERANTIES."
+      }
+    }
+  },
+  "21": {
+    "start": 34,
+    "end": 36,
+    "title": "FUNDERINGEN.",
+    "sections": {
+      "21.00": {
+        "start": 34,
+        "end": 34,
+        "title": "ALGEMEENHEDEN."
+      },
+      "21.05": {
+        "start": 34,
+        "end": 34,
+        "title": "FUNDERINGEN ONDER KOLOMMEN"
+      },
+      "21.05.01": {
+        "start": 34,
+        "end": 34,
+        "title": "FUNDERINGSZOLEN VAN GEWAPEND BETON"
+      },
+      "21.05.01.0A": {
+        "start": 34,
+        "end": 34,
+        "title": "BEWAPENING VOOR FUNDERINGSZOLEN"
+      },
+      "21.05.11": {
+        "start": 34,
+        "end": 34,
+        "title": "FUNDERINGSBALKEN"
+      },
+      "21.06": {
+        "start": 35,
+        "end": 35,
+        "title": "FUNDERINGEN ONDER MUREN"
+      },
+      "21.06.01": {
+        "start": 35,
+        "end": 35,
+        "title": "FUNDERINGSSLEUVEN VAN LICHT GEWAPEND BETON (INCL. BEW)"
+      },
+      "21.07.02": {
+        "start": 36,
+        "end": 36,
+        "title": "KRUIPKELDERVLOER (30cm) OP VOLLE GROND - LICHT GEWAPEND (INCL. BEW.)"
+      },
+      "21.08": {
+        "start": 36,
+        "end": 36,
+        "title": "WATERDICHTHEID OP HET NIVEAU VAN DE FUNDERINGEN EN DE BENEDENVERDIEPING."
+      },
+      "21.08.02": {
+        "start": 36,
+        "end": 36,
+        "title": "WATERKERENDE LAAG"
+      },
+      "21.08.04": {
+        "start": 36,
+        "end": 36,
+        "title": "POLYETHYLEEN FOLIE"
+      }
+    }
+  },
+  "22": {
+    "start": 37,
+    "end": 40,
+    "title": "STEUNMUREN",
+    "sections": {
+      "22.00": {
+        "start": 37,
+        "end": 37,
+        "title": "ALGEMEENHEDEN"
+      },
+      "22.01": {
+        "start": 37,
+        "end": 39,
+        "title": "MUREN IN AANRAKING MET DE GROND"
+      },
+      "22.01.01": {
+        "start": 37,
+        "end": 37,
+        "title": "BETONWANDEN: TER PLAATSE GESTORT"
+      },
+      "22.01.02": {
+        "start": 37,
+        "end": 38,
+        "title": "FUNDERINGSMETSELWERK - BETONBLOKKEN"
+      },
+      "22.01.02.30": {
+        "start": 37,
+        "end": 38,
+        "title": "KRUIPKELDERMETSELWERK - VOLLE BETONBLOKKEN"
+      },
+      "22.01.03": {
+        "start": 39,
+        "end": 39,
+        "title": "OPENINGEN"
+      },
+      "22.01.03.01": {
+        "start": 39,
+        "end": 39,
+        "title": "DOORVOEROPENINGEN BUITENWANDEN"
+      },
+      "22.01.03.04": {
+        "start": 39,
+        "end": 39,
+        "title": "KK-VERLUCHTINGEN MET ROOSTER"
+      },
+      "22.01.04": {
+        "start": 40,
+        "end": 40,
+        "title": "BESCHERMING VAN MUREN EN WANDEN."
+      },
+      "22.03": {
+        "start": 40,
+        "end": 40,
+        "title": "LATEIEN"
+      },
+      "22.03.01": {
+        "start": 40,
+        "end": 40,
+        "title": "BETONLATEIEN"
+      }
+    }
+  },
+  "23": {
+    "start": 41,
+    "end": 45,
+    "title": "OPGAANDE BINNENMETSELWERKEN.",
+    "sections": {
+      "23.00": {
+        "start": 41,
+        "end": 43,
+        "title": "ALGEMEENHEDEN."
+      },
+      "23.11": {
+        "start": 44,
+        "end": 45,
+        "title": "BINNENMETSELWERKEN."
+      },
+      "23.11.00": {
+        "start": 44,
+        "end": 44,
+        "title": "BESCHERMINGEN."
+      },
+      "23.11.04": {
+        "start": 44,
+        "end": 44,
+        "title": "BINNENMETSELWERK - GEBAKKEN SNELBOUWSTENEN"
+      },
+      "23.11.04.10": {
+        "start": 44,
+        "end": 44,
+        "title": "PREFABLATEIEN"
+      },
+      "23.11.06": {
+        "start": 45,
+        "end": 45,
+        "title": "METSELWERK DAKRAND (CELLENBETON)"
+      }
+    }
+  },
+  "24": {
+    "start": 46,
+    "end": 50,
+    "title": "BUITENMETSELWERKEN",
+    "sections": {
+      "24.00": {
+        "start": 46,
+        "end": 46,
+        "title": "ALGEMENE BEPALINGEN"
+      },
+      "24.33.01": {
+        "start": 46,
+        "end": 47,
+        "title": "PARAMENT VAN BAKSTEEN"
+      },
+      "24.33.10": {
+        "start": 47,
+        "end": 47,
+        "title": "VOEGWERKEN"
+      },
+      "24.33.10.01": {
+        "start": 47,
+        "end": 47,
+        "title": "VOEGWERKEN - BUITENPARAMENT"
+      },
+      "24.40": {
+        "start": 48,
+        "end": 50,
+        "title": "SPOUWMUREN"
+      },
+      "24.40.00": {
+        "start": 48,
+        "end": 48,
+        "title": "ALGEMEEN"
+      },
+      "24.40.00.01": {
+        "start": 48,
+        "end": 48,
+        "title": "UITVOERING."
+      },
+      "24.40.00.02": {
+        "start": 48,
+        "end": 48,
+        "title": "SPOUWHAKEN."
+      },
+      "24.40.00.03": {
+        "start": 48,
+        "end": 48,
+        "title": "SPOUWVERLUCHTINGEN."
+      },
+      "24.40.01": {
+        "start": 49,
+        "end": 49,
+        "title": "SPOUWISOLATIE (140 MM)"
+      },
+      "24.40.02": {
+        "start": 50,
+        "end": 50,
+        "title": "WATERDICHTE LAAG IN SPOUWMUREN"
+      }
+    }
+  },
+  "25": {
+    "start": 51,
+    "end": 51,
+    "title": "DORPELS",
+    "sections": {
+      "25.01": {
+        "start": 51,
+        "end": 51,
+        "title": "BLAUWE STEEN."
+      },
+      "25.01.00": {
+        "start": 51,
+        "end": 51,
+        "title": "ALGEMEENHEDEN."
+      },
+      "25.01.01": {
+        "start": 51,
+        "end": 51,
+        "title": "DEUR- EN VENSTERDORPELS ARDUIN"
+      }
+    }
+  },
+  "26": {
+    "start": 52,
+    "end": 60,
+    "title": "BETONWERKEN",
+    "sections": {
+      "26.00": {
+        "start": 52,
+        "end": 52,
+        "title": "STUDIE"
+      },
+      "26.01": {
+        "start": 52,
+        "end": 52,
+        "title": "GRONDSONDERINGEN"
+      },
+      "26.02": {
+        "start": 53,
+        "end": 53,
+        "title": "STABILITEITSSTUDIE BETONCONSTRUCTIE"
+      },
+      "26.03": {
+        "start": 54,
+        "end": 54,
+        "title": "NORMEN"
+      },
+      "26.10": {
+        "start": 54,
+        "end": 60,
+        "title": "GEWAPEND BETON."
+      },
+      "26.10.01": {
+        "start": 54,
+        "end": 54,
+        "title": "ZUIVERINGSBETON"
+      },
+      "26.10.02": {
+        "start": 55,
+        "end": 55,
+        "title": "STORTBETON."
+      },
+      "26.10.03": {
+        "start": 56,
+        "end": 56,
+        "title": "BEKISTINGEN."
+      },
+      "26.10.04": {
+        "start": 57,
+        "end": 57,
+        "title": "WAPENINGEN."
+      },
+      "26.10.05": {
+        "start": 57,
+        "end": 57,
+        "title": "RF-WAARDE VAN DE STRUCTURELE ELEMENTEN"
+      },
+      "26.10.07": {
+        "start": 58,
+        "end": 59,
+        "title": "UIT TE VOEREN WERKEN IN GEWAPEND BETON."
+      },
+      "26.10.07.12": {
+        "start": 58,
+        "end": 58,
+        "title": "FUNDERINGSZOLEN GEWAPEND BETON"
+      },
+      "26.10.07.21": {
+        "start": 59,
+        "end": 59,
+        "title": "BETONNEN BALKEN EN LATEIEN"
+      },
+      "26.10.07.22": {
+        "start": 59,
+        "end": 59,
+        "title": "BETONNEN KOLOMMEN"
+      },
+      "26.10.07.24": {
+        "start": 59,
+        "end": 59,
+        "title": "BETONPLATEN"
+      },
+      "26.10.07.31": {
+        "start": 59,
+        "end": 59,
+        "title": "BEWAPENING VOOR VERANKERING VAN HW"
+      },
+      "26.10.07.99": {
+        "start": 59,
+        "end": 59,
+        "title": "BEWAPENING (VH)"
+      },
+      "26.90.40.50": {
+        "start": 60,
+        "end": 60,
+        "title": "VERLOREN BEKISTING IN HOUTWOLCEMENTPLATEN"
+      }
+    }
+  },
+  "27": {
+    "start": 61,
+    "end": 78,
+    "title": "STRUCTUURELEMENTEN STAAL",
+    "sections": {
+      "27.00": {
+        "start": 61,
+        "end": 63,
+        "title": null
+      },
+      "27.14.31": {
+        "start": 64,
+        "end": 78,
+        "title": "LATEIEN"
+      }
+    }
+  },
+  "34": {
+    "start": 79,
+    "end": 88,
+    "title": "DAKBEDEKKING",
+    "sections": {
+      "34.30": {
+        "start": 79,
+        "end": 87,
+        "title": "DAKCONSTRUCTIE - PLATTE DAKEN OP STEENACHTIGE ONDERGROND"
+      },
+      "34.30.00": {
+        "start": 79,
+        "end": 79,
+        "title": "ALGEMEEN."
+      },
+      "34.30.10": {
+        "start": 79,
+        "end": 79,
+        "title": "HELLINGS-(SCHUIM)BETON VOOR PLATTE DAKEN."
+      },
+      "34.30.20": {
+        "start": 79,
+        "end": 80,
+        "title": "DAMPSCHERM – (V3)"
+      },
+      "34.30.30": {
+        "start": 81,
+        "end": 81,
+        "title": "THERMISCHE DAKISOLATIE - PUR PLATEN"
+      },
+      "34.30.30.10": {
+        "start": 81,
+        "end": 81,
+        "title": "DAKISOLATIE - GEKLEEFD"
+      },
+      "34.30.30.90": {
+        "start": 82,
+        "end": 82,
+        "title": "HOEKAFWERKINGEN ISOLATIE - PUR PLATEN"
+      },
+      "34.30.40.10": {
+        "start": 82,
+        "end": 84,
+        "title": "WATERDICHTE LAGEN: PLATTE DAKEN"
+      },
+      "34.30.43": {
+        "start": 85,
+        "end": 85,
+        "title": "DAKUITLOOPPLATEN"
+      },
+      "34.30.43.01": {
+        "start": 86,
+        "end": 86,
+        "title": "RESERVE DAKWATERAFLOOP (SPUWER) DIAM 50"
+      },
+      "34.30.44.01": {
+        "start": 86,
+        "end": 86,
+        "title": "KIEZELBAK"
+      },
+      "34.30.45": {
+        "start": 86,
+        "end": 86,
+        "title": "BOLROOSTERS"
+      },
+      "34.30.46": {
+        "start": 86,
+        "end": 86,
+        "title": "VERLUCHTING VOOR STANDLEIDINGEN DIAM. 110 (VH)"
+      },
+      "34.30.47": {
+        "start": 87,
+        "end": 87,
+        "title": "VERLUCHTING VOOR TECHNIEKEN (VENTILATIE)"
+      },
+      "34.50": {
+        "start": 88,
+        "end": 88,
+        "title": "DAKRANDEN"
+      },
+      "34.50.10": {
+        "start": 88,
+        "end": 88,
+        "title": "DAKRANDPROFIEL IN ALU (VH)"
+      },
+      "34.50.20": {
+        "start": 88,
+        "end": 88,
+        "title": "SLABBEN IN SBS"
+      },
+      "34.90": {
+        "start": 88,
+        "end": 88,
+        "title": "DAKDOORBORINGEN (TECHNIEKEN) (VH)"
+      }
+    }
+  },
+  "35": {
+    "start": 89,
+    "end": 95,
+    "title": "RIOLERING",
+    "sections": {
+      "35.00": {
+        "start": 89,
+        "end": 91,
+        "title": "ALGEMEEN."
+      },
+      "35.00.01": {
+        "start": 90,
+        "end": 90,
+        "title": "LEGGEN VAN DE BUIZEN."
+      },
+      "35.00.02": {
+        "start": 91,
+        "end": 91,
+        "title": "DICHTHEID."
+      },
+      "35.00.03": {
+        "start": 91,
+        "end": 91,
+        "title": "AANVULLEN DER SLEUVEN. (BOVEN DE BUIZEN)"
+      },
+      "35.00.04": {
+        "start": 91,
+        "end": 91,
+        "title": "BIJZONDERE SCHIKKINGEN."
+      },
+      "35.01": {
+        "start": 92,
+        "end": 92,
+        "title": "AANSLUITING OP OPENBARE RIOLERING."
+      },
+      "35.11.03": {
+        "start": 92,
+        "end": 93,
+        "title": "LEIDINGEN IN PVC"
+      },
+      "35.11.03.16": {
+        "start": 93,
+        "end": 93,
+        "title": "PVC-LEIDINGEN (DIAM. 160)"
+      },
+      "35.11.03.16.0H": {
+        "start": 93,
+        "end": 93,
+        "title": "HULPSTUKKEN IN PVC (160)"
+      },
+      "35.11.03.20": {
+        "start": 93,
+        "end": 93,
+        "title": "PVC-LEIDINGEN (DIAM. 200)"
+      },
+      "35.11.03.20.0H": {
+        "start": 93,
+        "end": 93,
+        "title": "HULPSTUKKEN IN PVC (200)"
+      },
+      "35.11.03.25": {
+        "start": 93,
+        "end": 93,
+        "title": "PVC-LEIDINGEN (DIAM. 250)"
+      },
+      "35.11.03.25.0H": {
+        "start": 93,
+        "end": 93,
+        "title": "HULPSTUKKEN IN PVC (250)"
+      },
+      "35.11.03.90": {
+        "start": 93,
+        "end": 93,
+        "title": "TOEZICHTSTOP IN PVC"
+      },
+      "35.14.30": {
+        "start": 94,
+        "end": 94,
+        "title": "DIVERSE PUTTEN"
+      },
+      "35.14.30.95": {
+        "start": 94,
+        "end": 95,
+        "title": "REGENWATER- EN INFILTRATIEPUTTEN"
+      },
+      "35.14.90": {
+        "start": 95,
+        "end": 95,
+        "title": "DEKSELS"
+      },
+      "35.14.90.20": {
+        "start": 95,
+        "end": 95,
+        "title": "DEKSEL IN GIETIJZER"
+      }
+    }
+  },
+  "36": {
+    "start": 96,
+    "end": 109,
+    "title": "METALEN BUITENSCHRIJNWERK (ALUMINIUM)",
+    "sections": {
+      "36.00": {
+        "start": 96,
+        "end": 96,
+        "title": "ALGEMEENHEDEN"
+      },
+      "36.01": {
+        "start": 97,
+        "end": 105,
+        "title": "ALUMINIUM BUITENSCHRIJNWERK."
+      },
+      "36.01.02": {
+        "start": 101,
+        "end": 101,
+        "title": "VENSTERBESLAG."
+      },
+      "36.01.03": {
+        "start": 102,
+        "end": 102,
+        "title": "RAAMCONSTRUCTIES EN TYPES."
+      },
+      "36.01.03.10": {
+        "start": 102,
+        "end": 102,
+        "title": "RAAMCONSTRUCTIES MET GEWONE PROFIELEN"
+      },
+      "36.01.04": {
+        "start": 103,
+        "end": 103,
+        "title": "METALEN PANELEN IN HET VLAK VAN RAMEN"
+      },
+      "36.01.04.02": {
+        "start": 103,
+        "end": 103,
+        "title": "METALEN PANELEN - DUBBELZIJDIG"
+      },
+      "36.01.05": {
+        "start": 104,
+        "end": 104,
+        "title": "ZELFREGELEND RAAMROOSTER OP DE RAMEN"
+      },
+      "36.01.05.01": {
+        "start": 104,
+        "end": 104,
+        "title": "ZELFREGELEND KLEPROOSTER (MONTAGE OP HET RAAMPROFIEL)"
+      },
+      "36.01.06": {
+        "start": 105,
+        "end": 105,
+        "title": "VENSTERDORPELS"
+      },
+      "36.01.06.01": {
+        "start": 105,
+        "end": 105,
+        "title": "ARDUINDORPELS"
+      },
+      "36.01.06.02": {
+        "start": 105,
+        "end": 105,
+        "title": "METALEN DORPELS (ALU)"
+      },
+      "36.02": {
+        "start": 106,
+        "end": 109,
+        "title": "METALEN BUITENDEUREN"
+      },
+      "36.02.01": {
+        "start": 106,
+        "end": 106,
+        "title": "OMSCHRIJVING."
+      },
+      "36.02.02": {
+        "start": 106,
+        "end": 107,
+        "title": "DEURBESLAG"
+      },
+      "36.02.03": {
+        "start": 108,
+        "end": 108,
+        "title": "DEURKONSTRUKTIES EN TYPES."
+      },
+      "36.02.03.00": {
+        "start": 108,
+        "end": 108,
+        "title": "ALGEMEENHEDEN"
+      },
+      "36.02.03.10": {
+        "start": 109,
+        "end": 109,
+        "title": "BUITENDEUREN (ALU)"
+      },
+      "36.02.03.16.0A": {
+        "start": 109,
+        "end": 109,
+        "title": "BEGLAASDE ENKELE DEUR (90°) + PANIEKSLUITING + ZIJLICHT"
+      },
+      "36.02.03.16.0OB": {
+        "start": 109,
+        "end": 109,
+        "title": "BEGLAASD ENKELE DEUR (90°)"
+      }
+    }
+  },
+  "38": {
+    "start": 110,
+    "end": 114,
+    "title": "BEGLAZING",
+    "sections": {
+      "38.00": {
+        "start": 110,
+        "end": 111,
+        "title": "ALGEMEENHEDEN"
+      },
+      "38.02": {
+        "start": 112,
+        "end": 112,
+        "title": "DUBBELE BEGLAZING"
+      },
+      "38.02.01": {
+        "start": 112,
+        "end": 112,
+        "title": "DUBBELE BEGLAZING MET VEILIGHEIDSGLAS (80%-REGEL)"
+      },
+      "38.03.20": {
+        "start": 113,
+        "end": 113,
+        "title": "ZONNEWERENDE DUBBELE BEGLAZING (MET VEILIGHEIDSGLAS)"
+      },
+      "38.03.21": {
+        "start": 113,
+        "end": 113,
+        "title": "BUITENSCREENS (INBOUW)"
+      },
+      "38.03.22": {
+        "start": 113,
+        "end": 113,
+        "title": "BEGLAASDE BALUSTRADES"
+      },
+      "38.03.23": {
+        "start": 114,
+        "end": 114,
+        "title": "METALEN BORSTWERINGEN"
+      },
+      "38.03.24": {
+        "start": 114,
+        "end": 114,
+        "title": "TOEGANGSLUIK KELDER"
+      },
+      "38.03.25": {
+        "start": 114,
+        "end": 114,
+        "title": "VRIJSTAANDE METALEN KOKERS"
+      }
+    }
+  },
+  "41": {
+    "start": 115,
+    "end": 116,
+    "title": "PLAFOND",
+    "sections": {
+      "41.00": {
+        "start": 115,
+        "end": 115,
+        "title": "ALGEMEEN."
+      },
+      "41.01": {
+        "start": 115,
+        "end": 116,
+        "title": "VERLAAGDE PLAFONDS."
+      },
+      "41.01.00": {
+        "start": 115,
+        "end": 115,
+        "title": "ALGEMEEN."
+      },
+      "41.01.01": {
+        "start": 115,
+        "end": 115,
+        "title": "BRANDSTABILITEIT PLAFONDS"
+      },
+      "41.10.92": {
+        "start": 115,
+        "end": 115,
+        "title": "UITSPARING VOOR SPOTS"
+      },
+      "41.20.00": {
+        "start": 116,
+        "end": 116,
+        "title": "ALGEMEEN"
+      },
+      "41.20.21": {
+        "start": 116,
+        "end": 116,
+        "title": "GIPSKARTONPLAFONDS"
+      },
+      "41.20.22": {
+        "start": 116,
+        "end": 116,
+        "title": "GIPSKARTONPLAFONDS AKOESTISCHE ZONES"
+      },
+      "41.20.23": {
+        "start": 116,
+        "end": 116,
+        "title": "VERSTEVIGING/RETOMBÉ THV RAAMGEHELEN"
+      }
+    }
+  },
+  "42": {
+    "start": 117,
+    "end": 118,
+    "title": "BINNENBEPLEISTERINGEN",
+    "sections": {
+      "42.00": {
+        "start": 117,
+        "end": 117,
+        "title": "ALGEMENE BEPALINGEN"
+      },
+      "42.10": {
+        "start": 118,
+        "end": 118,
+        "title": "BINNENBEPLEISTERINGEN MUREN"
+      },
+      "42.20": {
+        "start": 118,
+        "end": 118,
+        "title": "BINNENBEPLEISTERINGEN PLAFONDS"
+      }
+    }
+  },
+  "44": {
+    "start": 119,
+    "end": 123,
+    "title": "DEKVLOEREN",
+    "sections": {
+      "44.00": {
+        "start": 119,
+        "end": 119,
+        "title": "ALGEMEEN"
+      },
+      "44.14": {
+        "start": 120,
+        "end": 123,
+        "title": "DEKVLOEREN"
+      },
+      "44.14.10": {
+        "start": 120,
+        "end": 120,
+        "title": "ONDERVLOERISOLATIE"
+      },
+      "44.14.20": {
+        "start": 120,
+        "end": 120,
+        "title": "CHAPE ONDER VLOERTEGEL (INCL. ONDERVLOERISOLATIE) / UITGEZ. VLOERVERW."
+      },
+      "44.14.24": {
+        "start": 121,
+        "end": 121,
+        "title": "AFWERKING VAN DE RANDEN VAN DE ZWEVENDE DEKVLOER"
+      },
+      "44.14.25": {
+        "start": 121,
+        "end": 121,
+        "title": "LEIDINGEN"
+      },
+      "44.14.30": {
+        "start": 122,
+        "end": 122,
+        "title": "CHAPE VLOERVERWARMING (INCL. UITVULLING EN ONDERVLOERISOLATIE) NIVO +0 dikte PUR 10cm"
+      },
+      "44.14.31": {
+        "start": 123,
+        "end": 123,
+        "title": "CHAPE VLOERVERWARMING (INCL. UITVULLING EN ONDERVLOERISOLATIE) NIVO +1 dikte PUR 8cm"
+      }
+    }
+  },
+  "45": {
+    "start": 124,
+    "end": 126,
+    "title": "BEVLOERINGEN",
+    "sections": {
+      "45.00.01": {
+        "start": 124,
+        "end": 124,
+        "title": "ALGEMEENHEDEN"
+      },
+      "45.00.02": {
+        "start": 124,
+        "end": 124,
+        "title": "ALGEMENE BEPALINGEN"
+      },
+      "45.10": {
+        "start": 125,
+        "end": 125,
+        "title": "BEVLOERING MET TEGELS"
+      },
+      "45.10.00": {
+        "start": 125,
+        "end": 125,
+        "title": "ALGEMEENHEDEN"
+      },
+      "45.10.20.01": {
+        "start": 125,
+        "end": 125,
+        "title": "BEVLOERING IN KERAMISCHE TEGEL"
+      },
+      "45.10.21": {
+        "start": 126,
+        "end": 126,
+        "title": "HOUTEN PLINTEN"
+      }
+    }
+  },
+  "46": {
+    "start": 127,
+    "end": 127,
+    "title": "DIVERSE VLOERBEKLEDINGEN",
+    "sections": {
+      "46.01.00": {
+        "start": 127,
+        "end": 127,
+        "title": "ALGEMENE BEPALINGEN"
+      },
+      "46.50": {
+        "start": 127,
+        "end": 127,
+        "title": "VERHOOGDE VLOER INCL. PARKET"
+      }
+    }
+  },
+  "48": {
+    "start": 128,
+    "end": 128,
+    "title": "DIVERSE BEKLEDINGEN/ RAAMTABLETTEN",
+    "sections": {
+      "48.00": {
+        "start": 128,
+        "end": 128,
+        "title": "ALGEMENE BEPALINGEN"
+      },
+      "48.02": {
+        "start": 128,
+        "end": 128,
+        "title": "VENSTERTABLETTEN IN KERAMISCH MATERIAAL"
+      },
+      "48.02.01": {
+        "start": 128,
+        "end": 128,
+        "title": "VENSTERTABLETTEN IN KERAMISCH MATERIAAL"
+      }
+    }
+  },
+  "51": {
+    "start": 129,
+    "end": 135,
+    "title": "BINNENDEUREN",
+    "sections": {
+      "51.00": {
+        "start": 129,
+        "end": 129,
+        "title": "ALGEMEENHEDEN"
+      },
+      "51.02": {
+        "start": 129,
+        "end": 129,
+        "title": "DEURBESLAG"
+      },
+      "51.02.01": {
+        "start": 129,
+        "end": 129,
+        "title": "SLOTEN"
+      },
+      "51.02.01.0A": {
+        "start": 129,
+        "end": 129,
+        "title": "INSTEEK CYLINDERSLOT MET DAG- EN NACHTSCHOOT"
+      },
+      "51.02.01.0B": {
+        "start": 129,
+        "end": 129,
+        "title": "INSTEEK W.C.-SLOT MET DAG- EN NACHTSCHOOT"
+      },
+      "51.02.02": {
+        "start": 130,
+        "end": 130,
+        "title": "DEURKRUK"
+      },
+      "51.02.04": {
+        "start": 130,
+        "end": 130,
+        "title": "DEURSTOPPEN"
+      },
+      "51.02.05": {
+        "start": 130,
+        "end": 130,
+        "title": "DEURSCHARNIEREN"
+      },
+      "51.10": {
+        "start": 131,
+        "end": 133,
+        "title": "ENKELE BINNENDEUREN"
+      },
+      "51.10.00": {
+        "start": 131,
+        "end": 131,
+        "title": "ALGEMEEN"
+      },
+      "51.10.01": {
+        "start": 132,
+        "end": 133,
+        "title": "ENKELE DEUREN"
+      },
+      "51.10.01.0A": {
+        "start": 132,
+        "end": 132,
+        "title": "DEUR VESTIAIRE HPL HOUT"
+      },
+      "51.10.01.0B": {
+        "start": 132,
+        "end": 132,
+        "title": "DEUR 98/230 – AKOESTISCHE DEUR MET VALDORPEL EN CYLINDER"
+      },
+      "51.10.01.0C": {
+        "start": 132,
+        "end": 132,
+        "title": "DEUR 103/230 - TOILET MINDERVALIDE"
+      },
+      "51.10.01.0D": {
+        "start": 132,
+        "end": 132,
+        "title": "DEUR 83/230 – TOILET PATIËNTEN"
+      },
+      "51.10.01.0E": {
+        "start": 132,
+        "end": 132,
+        "title": "DEUR 78/210 – TOILET PERSONEEL"
+      },
+      "51.10.01.0F": {
+        "start": 133,
+        "end": 133,
+        "title": "DEUR 88/230 - SAS TOILETTEN PERSONEEL"
+      },
+      "51.10.01.0G": {
+        "start": 133,
+        "end": 133,
+        "title": "DEUR 88/210 - BERGING VERDIEPING E130"
+      },
+      "51.10.01.0H": {
+        "start": 133,
+        "end": 133,
+        "title": "DEUR 93/230 - ONTHAAL VERDIEPING"
+      },
+      "51.10.01.0I": {
+        "start": 133,
+        "end": 133,
+        "title": "DEUR BERGING (VANUIT REFTER)"
+      },
+      "57.10.16": {
+        "start": 133,
+        "end": 133,
+        "title": "GLAZEN BORSTWERING VERDIEPING"
+      },
+      "57.10.17": {
+        "start": 134,
+        "end": 135,
+        "title": "TRAPLEUNING"
+      }
+    }
+  },
+  "57": {
+    "start": 136,
+    "end": 171,
+    "title": "BINNENSCHRIJNWERKERIJ",
+    "sections": {
+      "57.00": {
+        "start": 136,
+        "end": 136,
+        "title": "ALGEMEEN"
+      },
+      "57.80": {
+        "start": 136,
+        "end": 170,
+        "title": "KASTEN"
+      },
+      "57.80.00": {
+        "start": 136,
+        "end": 138,
+        "title": "ALGEMENE BEPALINGEN"
+      },
+      "57.80.01": {
+        "start": 139,
+        "end": 139,
+        "title": "KASTSLOTEN KASTEN"
+      },
+      "57.80.10": {
+        "start": 140,
+        "end": 140,
+        "title": "PRAKTIJKRUIMTE 1 + 2 EN 6 SPIEGELBEELD - KASTENWAND (PLAN 5)"
+      },
+      "57.80.11": {
+        "start": 141,
+        "end": 141,
+        "title": "PRAKTIJKRUIMTE 1 + 2 EN 6 SPIEGELBEELD - BUREAUMEUBEL (PLAN 5)"
+      },
+      "57.80.12": {
+        "start": 142,
+        "end": 142,
+        "title": "PRAKTIJKRUIMTE 3 + 7 - HOGE KASTENWAND (PLAN 6)"
+      },
+      "57.80.13": {
+        "start": 143,
+        "end": 143,
+        "title": "PRAKTIJKRUIMTE 3 + 7 - LAGE KAST 1 (PLAN 6)"
+      },
+      "57.80.14": {
+        "start": 143,
+        "end": 143,
+        "title": "PRAKTIJKRUIMTE 3 + 7 - LAGE KAST 2 (PLAN 6)"
+      },
+      "57.80.15": {
+        "start": 144,
+        "end": 144,
+        "title": "PRAKTIJKRUIMTE 3 + 7 - BUREAUMEUBEL (PLAN 6)"
+      },
+      "57.80.16": {
+        "start": 145,
+        "end": 145,
+        "title": "PRAKTIJKRUIMTE 4 + 8 - KAST 1 (PLAN 6)"
+      },
+      "57.80.17": {
+        "start": 146,
+        "end": 146,
+        "title": "PRAKTIJKRUIMTE 4 + 8 – LAGE KAST 2 (PLAN 6)"
+      },
+      "57.80.18": {
+        "start": 146,
+        "end": 146,
+        "title": "PRAKTIJKRUIMTE 4 + 8 - BUREAUMEUBEL (PLAN 6)"
+      },
+      "57.80.19": {
+        "start": 147,
+        "end": 147,
+        "title": "PRAKTIJKRUIMTE 5 – KAST 3 (PLAN 6)"
+      },
+      "57.80.20": {
+        "start": 148,
+        "end": 148,
+        "title": "PRAKTIJKRUIMTE 5 - BUREAUMEUBEL (PLAN 6)"
+      },
+      "57.80.21": {
+        "start": 149,
+        "end": 149,
+        "title": "PRAKTIJKRUIMTE 9 – KAST 4 (PLAN 5)"
+      },
+      "57.80.22": {
+        "start": 150,
+        "end": 150,
+        "title": "PRAKTIJKRUIMTE 9 – KAST 5 (PLAN 5)"
+      },
+      "57.80.23": {
+        "start": 150,
+        "end": 150,
+        "title": "PRAKTIJKRUIMTE 9 – KAST 6 (PLAN 5)"
+      },
+      "57.80.24": {
+        "start": 150,
+        "end": 150,
+        "title": "PRAKTIJKRUIMTE 9 - BUREAUMEUBEL (PLAN 5)"
+      },
+      "57.80.25": {
+        "start": 151,
+        "end": 151,
+        "title": "PRAKTIJKRUIMTE 10 – KAST 4 SPIEGELBEELD (PLAN 5)"
+      },
+      "57.80.26": {
+        "start": 152,
+        "end": 152,
+        "title": "PRAKTIJKRUIMTE 10 – KAST 7 (PLAN 5)"
+      },
+      "57.80.27": {
+        "start": 152,
+        "end": 152,
+        "title": "PRAKTIJKRUIMTE 10 -BUREAUMEUBEL (PLAN 5)"
+      },
+      "57.80.28": {
+        "start": 153,
+        "end": 153,
+        "title": "ONTHAAL VERDIEPING -BUREAUMEUBEL (PLAN 5)"
+      },
+      "57.80.29": {
+        "start": 153,
+        "end": 153,
+        "title": "ONTHAAL VERDIEPING – KAST 1 (PLAN 5)"
+      },
+      "57.80.30": {
+        "start": 154,
+        "end": 154,
+        "title": "ONTHAAL VERDIEPING – KAST 2 (PLAN 5)"
+      },
+      "57.80.31": {
+        "start": 154,
+        "end": 154,
+        "title": "ONTHAAL GELIJKVLOERS -BUREAUMEUBEL INCL. BALIEWAND EN DEUR (PLAN 7)"
+      },
+      "57.80.32": {
+        "start": 155,
+        "end": 155,
+        "title": "ONTHAAL GELIJKVLOERS -KASTENWAND MET FOTODOEK (PLAN 7)"
+      },
+      "57.80.33": {
+        "start": 156,
+        "end": 156,
+        "title": "VERPLEEGPOST - KAST 1 (PLAN 7)"
+      },
+      "57.80.34": {
+        "start": 156,
+        "end": 156,
+        "title": "VERPLEEGPOST - KAST 2 (PLAN 7)"
+      },
+      "57.80.35": {
+        "start": 157,
+        "end": 157,
+        "title": "COFFEECORNER GELIJKVLOERS KASTENWAND (PLAN 7)"
+      },
+      "57.80.36": {
+        "start": 158,
+        "end": 158,
+        "title": "COFFEECORNER GELIJKVLOERS KAST 1 (PLAN 7)"
+      },
+      "57.80.37": {
+        "start": 158,
+        "end": 158,
+        "title": "BERGING GELIJKVLOERS – KAST BERGING (PLAN 7)"
+      },
+      "57.80.38": {
+        "start": 159,
+        "end": 159,
+        "title": "COFFEECORNER VERDIEPING KASTENWAND (PLAN 7)"
+      },
+      "57.80.39": {
+        "start": 160,
+        "end": 160,
+        "title": "TOILET PERSONEEL GELIJKVLOERS - LAVABOMEUBEL (PLAN 7)"
+      },
+      "57.80.40": {
+        "start": 160,
+        "end": 160,
+        "title": "TOILET PERSONEEL VERDIEPING - LAVABOMEUBEL (PLAN 7)"
+      },
+      "57.80.41": {
+        "start": 160,
+        "end": 160,
+        "title": "TOILET PERSONEEL GELIJKVLOERS – RUG + KAST BOVEN SANBLOC (PLAN 7)"
+      },
+      "57.80.42": {
+        "start": 161,
+        "end": 161,
+        "title": "TOILET PERSONEEL VERDIEPING – RUG + KAST BOVEN SANBLOC (PLAN 7)"
+      },
+      "57.80.43": {
+        "start": 161,
+        "end": 161,
+        "title": "TOILET MINDERVALIDEN GELIJKVLOERS – RUG + KAST BOVEN SANBLOC (PLAN 7)"
+      },
+      "57.80.44": {
+        "start": 161,
+        "end": 161,
+        "title": "TOILET PATIËNTEN VERDIEPING - RUG + KAST BOVEN SANBLOC (PLAN 7)"
+      },
+      "57.80.45": {
+        "start": 162,
+        "end": 162,
+        "title": "TOILET MINDERVALIDEN GELIJKVLOERS – WAND + SPIEGEL LAVABO (PLAN 7)"
+      },
+      "57.80.46": {
+        "start": 162,
+        "end": 162,
+        "title": "TOILET PATIËNTEN VERDIEPING – WAND + SPIEGEL LAVABO (PLAN 7)"
+      },
+      "57.80.47": {
+        "start": 163,
+        "end": 163,
+        "title": "KAST BRANDBLUSSER EN FOLDERREK + FOTODOEK GELIJKVLOERS (PLAN 6)"
+      },
+      "57.80.48": {
+        "start": 163,
+        "end": 163,
+        "title": "KAST BRANDBLUSSER EN FOLDERREK VERDIEPING (PLAN 5)"
+      },
+      "57.80.49": {
+        "start": 163,
+        "end": 163,
+        "title": "PANEEL NUMMERING PRAKTIJKRUIMTES + VERPLEEGPOST (11X) (PLAN 6)"
+      },
+      "57.80.50": {
+        "start": 164,
+        "end": 164,
+        "title": "KAST VESTIAIRE GELIJKVLOERS (INCL. VOORZETWAND MET DEUR (PLAN 6)"
+      },
+      "57.80.51": {
+        "start": 165,
+        "end": 165,
+        "title": "KERAMISCHE LABAVO'S PRAKTIJKRUIMTES (10X) (PLAN 6)"
+      },
+      "57.80.52": {
+        "start": 165,
+        "end": 165,
+        "title": "KERAMISCHE LABAVO'S TOILET PERSONEEL (2X) (PLAN 6)"
+      },
+      "57.80.53": {
+        "start": 166,
+        "end": 166,
+        "title": "MEUBELGEHEEL WACHTRUIMTE GELIJKVLOERS (INCL. KUSSENS) (PLAN 8)"
+      },
+      "57.80.54": {
+        "start": 167,
+        "end": 167,
+        "title": "MEUBELGEHEEL WACHTZONE GELIJKVLOERS GANG (INCL. KAST + KUSSENS) (PLAN 8)"
+      },
+      "57.80.55": {
+        "start": 167,
+        "end": 167,
+        "title": "MEUBELGEHEEL WACHTZONE VERDIEPING GANG (INCL. KAST + KUSSENS) (PLAN 8)"
+      },
+      "57.80.56": {
+        "start": 168,
+        "end": 168,
+        "title": "INKOMHAL GELIJKVLOERS – KAST 1 (PLAN 8)"
+      },
+      "57.80.57": {
+        "start": 168,
+        "end": 168,
+        "title": "WACHTRUIMTE VERDIEPING INCL. ALUMINIUM KOKERS (INCL. KUSSENS) (PLAN 8)"
+      },
+      "57.80.58": {
+        "start": 169,
+        "end": 169,
+        "title": "KASTDEUR KOKERS gelijkvloers (PLAN 8)"
+      },
+      "57.80.59": {
+        "start": 169,
+        "end": 171,
+        "title": "KASTDEUR KOKERS gelijkvloers (PLAN 8)"
+      }
+    }
+  },
+  "71": {
+    "start": 170,
+    "end": 171,
+    "title": "VOEGDICHTINGEN",
+    "sections": {
+      "71.10": {
+        "start": 170,
+        "end": 170,
+        "title": "ALGEMEEN"
+      },
+      "71.11": {
+        "start": 170,
+        "end": 170,
+        "title": "VOEGDICHTINGEN ROND RAMEN EN DEUREN"
+      },
+      "71.12": {
+        "start": 171,
+        "end": 171,
+        "title": "VOEGDICHTINGEN IN UITZETVOEGEN - PARAMENT"
+      }
+    }
+  },
+  "80": {
+    "start": 172,
+    "end": 173,
+    "title": "SCHILDERWERKEN - ALGEMEENHEDEN",
+    "sections": {
+      "80.00": {
+        "start": 172,
+        "end": 172,
+        "title": "ALGEMEENHEDEN"
+      },
+      "80.01": {
+        "start": 172,
+        "end": 172,
+        "title": "WERKEN NIET AFZONDERLIJK VERMELD, \ndoch behorend bij de aanneming."
+      },
+      "80.02": {
+        "start": 172,
+        "end": 172,
+        "title": "STAAT VAN ONDERZOEK"
+      },
+      "80.03": {
+        "start": 173,
+        "end": 173,
+        "title": "VERFSTOFFEN - DOCUMENTEN"
+      },
+      "80.04": {
+        "start": 173,
+        "end": 173,
+        "title": "ONDERZOEK EN PROEVEN DER VERFSTOFFEN"
+      },
+      "80.05": {
+        "start": 173,
+        "end": 173,
+        "title": "AAN TE WENDEN KLEUREN"
+      },
+      "80.06": {
+        "start": 173,
+        "end": 173,
+        "title": "AFWERKING"
+      }
+    }
+  },
+  "83": {
+    "start": 174,
+    "end": 174,
+    "title": "BINNENVERF OP HOUT",
+    "sections": {
+      "83.00": {
+        "start": 174,
+        "end": 174,
+        "title": "ALGEMEEN"
+      }
+    }
+  },
+  "87": {
+    "start": 175,
+    "end": 175,
+    "title": "SCHILDERWERKEN MUREN EN PLAFONDS",
+    "sections": {
+      "87.10": {
+        "start": 175,
+        "end": 175,
+        "title": "SCHILDERWERKEN OP MUREN EN WANDEN"
+      },
+      "87.20": {
+        "start": 175,
+        "end": 175,
+        "title": "SCHILDERWERKEN OP PLAFONDS"
+      }
+    }
+  }
+}
