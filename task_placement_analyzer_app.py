@@ -72,6 +72,12 @@ def run_placement_analysis(json_path):
     try:
         app.logger.info(f"Starting enhanced placement analysis for {json_path}")
         
+        # --- Unset credentials env var to ensure gcloud auth is used ---
+        original_creds = os.environ.pop('GOOGLE_APPLICATION_CREDENTIALS', None)
+        if original_creds:
+            app.logger.info("Temporarily unsetting GOOGLE_APPLICATION_CREDENTIALS to use gcloud auth.")
+        # --------------------------------------------------------------
+
         # --- Vertex AI configuration ---
         project_id = "aico25"
         location = "europe-west1"
@@ -90,6 +96,12 @@ def run_placement_analysis(json_path):
     except Exception as e:
         app.logger.error(f"An error occurred during enhanced placement analysis: {e}", exc_info=True)
         return {"error": str(e)}
+    finally:
+        # --- Restore credentials env var if it was originally set ---
+        if original_creds:
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = original_creds
+            app.logger.info("Restored GOOGLE_APPLICATION_CREDENTIALS.")
+        # ---------------------------------------------------------
 
 @app.route('/')
 def index():
