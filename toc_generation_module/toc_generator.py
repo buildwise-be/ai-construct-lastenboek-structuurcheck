@@ -82,7 +82,7 @@ DEFAULT_PDF_PATH = ""
 
 # Default model configuration
 DEFAULT_MODEL_PRO = "gemini-1.5-pro-002"  # High-quality, more expensive
-DEFAULT_MODEL_FLASH = "gemini-2.0-flash-001"  # Faster, cheaper
+DEFAULT_MODEL_FLASH = "gemini-2.5-flash"  # Faster, cheaper
 
 def initialize_vertex_model(system_instruction=None, project_id=None, model_name=None):
     """
@@ -157,7 +157,12 @@ def process_with_vertex_ai(model, prompt, post_process=False, max_retries=5):
                 logger.info(f"Retry attempt {attempt+1}/{max_retries}: Waiting {delay:.2f} seconds...")
                 time.sleep(delay)
             
-            response = model.generate_content(prompt)
+            # For Gemini 2.5 Flash, disable response validation to handle safety blocks
+            try:
+                response = model.generate_content(prompt, request_options={"response_validation": False})
+            except TypeError:
+                # Fallback for different Vertex AI SDK versions
+                response = model.generate_content(prompt)
             consecutive_failures = 0
             
             if post_process:
@@ -205,18 +210,49 @@ def post_process_results(response_text):
         dict: Extracted dictionary or None if parsing fails
     """
     try:
+        # First try to find a Python code block
         code_block_match = re.search(r'```python\s*(.*?)\s*```', response_text, re.DOTALL)
         if code_block_match:
-            code_block = code_block_match.group(1)
-            local_vars = {}
-            exec(code_block, {}, local_vars)
-            if 'chapters' in local_vars:
-                return local_vars['chapters']
-            # 'secties' might be relevant if the model output format changes
-            elif 'secties' in local_vars:
-                return local_vars['secties'] 
+            code_block = code_block_match.group(1).strip()
+            logger.debug(f"Found Python code block: {code_block[:200]}...")
+            
+            # Try to execute if it contains variable assignments
+            if '=' in code_block:
+                local_vars = {}
+                exec(code_block, {}, local_vars)
+                if 'chapters' in local_vars:
+                    return local_vars['chapters']
+                elif 'secties' in local_vars:
+                    return local_vars['secties']
+            
+            # If no variable assignment, try to evaluate as direct dictionary
+            try:
+                import ast
+                result = ast.literal_eval(code_block)
+                if isinstance(result, dict):
+                    logger.info(f"Successfully parsed dictionary with {len(result)} chapters")
+                    return result
+            except (ValueError, SyntaxError) as e:
+                logger.debug(f"Failed to parse as literal: {e}")
+        
+        # Fallback: try to find JSON-like structure without code blocks
+        import json
+        try:
+            # Look for JSON-like structure in the response
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                result = json.loads(json_str)
+                if isinstance(result, dict):
+                    logger.info(f"Successfully parsed JSON with {len(result)} chapters")
+                    return result
+        except json.JSONDecodeError:
+            logger.debug("No valid JSON found in response")
+            
     except Exception as e:
         logger.error(f"Error post-processing results: {str(e)}")
+        logger.debug(f"Response text preview: {response_text[:500]}...")
+    
     return None
 
 def setup_output_directory(step_name=None, base_output_dir=None, called_by_orchestrator=False):
@@ -352,43 +388,12 @@ def step1_generate_toc(pdf_path, output_base_dir=None, called_by_orchestrator=Fa
     logger.info(f"Processing PDF file: {pdf_path}")
     
     system_instruction = """
-You are given a technical specifications PDF document in the construction sector ("Samengevoegdlastenboek") that can be a concatenation of multiple different documents, each with their own internal page numbering.
+Analyze construction specification documents. 
 
-The document contains numbered chapters in two formats:
-1. Main chapters: formatted as "XX. TITLE" (e.g., "00. ALGEMENE BEPALINGEN")
-2. Sections: formatted as "XX.YY TITLE" (e.g., "01.10 SECTIETITEL") or formatted as "XX.YY.ZZ TITLE" (e.g., "01.10.01 SECTIETITEL") and even "XX.YY.ZZ.AA TITLE" (e.g., "01.10.01.01 SECTIETITEL")
+Find chapters: "XX. TITLE" (e.g., "00. ALGEMENE BEPALINGEN")
+Find sections: "XX.YY TITLE" (e.g., "01.10 SECTIETITEL")
 
-Your task is to identify both main chapters (00-93) and their sections, using the GLOBAL PDF page numbers (not the internal page numbers that appear within each document section).
-
-For each main chapter and section:
-1. Record the precise numbering (e.g., "00" or "01.10")
-2. Record the accurate starting page number based on the GLOBAL PDF page count (starting from 1 for the first page)
-3. Record the accurate ending page number (right before the next chapter/section starts)
-4. Summarize the content of the chapter and sections in 10 keywords or less to help with the categorization process
-
-IMPORTANT: 
-- Use the actual PDF page numbers (starting from 1 for the first page of the entire PDF)
-- IGNORE any page numbers printed within the document itself
-- The page numbers in any table of contents (inhoudstafel) are UNRELIABLE - do not use them
-- Determine page numbers by finding where each chapter actually begins and ends in the PDF
-- Be EXTREMELY thorough in identifying ALL sections and subsections, including those with patterns like XX.YY.ZZ.AA
-- Don't miss any chapter or section - this is critical for accurate document processing
-
-Final output should be a nested Python dictionary structure:
-```
-chapters = {
-    "00": {
-        "start": start_page,
-        "end": end_page,
-        "title": "CHAPTER TITLE",
-        "sections": {
-            'XX.YY': {'start': start_page, 'end': end_page, 'title': 'section title'},
-            'XX.YY.ZZ': {'start': start_page, 'end': end_page, 'title': 'subsection title'},
-            'XX.YY.ZZ.AA': {'start': start_page, 'end': end_page, 'title': 'sub-subsection title'}
-        }
-    }
-}
-```
+Use global PDF page numbers. Return as Python dictionary with start/end pages and titles.
 """
     
     try:
@@ -412,19 +417,37 @@ chapters = {
             pdf_bytes = f.read()
         # pdf_b64 = base64.b64encode(pdf_bytes).decode("utf-8") # Not used in chat.send_message
         
-        multimodal_model = GenerativeModel( # Model for PDF processing
-            effective_model_name, 
-            generation_config=GENERATION_CONFIG,
-            safety_settings=SAFETY_SETTINGS
-        )
+        # Try alternative model initialization for Gemini 2.5 Flash
+        try:
+            # First try with enhanced generation config for safety bypass
+            enhanced_generation_config = {
+                "max_output_tokens": 32768,  # Increase to maximum allowed
+                "temperature": 1.0,  # Standard temperature
+                "top_p": 0.95,
+            }
+            
+            multimodal_model = GenerativeModel( # Model for PDF processing
+                effective_model_name, 
+                generation_config=enhanced_generation_config,
+                safety_settings=SAFETY_SETTINGS
+            )
+            logger.info(f"✅ Enhanced model initialization successful with temperature 1.2")
+        except Exception as e:
+            logger.warning(f"Enhanced model init failed, falling back to standard: {e}")
+            multimodal_model = GenerativeModel( # Model for PDF processing
+                effective_model_name, 
+                generation_config=GENERATION_CONFIG,
+                safety_settings=SAFETY_SETTINGS
+            )
+            logger.info(f"✅ Standard model initialization successful")
         logger.info("PDF file loaded for Vertex AI")
     except Exception as e:
         logger.error(f"Error preparing PDF for Vertex AI: {str(e)}")
         raise
     
-    page_batch_size = 50 
+    page_batch_size = 25  # Reduce batch size to lower token usage
     page_batches = []
-    overlap = 5 
+    overlap = 3  # Reduce overlap 
     
     for start_page_num in range(1, total_pages + 1, page_batch_size - overlap):
         end_page_num = min(start_page_num + page_batch_size - 1, total_pages)
@@ -439,25 +462,40 @@ chapters = {
     
     try:
         initial_prompt = f'''
-I'll be analyzing a construction-specific PDF document with {total_pages} pages. First, I need you to provide me with a basic structure of this document.
+Analyze this {total_pages}-page construction document ("lastenboek").
 
-The PDF file is a technical construction document in Dutch/Flemish called a "lastenboek" (specification document).
-It contains chapters numbered like "XX. TITLE" (e.g., "00. ALGEMENE BEPALINGEN") and sections like "XX.YY TITLE".
+Find chapters numbered "XX. TITLE" (e.g., "00. ALGEMENE BEPALINGEN") and sections "XX.YY TITLE".
 
-Based on the PDF I'm providing, identify the main chapters (like 00, 01, 02, etc.) and their approximate page ranges.
-This will help me analyze the document in more detail with subsequent questions.
-
-Format the response as a simple outline with page ranges.
+List main chapters with their page ranges in simple format.
 '''
         
-        chat = multimodal_model.start_chat()
+        # Start chat with response validation disabled for Gemini 2.5 Flash safety issues
+        try:
+            chat = multimodal_model.start_chat(response_validation=False)
+            logger.info("Started chat with response_validation=False for Gemini 2.5 Flash")
+        except TypeError:
+            # Fallback for older SDK versions
+            chat = multimodal_model.start_chat()
+            logger.info("Started chat with default settings (response_validation not available)")
+        
         logger.info("Requesting initial document structure analysis...")
-        response = chat.send_message(
-            [
-                initial_prompt,
-                Part.from_data(data=pdf_bytes, mime_type="application/pdf")
-            ]
-        )
+        logger.info(f"Initial prompt length: {len(initial_prompt)} characters")
+        logger.info(f"PDF bytes size: {len(pdf_bytes)} bytes")
+        
+        try:
+            response = chat.send_message(
+                [
+                    initial_prompt,
+                    Part.from_data(data=pdf_bytes, mime_type="application/pdf")
+                ]
+            )
+            logger.info("✅ Initial document structure request completed successfully")
+        except Exception as e:
+            logger.error(f"❌ Initial document structure request failed: {str(e)}")
+            logger.error(f"Error type: {type(e).__name__}")
+            if hasattr(e, 'response'):
+                logger.error(f"Response details: {e.response}")
+            raise
         logger.info(f"Received initial document structure: {response.text[:200]}...") # Log snippet
         
         rate_limit_delay = 2.0
@@ -478,39 +516,36 @@ Format the response as a simple outline with page ranges.
                 comprehensive_note = "This is one of the final batches, so pay extra attention to identify any closing chapters or sections."
 
             page_prompt = f'''
-Analyze pages {start_page}-{end_page} of this PDF document and identify any chapters or sections 
-that appear within these pages.
+Find chapters/sections in pages {start_page}-{end_page}.
 
-{comprehensive_note}
+Look for:
+- Chapters: "XX. TITLE" (e.g., "00. ALGEMENE BEPALINGEN")  
+- Sections: "XX.YY TITLE" (e.g., "01.10 SECTIETITEL")
 
-IMPORTANT INSTRUCTIONS:
-- This document uses chapter numbering like "XX. TITLE" (e.g. "00. ALGEMENE BEPALINGEN")
-- Sections are formatted as "XX.YY TITLE" (e.g., "01.10 SECTIETITEL")
-- Subsections may be formatted as "XX.YY.ZZ TITLE" or "XX.YY.ZZ.AA TITLE"
-- Focus ONLY on pages {start_page} through {end_page}
-- Use the GLOBAL PDF page numbers (starting from 1 for the first page of the PDF)
-- IGNORE any page numbers printed within the document itself
-- For each chapter/section, record its exact start page and end page
-- The end page of a chapter/section is the page right before the next chapter/section begins
-- If a chapter/section starts in this range but continues beyond page {end_page}, set the end page as {end_page} for now
-- If a chapter/section ends in this range but started before page {start_page}, set the start page as {start_page} for now
-- Be thorough, even for sections that appear to be brief
+Return as Python dict:
+chapters = {{"XX": {{"start": X, "end": Y, "title": "TITLE", "sections": {{"XX.YY": {{"start": X, "end": Y, "title": "TITLE"}}}}}}}}
 
-Format the output as a Python dictionary like this:
-```python
-chapters = {{
-    "XX": {{\'start\': X, \'end\': Y, \'title\': \'CHAPTER TITLE\', \'sections\': {{
-        \'XX.YY\': {{\'start\': X, \'end\': Y, \'title\': \'section title\'}},
-        \'XX.YY.ZZ\': {{\'start\': X, \'end\': Y, \'title\': \'subsection title\'}}
-    }}}}
-}}
-```
-
-Include ONLY chapters or sections that appear within pages {start_page}-{end_page}.
+Use global PDF page numbers only.
 '''
             
             try:
+                logger.info(f"📤 Sending batch request for pages {start_page}-{end_page}")
+                logger.info(f"Prompt length: {len(page_prompt)} characters")
+                
                 batch_response = chat.send_message(page_prompt)
+                
+                logger.info(f"✅ Batch {batch_idx+1} response received successfully")
+                logger.info(f"Response length: {len(batch_response.text)} characters")
+                logger.info(f"Response preview: {batch_response.text[:200]}...")
+                
+                # Check if response has safety ratings or finish reason
+                if hasattr(batch_response, 'candidates') and batch_response.candidates:
+                    candidate = batch_response.candidates[0]
+                    if hasattr(candidate, 'finish_reason'):
+                        logger.info(f"Finish reason: {candidate.finish_reason}")
+                    if hasattr(candidate, 'safety_ratings'):
+                        logger.info(f"Safety ratings: {candidate.safety_ratings}")
+                
                 page_batch_dict = post_process_results(batch_response.text)
                 
                 if page_batch_dict:
@@ -543,9 +578,33 @@ Include ONLY chapters or sections that appear within pages {start_page}-{end_pag
                     logger.info(f"No chapter/section data found in pages {start_page}-{end_page}")
                 error_backoff_multiplier = max(1.0, error_backoff_multiplier * 0.8)
             except Exception as e:
-                logger.error(f"Error processing batch {batch_idx+1}: {str(e)}")
+                logger.error(f"❌ Error processing batch {batch_idx+1}: {str(e)}")
+                logger.error(f"Error type: {type(e).__name__}")
+                
+                # Log detailed error information
+                if hasattr(e, 'response'):
+                    logger.error(f"Error response: {e.response}")
+                if hasattr(e, 'candidates'):
+                    logger.error(f"Error candidates: {e.candidates}")
+                if hasattr(e, 'prompt_feedback'):
+                    logger.error(f"Prompt feedback: {e.prompt_feedback}")
+                
+                # Check if this is a safety filter issue
+                if "Finish reason: 2" in str(e) or "SAFETY" in str(e):
+                    logger.error("🚫 SAFETY FILTER DETECTED - This is the core issue!")
+                    logger.error("The model is rejecting the content due to safety filters")
+                    logger.error("Even with safety settings OFF, Gemini 2.5 Flash is still blocking")
+                    
+                    # If this is the first batch and we're using 2.5 Flash, suggest fallback
+                    if batch_idx == 0 and "2.5" in effective_model_name:
+                        logger.error("💡 RECOMMENDATION: Switch to Gemini 1.5 Pro for better PDF compatibility")
+                        logger.error("Gemini 2.5 Flash has known issues with PDF safety filters")
+                
+                logger.warning(f"Skipping batch {batch_idx+1} and continuing with next batch")
                 error_backoff_multiplier *= 2.0
                 logger.warning(f"Increasing rate limit delay multiplier to {error_backoff_multiplier} due to error")
+                # Continue with next batch instead of failing completely
+                continue
     
     except Exception as e:
         logger.error(f"Error processing with Vertex AI: {str(e)}")
@@ -688,7 +747,7 @@ def main_cli():
     parser.add_argument("pdf_path", nargs="?", default=r"C:\Users\gr\Documents\GitHub\ExtendedToC\Lastenboeken\cathlabarchitectlb.pdf", help="Path to the PDF file to process.")
     parser.add_argument("-o", "--output-dir", help="Base directory for output files (optional, defaults to 'output').")
     parser.add_argument("--model", choices=['pro', 'flash'], default='pro', 
-                        help="Model to use: 'pro' for gemini-1.5-pro-002 (default), 'flash' for gemini-2.0-flash-001 (cheaper/faster)")
+                        help="Model to use: 'pro' for gemini-1.5-pro-002 (default), 'flash' for gemini-2.5-flash (cheaper/faster)")
     
     args = parser.parse_args()
     

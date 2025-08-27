@@ -40,26 +40,36 @@
       <div class="bg-white rounded-2xl shadow p-8">
         <h2 class="text-xl font-semibold mb-4">Upload Documents</h2>
         <form id="upload-form" class="space-y-4">
-          <div>
-            <label for="meetstaat-input" class="block text-sm font-medium text-gray-700">Meetstaat (CSV)</label>
-            <input type="file" id="meetstaat-input" name="meetstaat" accept=".csv" class="mt-1 block w-full border border-gray-300 rounded p-2">
-          </div>
-          <div>
-            <label for="lastenboek-input" class="block text-sm font-medium text-gray-700">Lastenboek (PDF)</label>
-            <input type="file" id="lastenboek-input" name="lastenboek" accept=".pdf" class="mt-1 block w-full border border-gray-300 rounded p-2">
-          </div>
-          
-          <!-- New Radio Buttons for TOC Type -->
           <div class="form-group">
-            <label>Analysis Type:</label><br>
-            <input type="radio" id="toc_type_standard" name="toc_type" value="standard" checked>
-            <label for="toc_type_standard">Simple TOC analysis</label><br>
-            <input type="radio" id="toc_type_vision" name="toc_type" value="vision">
-            <label for="toc_type_vision">Extended TOC analysis</label>
+            <label for="toc_type">TOC Analysis Type:</label>
+            <select id="toc_type" name="toc_type" class="form-control">
+              <option value="dynamic">Dynamic TOC Generation (Recommended)</option>
+              <option value="standard" disabled style="color: #ccc;">Simple TOC Analysis (Legacy)</option>
+              <option value="vision" disabled style="color: #ccc;">Vision TOC with Summaries (Legacy)</option>
+            </select>
+            <small class="form-text text-muted">Dynamic generation creates a TOC from your uploaded PDF using AI</small>
           </div>
-          <!-- End New Radio Buttons -->
 
-          <button type="button" id="analyze-button" class="mt-4 bg-[#0087b7] text-white px-4 py-2 rounded hover:bg-[#00739e] disabled:opacity-50">Analyze</button>
+          <div class="form-group">
+            <label for="lastenboek">Lastenboek (PDF) *:</label>
+            <input type="file" id="lastenboek" name="lastenboek" class="form-control-file" accept=".pdf" required>
+            <small class="form-text text-muted">Upload the PDF document to analyze</small>
+          </div>
+
+          <div class="form-group" style="opacity: 0.5;">
+            <label for="meetstaat">Meetstaat (CSV) - Optional:</label>
+            <input type="file" id="meetstaat" name="meetstaat" class="form-control-file" accept=".csv" disabled>
+            <small class="form-text text-muted" style="color: #999;">Currently disabled - Enhanced analysis focuses on document structure</small>
+          </div>
+
+          <div>
+              <label for="model-selection" class="block text-sm font-medium text-gray-300">Select Model</label>
+              <select id="model-selection" class="mt-1 block w-full bg-gray-700 border-gray-600 text-white rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
+                  <option value="gemini-2.5-pro">Gemini 2.5 Pro (Slower, More Powerful)</option>
+              </select>
+          </div>
+          <button type="button" id="analyzeButton" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-800">Analyze Document</button>
         </form>
       </div>
 
@@ -71,8 +81,8 @@
             <div class="mb-2 md:mb-0">
               <label for="model-select" class="text-xs font-medium text-gray-600 mr-1">Model:</label>
               <select id="model-select" name="model_select" class="text-xs border border-gray-300 rounded p-1">
-                <option value="gemini-1.5-pro-002" selected>Gemini 1.5 Pro</option>
-                <option value="gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
               </select>
             </div>
             <button id="discrepancy-button" class="hidden bg-[#0000a3] text-white px-4 py-2 rounded text-sm hover:bg-[#00008a] disabled:opacity-50">Analyze Consistency</button>
@@ -101,9 +111,10 @@
   <!-- Add JavaScript block -->
   <script>
     const form = document.getElementById('upload-form');
-    const meetstaatInput = document.getElementById('meetstaat-input');
-    const lastenboekInput = document.getElementById('lastenboek-input');
-    const analyzeButton = document.getElementById('analyze-button');
+    const meetstaatInput = document.getElementById('meetstaat');
+    const lastenboekInput = document.getElementById('lastenboek');
+    const tocTypeSelect = document.getElementById('toc_type');
+    const analyzeButton = document.getElementById('analyzeButton');
     const resultsArea = document.getElementById('results-area');
     const exportButton = document.getElementById('export-button');
     const discrepancyButton = document.getElementById('discrepancy-button');
@@ -123,7 +134,6 @@
         alert('Please select a Lastenboek (PDF) file.');
         return;
       }
-      // You might want to add validation for meetstaat if it becomes mandatory
 
       // Prepare form data to send
       const formData = new FormData();
@@ -133,7 +143,7 @@
       formData.append('lastenboek', lastenboekFile);
       
       // Add the selected TOC type
-      const selectedTocType = document.querySelector('input[name="toc_type"]:checked').value;
+      const selectedTocType = tocTypeSelect.value;
       formData.append('toc_type', selectedTocType);
 
       // Show loading state
@@ -168,69 +178,67 @@
 
         // --- Process and Display Initial Results ---
         let initialHtml = `
-          <h3 class="font-semibold mb-2">Backend Message:</h3>
+          <h3 class="font-semibold mb-2">TOC Generation Results:</h3>
           <p class="mb-4">${result.message || 'Processing complete.'}</p>
         `;
 
-        // Display Summary if available
-        if (result.analysis_summary) {
-            const summary = result.analysis_summary;
-            initialHtml += `
-                <h3 class="font-semibold mb-2 mt-4">Summary Counts:</h3>
-                <p class="text-sm mb-4 border-b pb-4">
-                    <span class="mr-4"><strong class="font-medium">In Both:</strong> ${summary.count_both || 0}</span>
-                    <span class="mr-4"><strong class="font-medium">Only Meetstaat:</strong> ${summary.count_meetstaat_only || 0}</span>
-                    <span><strong class="font-medium">Only Lastenboek:</strong> ${summary.count_lastenboek_only || 0}</span>
-                </p>
-            `;
-        }
-
-        // Display Processing Errors if any
-        if (result.errors && result.errors.length > 0) {
-          initialHtml += `
-            <h3 class="font-semibold mb-2 text-red-600">Processing Errors:</h3>
-            <ul class="list-disc list-inside mb-4 text-red-500">
-              ${result.errors.map(e => `<li>${e}</li>`).join('')}
-            </ul>
-          `;
-        }
-
-        // Display Files Processed
+        // Display the generated TOC items
+        const tocItems = result.items || [];
         initialHtml += `
-          <h3 class="font-semibold mb-2">Files Processed:</h3>
-          <ul class="list-disc list-inside mb-4">
-            <li>Meetstaat: ${result.meetstaat_filename}</li>
-            <li>Lastenboek: ${result.lastenboek_filename}</li>
-            <li>TOC Type: ${result.toc_type} (${result.toc_path})</li>
-          </ul>
+          <h3 class="font-semibold mb-2 mt-4">Generated TOC Structure:</h3>
+          <p class="text-sm mb-4 border-b pb-4">
+            <span class="mr-4"><strong class="font-medium">Total Items:</strong> ${tocItems.length}</span>
+            <span class="mr-4"><strong class="font-medium">Type:</strong> Dynamic TOC Generation</span>
+          </p>
         `;
 
-        // Filter the combined data
-        const combinedData = result.analysis_output || [];
-        const foundInBoth = combinedData.filter(item => item.meetstaat_present && item.lastenboek_toc_entry_present);
-        const onlyInTOC = combinedData.filter(item => !item.meetstaat_present && item.lastenboek_toc_entry_present);
-        const onlyInMeetstaat = combinedData.filter(item => item.meetstaat_present && !item.lastenboek_toc_entry_present);
+        // Create a simple table for the TOC items
+        let tocTableHtml = `
+          <div class="overflow-x-auto mb-4">
+            <table class="min-w-full divide-y divide-gray-200 shadow border border-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pages</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+        `;
+
+        if (tocItems.length === 0) {
+          tocTableHtml += '<tr><td colspan="3" class="px-4 py-3 text-sm text-gray-500 italic text-center">No TOC items found.</td></tr>';
+        } else {
+          tocItems.forEach(item => {
+            tocTableHtml += `
+              <tr>
+                <td class="px-4 py-3 text-sm font-medium text-gray-900">${item.id}</td>
+                <td class="px-4 py-3 text-sm text-gray-900">${item.title}</td>
+                <td class="px-4 py-3 text-sm text-gray-500">${item.start_page}-${item.end_page}</td>
+              </tr>
+            `;
+          });
+        }
+
+        tocTableHtml += `
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        initialHtml += tocTableHtml;
 
         // Update the results area with initial info + summary
         resultsArea.innerHTML = initialHtml;
 
-        // Create the results table (if not already using updateTableWithResults)
-        updateTableWithResults(combinedData, 'initial-results-table'); // Generate initial table
-
         // Show the appropriate buttons after initial analysis
-            exportButton.classList.remove('hidden');
-        // Show consistency button only if meetstaat was provided
-        if (meetstaatInput.files[0]) {
-            discrepancyButton.classList.remove('hidden');
-        } else {
-            discrepancyButton.classList.add('hidden');
-        }
-        // Show placement button only if TOC type is 'vision' (implies summaries)
-        if (selectedTocType === 'vision') {
-             placementButton.classList.remove('hidden');
-        } else {
-             placementButton.classList.add('hidden');
-        }
+        exportButton.classList.remove('hidden');
+        
+        // Always show placement button since we generated a TOC
+        placementButton.classList.remove('hidden');
+        
+        // Hide meetstaat-related buttons since we're not using meetstaat
+        discrepancyButton.classList.add('hidden');
         discrepancyResultsArea.innerHTML = '<p class="text-gray-500 italic">Select an analysis type above to begin...</p>'; // Clear previous results
         discrepancyResultsArea.classList.add('hidden'); // Ensure it's hidden
         exportDiscrepancyButton.classList.add('hidden'); // Hide export until discrepancy run

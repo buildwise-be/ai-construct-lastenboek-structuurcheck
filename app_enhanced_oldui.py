@@ -42,6 +42,15 @@ import re # Import regex for number parsing
 import time # For potential backoff in LLM calls
 import glob # For globbing files
 import random # <-- Add import for random
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'toc_generation_module'))
+try:
+    from toc_generator import step1_generate_toc
+    TOC_GENERATION_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Could not import toc_generator: {e}")
+    TOC_GENERATION_AVAILABLE = False
 
 # Import the refactored function
 from llm_toc_analyzer import get_toc_page_ranges_from_json
@@ -133,7 +142,9 @@ Session(app) # Initialize the session extension
 
 # Create an 'uploads' directory if it doesn't exist
 UPLOAD_FOLDER = 'uploads'
+OUTPUT_FOLDER = 'output'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # SECRET_KEY is now set above during Session config
 # app.config['SECRET_KEY'] = os.urandom(24) # Remove or comment out duplicate
@@ -327,7 +338,8 @@ def analyze_batch_with_gemini(batch: list[dict], analysis_type: str, model_name:
 
     # Initialize Vertex AI
     try:
-        aiplatform.init(project=project_id, location=location)
+        # Pass credentials=None to force the client to use Application Default Credentials
+        aiplatform.init(project=project_id, location=location, credentials=None)
         model = GenerativeModel(model_name)
         app.logger.info(f"Vertex AI initialized for project '{project_id}' in '{location}' using model {model_name} for {analysis_type} analysis.") # Log type
     except Exception as e:
@@ -562,261 +574,94 @@ def index():
 # Route to handle the analysis request (POST)
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    """Handles the document analysis request."""
-    if 'lastenboek' not in request.files:
-        return jsonify({'error': 'No Lastenboek (PDF) file part in the request.'}), 400
-
-    lastenboek_file = request.files['lastenboek']
-    meetstaat_file = request.files.get('meetstaat') # Meetstaat is optional for now
-    
-    # Get the selected TOC type (default to standard if not provided)
-    toc_type = request.form.get('toc_type', 'standard')
+    """Main analysis endpoint - now generates TOC dynamically"""
+    try:
+        # Get form data
+        toc_type = request.form.get('toc_type')
     app.logger.info(f"Selected TOC type: {toc_type}")
 
-    # --- File Validation ---
-    if lastenboek_file.filename == '':
-        return jsonify({'error': 'No selected file for Lastenboek (PDF).'}), 400
-    if not allowed_file(lastenboek_file.filename, ALLOWED_EXTENSIONS_PDF):
-         return jsonify({'error': 'Invalid file type for Lastenboek. Only PDF allowed.'}), 400
-
-    if meetstaat_file and meetstaat_file.filename == '':
-         # If meetstaat part exists but no file selected, treat as not uploaded
-         meetstaat_file = None
-    if meetstaat_file and not allowed_file(meetstaat_file.filename, ALLOWED_EXTENSIONS_CSV):
-         return jsonify({'error': 'Invalid file type for Meetstaat. Only CSV allowed.'}), 400
-
-    # --- Save Files Temporarily ---
-    # Using tempfile is generally safer for web apps than saving to a fixed 'uploads'
-    # but for simplicity here, we save to uploads and will clean up later (ideally)
+        # Handle file uploads
+        lastenboek_file = request.files.get('lastenboek')
+        if not lastenboek_file or lastenboek_file.filename == '':
+            return jsonify({'error': 'No Lastenboek file provided'}), 400
+        
+        # Save the uploaded PDF
     lastenboek_filename = secure_filename(lastenboek_file.filename)
-    lastenboek_path = os.path.join(app.config['UPLOAD_FOLDER'], lastenboek_filename)
+        lastenboek_path = os.path.join(UPLOAD_FOLDER, lastenboek_filename)
     lastenboek_file.save(lastenboek_path)
     app.logger.info(f"Saved Lastenboek PDF to: {lastenboek_path}")
 
-    meetstaat_path = None
-    meetstaat_filename = None
-    if meetstaat_file:
-        meetstaat_filename = secure_filename(meetstaat_file.filename)
-        meetstaat_path = os.path.join(app.config['UPLOAD_FOLDER'], meetstaat_filename)
-        meetstaat_file.save(meetstaat_path)
-        app.logger.info(f"Saved Meetstaat CSV to: {meetstaat_path}")
-
-    # --- Process Files ---
-    meetstaat_items = {}
-    toc_page_ranges = {}
-    error_messages = []
-    toc_data = None # Initialize toc_data
-
-    try:
-        # --- Load TOC JSON from File based on selected type --- 
-        selected_toc_path = get_toc_path_by_type(toc_type)
-        app.logger.info(f"Loading TOC data from: {selected_toc_path}")
+        # Generate TOC dynamically using the toc_generation_module
+        if not TOC_GENERATION_AVAILABLE:
+            app.logger.error("TOC generation module not available")
+            return jsonify({'error': 'TOC generation module not available. Please check dependencies.'}), 500
+            
+        app.logger.info("Generating TOC from uploaded PDF...")
         try:
-            with open(selected_toc_path, 'r', encoding='utf-8') as f:
-                toc_data = json.load(f)
-            app.logger.info(f"Successfully loaded TOC JSON data from {selected_toc_path}.")
-        except FileNotFoundError:
-            app.logger.error(f"TOC JSON file not found at: {selected_toc_path}")
-            error_messages.append(f"Critical error: TOC JSON file not found at {selected_toc_path}")
-            # Stop processing if TOC is missing
-            return jsonify({'error': f'Server configuration error: TOC file not found.'}), 500
-        except json.JSONDecodeError as json_err:
-            app.logger.error(f"Error decoding TOC JSON file: {json_err}")
-            error_messages.append(f"Critical error: Invalid format in TOC JSON file.")
-            # Stop processing if TOC is invalid
-            return jsonify({'error': f'Server configuration error: Invalid TOC file format.'}), 500
-        # --- End Load TOC JSON ---
-
-        # Parse Meetstaat CSV (if provided)
-        if meetstaat_path:
-            meetstaat_items = parse_meetstaat_csv(meetstaat_path)
-            if meetstaat_items is None:
-                 error_messages.append("Failed to parse Meetstaat CSV.")
-                 # Decide if this is critical - for now, continue without it
-
-        # Get Lastenboek TOC page ranges (using data loaded from file)
-        if toc_data: # Proceed only if TOC data was loaded successfully
-            toc_page_ranges = get_toc_page_ranges_from_json(toc_data)
-            if not toc_page_ranges:
-                 # This now indicates an issue with the content/structure of the JSON
-                 error_messages.append("Failed to extract page ranges from the loaded TOC data. Check JSON structure.")
-                 # Decide if this is critical
-        else:
-            error_messages.append("Skipping Lastenboek page range extraction due to earlier TOC loading error.")
-
-        # --- Combine Data (Flattened Structure) ---
-        combined_data = []
-        normalized_meetstaat_codes = {normalize_code(k) for k in meetstaat_items.keys()}
-        normalized_toc_codes = {normalize_code(k) for k in toc_page_ranges.keys()}
-        all_item_codes = normalized_meetstaat_codes | normalized_toc_codes
-
-        for code in sorted(list(all_item_codes)):
-            meetstaat_info = meetstaat_items.get(code)
-            lastenboek_range_info = toc_page_ranges.get(code)
-
-            # Determine source and apply abbreviation mappings/parsing
-            flat_item = {"item_code": code}
-            is_meetstaat_present = meetstaat_info is not None
-            is_lastenboek_present = lastenboek_range_info is not None
-
-            if is_meetstaat_present and is_lastenboek_present:
-                flat_item["source"] = "both"
-            elif is_meetstaat_present:
-                flat_item["source"] = "meetstaat_only"
-            else: # Only in lastenboek
-                flat_item["source"] = "lastenboek_only"
-
-            # Add Meetstaat details (if present)
-            if meetstaat_info:
-                flat_item["meetstaat_description"] = meetstaat_info.get("Description")
-                flat_item["meetstaat_quantity"] = parse_dutch_number(meetstaat_info.get("Quantity"))
-                flat_item["meetstaat_unit"] = meetstaat_info.get("Unit")
-                # Apply mapping to Type and Notes
-                raw_type = meetstaat_info.get("Type")
-                flat_item["meetstaat_type"] = f"{ABBREVIATION_MAP.get(raw_type, raw_type)} ({raw_type})" if raw_type and raw_type in ABBREVIATION_MAP else raw_type
-                raw_notes = meetstaat_info.get("Notes")
-                flat_item["meetstaat_notes"] = f"{ABBREVIATION_MAP.get(raw_notes, raw_notes)} ({raw_notes})" if raw_notes and raw_notes in ABBREVIATION_MAP else raw_notes
-            else:
-                flat_item["meetstaat_description"] = None
-                flat_item["meetstaat_quantity"] = None
-                flat_item["meetstaat_unit"] = None
-                flat_item["meetstaat_type"] = None
-                flat_item["meetstaat_notes"] = None
-
-            # Add Lastenboek details (if present)
-            if lastenboek_range_info:
-                flat_item["lastenboek_title"] = lastenboek_range_info.get("title")
-                flat_item["lastenboek_start_page"] = lastenboek_range_info.get("start")
-                flat_item["lastenboek_end_page"] = lastenboek_range_info.get("end")
-                # ** Copy the summary if it exists **
-                if "lastenboek_summary" in lastenboek_range_info:
-                    flat_item["lastenboek_summary"] = lastenboek_range_info.get("lastenboek_summary")
-            else:
-                flat_item["lastenboek_title"] = None
-                flat_item["lastenboek_start_page"] = None
-                flat_item["lastenboek_end_page"] = None
-                # Ensure summary key exists even if null when lastenboek_range_info is None
-                # flat_item["lastenboek_summary"] = None # Optional: uncomment if needed downstream
-
-            flat_item["llm_analysis"] = None # Placeholder
-
-            combined_data.append(flat_item)
-        # --- End Combine Data ---
-
-        # --- Generate Summary (Overall Counts) --- 
-        analysis_summary = {
-            'count_both': 0,
-            'count_meetstaat_only': 0,
-            'count_lastenboek_only': 0
-        }
-        if combined_data:
-             for item in combined_data:
-                 source = item.get("source")
-                 if source == "both":
-                     analysis_summary['count_both'] += 1
-                 elif source == "meetstaat_only":
-                     analysis_summary['count_meetstaat_only'] += 1
-                 elif source == "lastenboek_only":
-                     analysis_summary['count_lastenboek_only'] += 1
-        # --- End Generate Summary --- 
-
-        # --- Added Logging ---
-        app.logger.info(f"Attempting to save {len(combined_data)} items to session['analysis_results'].")
-        if combined_data:
-            app.logger.debug(f"First item sample for session: {combined_data[0]}")
-        # --- End Added Logging ---
+            # Use the step1_generate_toc function to create TOC
+            chapters, toc_output_dir = step1_generate_toc(
+                pdf_path=lastenboek_path,
+                output_base_dir=UPLOAD_FOLDER,
+                called_by_orchestrator=False,
+                model_name="gemini-2.5-flash"  # Use flash model for speed
+            )
+            
+            # The chapters dictionary is already in the format we need
+            toc_data = chapters
+            app.logger.info(f"Successfully generated TOC with {len(toc_data)} chapters")
+            
+        except Exception as e:
+            app.logger.error(f"Failed to generate TOC: {str(e)}")
+            return jsonify({'error': f'Failed to generate TOC: {str(e)}'}), 500
         
-        # --- Store results in session for export AND discrepancy analysis --- 
-        # Removed limit: Store the full data again
-        # session_limit = 10 
-        session['analysis_results'] = combined_data # Store the full combined data
-        session['toc_type'] = toc_type  # Store the TOC type used
-        session['toc_path'] = os.path.basename(selected_toc_path)  # Store the TOC path used
-        # -----------------------------------------------------------------
-
-        # --- Added Logging ---
-        if 'analysis_results' in session:
-            app.logger.info(f"Successfully set session['analysis_results'] with {len(session['analysis_results'])} items.")
-        else:
-            app.logger.error("Failed to set session['analysis_results']!")
-        # --- End Added Logging ---
-
-        app.logger.info(f"Analysis complete. Returning {len(combined_data)} items for UI display.")
-        # Return analysis output for the UI (reconstructs nested structure)
-        ui_analysis_output = []
-        for item in combined_data:
-             readable_meetstaat_info = None
-             if item['source'] in ['both', 'meetstaat_only']:
-                 readable_meetstaat_info = {
-                     'Description': item['meetstaat_description'],
-                     'Quantity': item['meetstaat_quantity'], # UI might need formatting?
-                     'Unit': item['meetstaat_unit'],
-                     'Type': item['meetstaat_type'],
-                     'Notes': item['meetstaat_notes']
-                 }
-             
-             readable_lastenboek_info = None
-             if item['source'] in ['both', 'lastenboek_only']:
-                 readable_lastenboek_info = {
-                     'title': item['lastenboek_title'],
-                     'start': item['lastenboek_start_page'],
-                     'end': item['lastenboek_end_page'],
-                     'summary': item.get('lastenboek_summary')
-                 }
-             
-             # Construct a more UI-friendly output structure
-             ui_friendly_item = {
-                 'item_code': item['item_code'],
-                 'meetstaat_present': item['source'] in ['both', 'meetstaat_only'],
-                 'lastenboek_toc_entry_present': item['source'] in ['both', 'lastenboek_only'],
-                 'meetstaat_info': readable_meetstaat_info,
-                 'lastenboek_page_range': readable_lastenboek_info,
-                 'llm_analysis': item.get('llm_analysis') # Placeholder for later use (NULL for first analysis)
-             }
-             ui_analysis_output.append(ui_friendly_item)
-
-        # --- Added Logging: Check data just before sending --- 
-        if ui_analysis_output:
-            app.logger.debug("--- Sample of ui_analysis_output being sent to frontend ---")
-            sample_count_ui = min(3, len(ui_analysis_output))
-            for i in range(sample_count_ui):
-                 item_sample = ui_analysis_output[i]
-                 app.logger.debug(f"Item {i+1} Sample: code={item_sample.get('item_code')}, meetstaat_present={item_sample.get('meetstaat_present')}, lastenboek_present={item_sample.get('lastenboek_toc_entry_present')}, lastenboek_range={item_sample.get('lastenboek_page_range')}")
-            app.logger.debug("--- End sample ---")
-        # --- End Added Logging ---
+        # Process the TOC data for display
+        app.logger.info("Processing TOC data for display...")
+        
+        # Convert the TOC format to match what the UI expects
+        processed_items = []
+        for chapter_id, chapter_data in toc_data.items():
+            if isinstance(chapter_data, dict) and 'title' in chapter_data:
+                item = {
+                    'id': chapter_id,
+                    'title': chapter_data.get('title', 'Unknown'),
+                    'start_page': chapter_data.get('start', 1),
+                    'end_page': chapter_data.get('end', 1),
+                    'has_summary': False,  # We don't have summaries yet
+                    'has_tasks': False     # We don't have tasks yet
+                }
+                processed_items.append(item)
+                
+                # Add sections if they exist
+                if 'sections' in chapter_data and isinstance(chapter_data['sections'], dict):
+                    for section_id, section_data in chapter_data['sections'].items():
+                        if isinstance(section_data, dict) and 'title' in section_data:
+                            section_item = {
+                                'id': section_id,
+                                'title': section_data.get('title', 'Unknown'),
+                                'start_page': section_data.get('start', 1),
+                                'end_page': section_data.get('end', 1),
+                                'has_summary': False,
+                                'has_tasks': False
+                            }
+                            processed_items.append(section_item)
+        
+        app.logger.info(f"Processed {len(processed_items)} items for display")
+        
+        # Save to session
+        session['analysis_results'] = processed_items
+        session['toc_data'] = toc_data  # Save raw TOC data for enhanced analysis
+        session['lastenboek_path'] = lastenboek_path
+        app.logger.info(f"Saved {len(processed_items)} items to session")
 
         return jsonify({
-            'message': 'Analysis complete!',
-            'errors': error_messages,
-            'analysis_output': ui_analysis_output,
-            'meetstaat_filename': meetstaat_filename or "Not provided",
-            'lastenboek_filename': lastenboek_filename,
-            'analysis_summary': analysis_summary,
-            'toc_type': toc_type,
-            'toc_path': os.path.basename(selected_toc_path) # Only send the filename, not the full path
+            'success': True,
+            'items': processed_items,
+            'message': f'Successfully analyzed {len(processed_items)} items from generated TOC'
         })
 
     except Exception as e:
-        app.logger.exception("An error occurred during analysis:") # Changed Log full traceback
-        # Ensure temporary files are cleaned up even on error
-        # ... (Add cleanup logic here too) ...
-        # Retrieve filename if already set
-        if 'lastenboek_file' in locals() and not lastenboek_filename:
-            lastenboek_filename = secure_filename(lastenboek_file.filename)
-        # Return error in the expected structure if possible, or a generic error
-        return jsonify({
-            'error': f'An unexpected error occurred: {str(e)}',
-            'meetstaat_filename': meetstaat_filename if meetstaat_filename else 'Not Provided',
-            'lastenboek_filename': lastenboek_filename if 'lastenboek_filename' in locals() else 'Unknown',
-            'analysis_summary': {
-                'count_both': 0,
-                'count_meetstaat_only': 0,
-                'count_lastenboek_only': 0
-            },
-            'analysis_output': [],
-            'errors': [f'An unexpected error occurred: {str(e)}'],
-            'message': 'Processing failed.'
-             }), 500
+        app.logger.error(f"Error in analyze endpoint: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 # --- New Route for Discrepancy Analysis --- 
 @app.route('/start_discrepancy_analysis', methods=['POST'])
@@ -862,13 +707,13 @@ def start_discrepancy_analysis():
         app.logger.debug(f"Parsed request data: {req_data}")
         selected_codes = req_data.get('selected_codes', [])
         analysis_type = req_data.get('analysis_type', 'task_placement') # Get analysis type, default to task_placement
-        # Get the selected model name, default to 1.5 Pro 002 if not provided
-        selected_model = req_data.get('model_name', 'gemini-1.5-pro-002') 
+        # Get the selected model name, default to 2.5 Flash if not provided
+        selected_model = req_data.get('model_name', 'gemini-2.5-flash') 
         # Optional: Add validation for allowed model names
-        allowed_models = ['gemini-1.5-pro-002', 'gemini-2.0-flash-001'] # Add others if needed
+        allowed_models = ['gemini-2.5-pro', 'gemini-2.5-flash'] # Add others if needed
         if selected_model not in allowed_models:
             app.logger.warning(f"Invalid model requested: '{selected_model}'. Falling back to default.")
-            selected_model = 'gemini-1.5-pro-002' # Fallback to a known default
+            selected_model = 'gemini-2.5-flash' # Fallback to a known default
             
         app.logger.info(f"Requested analysis type: {analysis_type} using model: {selected_model}") # Log the type and model
         app.logger.debug(f"Selected codes: {selected_codes}")
@@ -996,7 +841,7 @@ def start_discrepancy_analysis():
         'analysis_output': final_analysis_output_for_ui,
         'message': f"{analysis_type.capitalize()} analysis completed. Processed {len(all_llm_results)} items with LLM.", # Use type
         'toc_type': session.get('toc_type', 'standard'), 
-        'toc_path': session.get('toc_path', os.path.basename(TOC_JSON_PATH)) 
+        'toc_path': session.get('lastenboek_path', TOC_JSON_PATH) 
     }
     
     # --- Store the final merged results in session for export --- 
@@ -1037,10 +882,10 @@ def export_discrepancy_json():
 
     # Create a JSON response with headers for download
     response = make_response(jsonify(discrepancy_results))
-    response.headers["Content-Disposition"] = f'attachment; filename="discrepancy_analysis_{os.path.basename(session.get("toc_path", "unknown"))}"'
+    response.headers["Content-Disposition"] = f'attachment; filename="discrepancy_analysis_{os.path.basename(session.get("lastenboek_path", "unknown"))}"'
     response.headers["Content-Type"] = "application/json"
     
-    app.logger.info(f"Exporting discrepancy analysis results to discrepancy_analysis_{os.path.basename(session.get('toc_path', 'unknown'))}")
+    app.logger.info(f"Exporting discrepancy analysis results to discrepancy_analysis_{os.path.basename(session.get('lastenboek_path', 'unknown'))}")
     return response
 # ---------------------------------------------------------
 
@@ -1052,7 +897,7 @@ def run_placement_check():
     
     # Get the path to the comprehensive TOC with summaries from the session
     # This is expected to be set by the initial '/analyze' call with 'vision' type
-    toc_path = session.get('toc_path')
+    toc_path = session.get('lastenboek_path')
     
     if not toc_path or not os.path.exists(toc_path):
         app.logger.error(f"TOC path not found in session or file does not exist: {toc_path}")
@@ -1102,7 +947,7 @@ def export_placement_json():
 
     response = make_response(json.dumps(results, indent=4, ensure_ascii=False))
     response.headers['Content-Type'] = 'application/json; charset=utf-8'
-    original_filename = os.path.basename(session.get('toc_path', 'analysis.json'))
+    original_filename = os.path.basename(session.get('lastenboek_path', 'analysis.json'))
     new_filename = f"placement_analysis_{original_filename}"
     response.headers['Content-Disposition'] = f'attachment; filename="{new_filename}"'
     
@@ -1116,4 +961,4 @@ if __name__ == '__main__':
     port = int(os.getenv('PORT', 9000))
     # Use host='0.0.0.0' to make it accessible on your network
     # Set debug=False for production environments
-    app.run(debug=True, host='0.0.0.0', port=port) 
+    app.run(debug=False, host='0.0.0.0', port=port) 

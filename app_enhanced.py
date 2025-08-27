@@ -19,7 +19,7 @@ from datetime import datetime
 # Configuration
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
 LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "europe-west1")
-DEFAULT_MODEL = "gemini-2.0-flash-001"
+DEFAULT_MODEL = "gemini-2.5-pro"
 
 # Vertex AI imports
 try:

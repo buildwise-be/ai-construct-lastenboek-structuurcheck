@@ -42,6 +42,7 @@ import re # Import regex for number parsing
 import time # For potential backoff in LLM calls
 import glob # For globbing files
 import random # <-- Add import for random
+import google.auth # <-- Add import for google.auth
 
 # Import the refactored function
 from llm_toc_analyzer import get_toc_page_ranges_from_json
@@ -145,7 +146,7 @@ def get_toc_path_by_type(toc_type):
     """Returns the path to the appropriate TOC file based on the selected type."""
     if toc_type == "vision":
         # Use the specific, pre-processed TOC file when 'vision' is selected
-        vision_toc_path = r"C:\\Users\\gr\\Documents\\GitHub\\Meetstaatincorp\\output\\plint_toc_with_summaries_tasks.json"
+        vision_toc_path = r"C:\\Users\\gr\\Documents\\GitHub\\Meetstaatincorp\\output\\uitgebreide toc met taken.json"
         if os.path.exists(vision_toc_path):
             app.logger.info(f"Using specific vision TOC file: {vision_toc_path}")
             return vision_toc_path
@@ -312,24 +313,23 @@ def analyze_batch_with_gemini(batch: list[dict], analysis_type: str, model_name:
     if not batch:
         return {}
 
-    # Get Vertex AI config from environment variables
-    project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-    location = os.getenv("GOOGLE_CLOUD_LOCATION", "europe-west1")
-    # Model name is now passed as an argument, remove os.getenv default here
-    # model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-pro-002") # UPDATED Default Model to specific version
-
-    if not project_id:
-        app.logger.error("GOOGLE_CLOUD_PROJECT environment variable not set.")
-        return {item.get("item_code", "unknown"): {"error": "Server configuration error: Project ID missing."} for item in batch}
-
-    # Initialize Vertex AI
+    # --- Use the corrected authentication method ---
     try:
-        aiplatform.init(project=project_id, location=location)
+        credentials, project_id = google.auth.default()
+        if not project_id:
+            project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+            if not project_id:
+                raise ValueError("Google Cloud Project ID not found.")
+        
+        location = os.getenv("GOOGLE_CLOUD_LOCATION", "europe-west1")
+        
+        aiplatform.init(project=project_id, location=location, credentials=credentials)
         model = GenerativeModel(model_name)
-        app.logger.info(f"Vertex AI initialized for project '{project_id}' in '{location}' using model {model_name} for {analysis_type} analysis.") # Log type
+        app.logger.info(f"Vertex AI initialized for project '{project_id}' in '{location}' using model {model_name} for {analysis_type} analysis.")
     except Exception as e:
         app.logger.error(f"Failed to initialize Vertex AI: {e}")
         return {item.get("item_code", "unknown"): {"error": f"Server configuration error: Could not initialize Vertex AI. {e}"} for item in batch}
+    # --- End of new authentication method ---
 
     # --- Construct the prompt based on analysis_type ---
     prompt_parts = []
@@ -856,13 +856,13 @@ def start_discrepancy_analysis():
         app.logger.debug(f"Parsed request data: {req_data}")
         selected_codes = req_data.get('selected_codes', [])
         analysis_type = req_data.get('analysis_type', 'task_placement') # Get analysis type, default to task_placement
-        # Get the selected model name, default to 1.5 Pro 002 if not provided
-        selected_model = req_data.get('model_name', 'gemini-1.5-pro-002') 
+        # Get the selected model name, default to 2.5 Pro if not provided
+        selected_model = req_data.get('model_name', 'gemini-2.5-pro') 
         # Optional: Add validation for allowed model names
-        allowed_models = ['gemini-1.5-pro-002', 'gemini-2.0-flash-001'] # Add others if needed
+        allowed_models = ['gemini-2.5-pro', 'gemini-2.5-flash'] # Add others if needed
         if selected_model not in allowed_models:
             app.logger.warning(f"Invalid model requested: '{selected_model}'. Falling back to default.")
-            selected_model = 'gemini-1.5-pro-002' # Fallback to a known default
+            selected_model = 'gemini-2.5-pro' # Fallback to a known default
             
         app.logger.info(f"Requested analysis type: {analysis_type} using model: {selected_model}") # Log the type and model
         app.logger.debug(f"Selected codes: {selected_codes}")

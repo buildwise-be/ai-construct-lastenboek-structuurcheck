@@ -5,6 +5,7 @@ import logging
 from dotenv import load_dotenv
 import vertexai
 from vertexai.generative_models import GenerativeModel, SafetySetting
+import google.auth
 
 # Configure logging (optional but good practice)
 logging.basicConfig(level=logging.INFO,
@@ -338,15 +339,25 @@ SAFETY_SETTINGS = [
 ]
 
 # Initialize Vertex AI
-# IMPORTANT: Requires GOOGLE_CLOUD_PROJECT environment variable to be set
+# Try to get Project ID from environment, but fall back to gcloud default if not set.
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
 LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "europe-west1") # Default to europe-west1 if not set
 
 if not PROJECT_ID:
-    raise ValueError("Google Cloud Project ID not found. Please set the GOOGLE_CLOUD_PROJECT environment variable.")
+    try:
+        _, PROJECT_ID = google.auth.default()
+        if PROJECT_ID:
+            logger.info(f"GOOGLE_CLOUD_PROJECT not set, but successfully discovered project from gcloud: '{PROJECT_ID}'")
+        else:
+            # This case can happen if ADC is set up but no quota project is configured.
+            logger.error("Could not discover Google Cloud Project ID. The project ID is missing from your credentials. Please run 'gcloud auth application-default set-quota-project YOUR_PROJECT_ID'.")
+            raise ValueError("Google Cloud Project ID not found in credentials.")
+    except google.auth.exceptions.DefaultCredentialsError as e:
+        logger.error(f"Google Cloud authentication failed. Could not discover default credentials. Please run 'gcloud auth application-default login' and ensure your environment is configured correctly. Details: {e}")
+        raise ValueError("Google Cloud Project ID not found due to authentication failure.")
 
 try:
-    vertexai.init(project=PROJECT_ID, location=LOCATION)
+    vertexai.init(project=PROJECT_ID, location=LOCATION) # Removed credentials=None to allow default discovery
     logger.info(f"Successfully initialized Vertex AI (Project: {PROJECT_ID}, Location: {LOCATION})")
 except Exception as e:
     logger.error(f"Failed to initialize Vertex AI: {str(e)}")
@@ -355,7 +366,7 @@ except Exception as e:
 # Choose a Gemini model (match the example: 'gemini-1.5-pro-001' or 'gemini-1.5-flash')
 # Note: The example uses gemini-1.5-pro-001 for multimodal (TOC), and allows selecting others later.
 # We'll use a text model here as we are processing text chunks.
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-001") # Use 2.0 flash model as default
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.5-flash") # Use 2.5 flash model as default
 
 try:
     # Initialize the specific model

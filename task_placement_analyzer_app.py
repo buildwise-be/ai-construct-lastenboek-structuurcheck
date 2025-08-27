@@ -166,4 +166,5 @@ def export_enhanced_json():
 
 if __name__ == '__main__':
     # Running on a different port to avoid conflict with the main app.py
-    app.run(debug=True, port=5002) 
+    # Using 'stat' reloader to prevent issues with watchdog on Windows
+    app.run(debug=True, port=5002, reloader_type='stat') 

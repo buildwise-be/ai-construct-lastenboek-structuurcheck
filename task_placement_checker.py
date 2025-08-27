@@ -8,6 +8,7 @@ from typing import Dict, List, Any
 
 # --- Add Vertex AI imports ---
 try:
+    import google.auth
     from google.cloud import aiplatform
     from vertexai.generative_models import GenerativeModel, Part
     VERTEX_AI_AVAILABLE = True
@@ -289,15 +290,30 @@ def main():
     if not VERTEX_AI_AVAILABLE:
         logger.error("Vertex AI libraries not found. Exiting.")
         sys.exit(1)
-        
-    if not PROJECT_ID:
-        logger.error("GOOGLE_CLOUD_PROJECT environment variable not set. Required for Vertex AI. Exiting.")
-        sys.exit(1)
 
     # --- Initialize Vertex AI ---
     try:
-        logger.info(f"Initializing Vertex AI for Project: {PROJECT_ID}, Location: {LOCATION}")
-        aiplatform.init(project=PROJECT_ID, location=LOCATION)
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+        if not project_id:
+            try:
+                import google.auth
+                _, project_id = google.auth.default()
+                if project_id:
+                    logger.info(f"Discovered Google Cloud project from gcloud credentials: {project_id}")
+                else:
+                    logger.error("Could not discover Google Cloud Project ID from credentials. Please run 'gcloud auth application-default set-quota-project YOUR_PROJECT_ID'.")
+                    sys.exit(1)
+            except ImportError:
+                logger.error("google-auth library not found. Please install it to use gcloud authentication.")
+                sys.exit(1)
+            except google.auth.exceptions.DefaultCredentialsError as e:
+                logger.error(f"Google Cloud authentication failed. Please run 'gcloud auth application-default login'. Details: {e}")
+                sys.exit(1)
+        
+        location = os.getenv("GOOGLE_CLOUD_LOCATION", "europe-west1")
+        
+        logger.info(f"Initializing Vertex AI for Project: {project_id}, Location: {location}")
+        aiplatform.init(project=project_id, location=location)
         model = GenerativeModel(args.model)
         logger.info(f"Vertex AI GenerativeModel '{args.model}' initialized.")
     except Exception as e:

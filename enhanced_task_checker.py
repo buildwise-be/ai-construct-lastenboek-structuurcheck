@@ -24,6 +24,16 @@ from typing import Dict, List, Any, Tuple, Optional
 from dataclasses import dataclass
 import re
 
+# --- Vertex AI Imports ---
+try:
+    from google.cloud import aiplatform
+    from vertexai.generative_models import GenerativeModel
+    import google.auth
+    VERTEX_AI_AVAILABLE = True
+except ImportError:
+    VERTEX_AI_AVAILABLE = False
+# -------------------------
+
 @dataclass
 class EnhancedSectionAnalysis:
     """Enhanced section analysis with summary format"""
@@ -45,6 +55,7 @@ class EnhancedTaskChecker:
         self.chapters = self._load_ocr_data(ocr_data_path)
         self.section_index = self._build_section_index()
         
+        # This will be replaced by LLM analysis, but we can keep it for reference or fallback.
         # Enhanced task classification patterns
         self.task_patterns = {
             'administrative': {
@@ -164,7 +175,7 @@ class EnhancedTaskChecker:
         dot_count = section_id.count('.')
         
         # Check title for level indicators
-        title_lower = title.lower()
+        title_lower = title.lower() if title else ""
         if any(word in title_lower for word in ['hoofdstuk', 'chapter', 'deel']):
             return 1
         elif any(word in title_lower for word in ['sectie', 'section']):
@@ -178,8 +189,8 @@ class EnhancedTaskChecker:
 
     def _classify_content_type(self, content: str, title: str) -> Tuple[str, float]:
         """Classify content type based on text analysis"""
-        content_lower = content.lower()
-        title_lower = title.lower()
+        content_lower = content.lower() if content else ""
+        title_lower = title.lower() if title else ""
         combined_text = content_lower + " " + title_lower
         
         best_match = 'general'
@@ -263,7 +274,7 @@ class EnhancedTaskChecker:
             return issues
         
         content_lower = content.lower()
-        title_lower = title.lower()
+        title_lower = title.lower() if title else ""
         
         # Check for content-title mismatch
         title_indicators = []
@@ -312,47 +323,120 @@ class EnhancedTaskChecker:
         
         return suggestions
 
-    def analyze_all_sections(self) -> List[EnhancedSectionAnalysis]:
-        """Analyze all sections and return enhanced analysis"""
-        analyses = []
+    def _analyze_batch_with_llm(self, batch: List[Dict], model: GenerativeModel) -> Dict[str, Any]:
+        """
+        Analyzes a batch of sections using a generative model.
+        """
+        if not batch:
+            return {}
+
+        prompt_parts = [
+            "You are an expert construction contract analyst reviewing sections from a Lastenboek (Specifications).",
+            "For EACH section provided below, perform a TASK PLACEMENT CHECK.",
+            "Evaluate if the tasks described in the section's FULL TEXT seem contextually appropriate for the section defined by its ID and Title.",
+            "Look for content that seems misplaced given the section's title or its place in the hierarchy.",
+            "Examples of misplacements: painting tasks described under a woodworking section, detailed electrical work in a structural chapter, foundation details in a finishing chapter.",
+            "\nFormat your analysis for EACH section as a JSON object in this exact structure:",
+            "{",
+            "  \"section_id\": \"the section ID\",",
+            "  \"analysis\": {",
+            "    \"issues_found\": [",
+            "      {",
+            "        \"description\": \"A detailed description of a single misplaced task or issue.\",",
+            "        \"severity\": \"low|medium|high\"",
+            "      }",
+            "    ],",
+            "    \"summary\": \"A brief overall summary of any placement issues for this section, or 'No placement issues identified.'\"",
+            "  }",
+            "}",
+            "\nGuidelines:",
+            "1. Base your judgment on the FULL TEXT provided for each section.",
+            "2. If no issues are found, 'issues_found' MUST be an empty list [].",
+            "3. For 'severity', use 'high' for clear contradictions, 'medium' for likely issues, and 'low' for minor inconsistencies.",
+            "4. Provide a concise but complete 'summary'.",
+            "\n--- SECTIONS FOR ANALYSIS ---"
+        ]
+
+        for section in batch:
+            prompt_parts.append("\n---")
+            prompt_parts.append(f"Section ID: {section.get('chapter_number', 'N/A')}")
+            prompt_parts.append(f"Title: {section.get('title', 'N/A')}")
+            # Use a reasonable portion of the text to avoid excessively long prompts
+            content_preview = section.get('full_text', '')[:4000]
+            prompt_parts.append(f"FULL TEXT (first 4000 chars):\n{content_preview}")
+
+        prompt_parts.append("\n--- END SECTIONS --- ")
+        prompt_parts.append("\nReturn your analysis STRICTLY as a JSON array of objects, with one object per section. Ensure the output is valid JSON.")
         
-        for i, chapter in enumerate(self.chapters):
-            if self.verbose and i % 10 == 0:
-                print(f"Analyzing section {i+1}/{len(self.chapters)}")
-            
-            section_id = chapter.get('chapter_number', f'section_{i}')
-            title = chapter.get('title', 'Untitled Section')
-            content = chapter.get('full_text', chapter.get('content', ''))
-            start_page = chapter.get('start_page', 1)
-            end_page = chapter.get('end_page', 1)
-            
-            # Determine level and content type
-            level = self._determine_section_level(section_id, title)
-            content_type, confidence = self._classify_content_type(content, title)
-            
-            # Generate enhanced summary
-            summary = self._generate_enhanced_summary(content, title, content_type)
-            
-            # Identify issues and suggestions
-            issues = self._identify_issues(content, title, content_type)
-            suggestions = self._suggest_improvements(content, title, content_type, issues)
-            
-            analysis = EnhancedSectionAnalysis(
-                level=level,
-                title=title,
-                start_page=start_page,
-                end_page=end_page,
-                summary=summary,
-                section_id=section_id,
-                content_type=content_type,
-                confidence=confidence,
-                issues=issues,
-                suggested_improvements=suggestions
+        prompt = "\n".join(prompt_parts)
+
+        try:
+            response = model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0.1,
+                    "top_p": 0.95,
+                    "max_output_tokens": 8192,
+                    "response_mime_type": "application/json",
+                }
             )
             
-            analyses.append(analysis)
-        
-        return analyses
+            response_json = json.loads(response.text)
+            
+            # Re-key the results by section_id for easier lookup
+            results_by_id = {item['section_id']: item for item in response_json}
+            return results_by_id
+
+        except Exception as e:
+            if self.verbose:
+                print(f"Error during LLM batch analysis: {e}")
+            # Return an error structure for each item in the batch
+            return {
+                section.get('chapter_number'): {
+                    "section_id": section.get('chapter_number'),
+                    "analysis": {
+                        "issues_found": [f"LLM analysis failed: {e}"],
+                        "summary": "Failed to analyze this section."
+                    }
+                } for section in batch
+            }
+
+
+    def analyze_all_sections(self, model: GenerativeModel) -> List[EnhancedSectionAnalysis]:
+        """Analyze all sections using the LLM and return enhanced analysis"""
+        all_analyses = {}
+        batch_size = 5 # Process 5 sections at a time
+
+        batches = [self.chapters[i:i + batch_size] for i in range(0, len(self.chapters), batch_size)]
+
+        for i, batch in enumerate(batches):
+            if self.verbose:
+                print(f"Analyzing batch {i+1}/{len(batches)}...")
+            
+            batch_results = self._analyze_batch_with_llm(batch, model)
+            all_analyses.update(batch_results)
+
+        # Now, format the results into the original dataclass structure
+        final_report = []
+        for chapter in self.chapters:
+            section_id = chapter.get('chapter_number', 'Unknown')
+            llm_result = all_analyses.get(section_id, {}).get('analysis', {})
+            
+            analysis = EnhancedSectionAnalysis(
+                level=self._determine_section_level(section_id, chapter.get('title')),
+                title=chapter.get('title', 'Untitled Section'),
+                start_page=chapter.get('start_page', 1),
+                end_page=chapter.get('end_page', 1),
+                summary=llm_result.get('summary', 'Analysis may have failed for this item.'),
+                section_id=section_id,
+                content_type='llm_analyzed', # We can use a new content type
+                confidence=llm_result.get('confidence', 0.9 if 'issues_found' in llm_result else 0.5), # Dummy confidence
+                issues=llm_result.get('issues_found', []),
+                suggested_improvements=llm_result.get('suggested_improvements', [])
+            )
+            final_report.append(analysis)
+            
+        return final_report
 
     def generate_summary_format_report(self, analyses: List[EnhancedSectionAnalysis]) -> List[Dict]:
         """Generate report in the same format as the vision-based approach"""
@@ -449,6 +533,77 @@ def main():
     except Exception as e:
         print(f"Unexpected error: {e}")
         sys.exit(1)
+
+
+def analyze_placement_from_file(ocr_data_path: str, project_id: str, location: str, 
+                               model_name: str, verbose: bool = False) -> List[Dict]:
+    """
+    Wrapper function for enhanced placement analysis that matches the expected interface.
+    
+    Args:
+        ocr_data_path: Path to the OCR data JSON file
+        project_id: Google Cloud project ID
+        location: Google Cloud location
+        model_name: Model name for the generative model
+        verbose: Enable verbose output
+        
+    Returns:
+        List of analysis results in the expected format
+    """
+    if not VERTEX_AI_AVAILABLE:
+        raise ImportError("Vertex AI libraries not found or failed to import.")
+
+    try:
+        # --- Initialize Vertex AI ---
+        if verbose:
+            print(f"Initializing Vertex AI with project={project_id}, location={location}")
+        
+        google.auth.default() # This will raise an error if auth is not configured
+        aiplatform.init(project=project_id, location=location)
+        model = GenerativeModel(model_name)
+        # --------------------------
+
+        # Initialize the enhanced task checker
+        checker = EnhancedTaskChecker(ocr_data_path, verbose)
+        
+        if verbose:
+            print(f"Analyzing {len(checker.chapters)} sections with model {model_name}...")
+        
+        # Analyze all sections using the LLM
+        analyses = checker.analyze_all_sections(model)
+        
+        # Generate report in summary format
+        report = checker.generate_summary_format_report(analyses)
+        
+        # Transform to match expected output format (list of chapters with analysis)
+        result = []
+        for item in report:
+            chapter_result = {
+                'chapter': item['section_id'],
+                'title': item['title'],
+                'start_page': item['start_page'],
+                'end_page': item['end_page'],
+                'analysis': {
+                    'summary': item['summary'],
+                    'content_type': item['content_type'],
+                    'confidence': item['confidence'],
+                    'issues_found': item['issues'],
+                    'suggested_improvements': item['suggested_improvements'],
+                    'level': item['level']
+                }
+            }
+            result.append(chapter_result)
+        
+        if verbose:
+            print(f"Enhanced placement analysis completed. Analyzed {len(result)} sections.")
+            
+        return result
+        
+    except Exception as e:
+        if verbose:
+            print(f"Error in enhanced placement analysis: {e}")
+        raise
+
 
 if __name__ == "__main__":
     main() 
