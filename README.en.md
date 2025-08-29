@@ -1,24 +1,36 @@
 # Meetstaat Inc. - Construction Document Analysis Tool
 
-![Demonstration of the tool in action](Requirements/GIF/Minidemosplit.gif)
+![Screenshot of the tool](Requirements/Screenshot%202025-08-29%20172735.png)
 
-This tool provides an advanced analysis of construction specification documents (`Lastenboeken`) to identify misplaced tasks and organizational issues. It uses a combination of Optical Character Recognition (OCR) and Google's Gemini AI to provide a deep, contextual understanding of the documents.
+<p align="center">
+  <img src="Requirements/BWlogo.png" alt="Buildwise Logo" width="200"/>
+</p>
+
+This tool provides an advanced analysis of construction specification documents (`Lastenboeken`) to identify misplaced tasks and organizational issues. It is a locally hosted web application that can process any PDF `lastenboek` and present the results in an interactive interface.
 
 ## How it Works
 
 The application follows a multi-step process to analyze construction documents:
 
-1.  **OCR Processing:** The process starts with a PDF document, which is run through an OCR pipeline to extract the full text and identify the table of contents.
-2.  **AI-Powered Analysis:** The extracted text is then sent to Google's Gemini 2.5 Flash model, which analyzes each section for misplaced tasks and organizational issues.
+1.  **PDF Processing with LlamaParse:** The process starts with a PDF document, which is run through the LlamaParse pipeline to extract the full text and identify the document structure.
+2.  **AI-Powered Analysis:** The structured text is then sent to Google's `gemini-2.5-flash` model, which analyzes each section for misplaced tasks and organizational issues.
 3.  **Interactive UI:** The results are presented in a user-friendly web interface where you can review the analysis, filter by issue category, and get a high-level overview from the summary dashboard.
 
-## Features
+## How to Use
 
--   **AI-Powered Analysis:** Leverages Google's Gemini 2.5 Flash model to analyze the full text of construction documents.
--   **Contextual Understanding:** Goes beyond simple keyword matching to understand the conceptual relationships between different sections.
--   **Nuanced Issue Categorization:** Classifies issues into `Critical Misplacement`, `Poor Organization`, and `Suggestion for Improvement` for a more meaningful analysis.
--   **Interactive Web UI:** Provides a user-friendly interface to upload documents, view results, and filter issues.
--   **Summary Dashboard:** Offers a high-level overview of the analysis results with key metrics.
+1.  **Start the Application:** Follow the installation steps below and start the web server. The tool runs locally on your machine.
+2.  **Upload a PDF:** Open the web interface and upload any `lastenboek` in PDF format.
+3.  **Wait for Processing:** The tool will process the PDF with LlamaParse. This may take a few minutes.
+4.  **Start the Analysis:** Once processing is complete, your file will appear in the list. Select it and start the analysis.
+5.  **View the Results:** The results are displayed directly in the tool, with an overview of potential issues, categorized for clarity.
+
+## Technical Details
+
+This tool uses advanced technologies to provide an in-depth analysis:
+
+-   **OCR and Document Structuring:** We use **LlamaParse** for Optical Character Recognition (OCR) and document structuring. OCR is the process of converting text from images or scanned documents into machine-readable text. LlamaParse not only extracts the text but also the hierarchical structure (chapters, sections) of the document.
+-   **Structural Analysis:** For the actual analysis of the document structure, we use **batched calls to Google's `gemini-2.5-flash` model**. By analyzing multiple sections at once, we can better understand the context of the entire document and speed up the analysis.
+-   **Data Privacy (GDPR):** All AI models are called via Google Cloud's **Vertex AI** service, running on a **Belgian server (`europe-west1`)**. This ensures full compliance with GDPR regulations, as your data does not leave the EU.
 
 ## Getting Started
 
@@ -26,7 +38,7 @@ The application follows a multi-step process to analyze construction documents:
 
 -   Python 3.8+
 -   `pip` for package management
--   Google Cloud SDK (`gcloud`) installed and authenticated
+-   Google Cloud SDK (`gcloud`) installed and authenticated. You must be logged in via `gcloud auth application-default login`.
 
 ### Installation
 

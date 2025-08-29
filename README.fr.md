@@ -1,22 +1,36 @@
 # Meetstaat Inc. - Outil d'Analyse de Documents de Construction
 
-Cet outil fournit une analyse avancée des documents de spécifications de construction (`cahiers des charges`) pour identifier les tâches mal placées et les problèmes d'organisation. Il utilise une combinaison de reconnaissance optique de caractères (OCR) avec LlamaParse et l'IA Gemini de Google pour une compréhension approfondie et contextuelle des documents.
+![Capture d'écran de l'outil](Requirements/Screenshot%202025-08-29%20172735.png)
+
+<p align="center">
+  <img src="Requirements/BWlogo.png" alt="Logo de Buildwise" width="200"/>
+</p>
+
+Cet outil fournit une analyse avancée des documents de spécifications de construction (`cahiers des charges`) pour identifier les tâches mal placées et les problèmes d'organisation. C'est une application web hébergée localement qui peut traiter n'importe quel `cahier des charges` au format PDF et présenter les résultats dans une interface interactive.
 
 ## Comment ça marche
 
 L'application suit un processus en plusieurs étapes pour analyser les documents de construction :
 
 1.  **Traitement PDF avec LlamaParse :** Le processus commence par un document PDF, qui est traité par le pipeline LlamaParse pour extraire le texte intégral et identifier la structure du document.
-2.  **Analyse par IA :** Le texte structuré est ensuite envoyé au modèle Gemini de Google, qui analyse chaque section à la recherche de tâches mal placées et de problèmes d'organisation.
+2.  **Analyse par IA :** Le texte structuré est ensuite envoyé au modèle `gemini-2.5-flash` de Google, qui analyse chaque section à la recherche de tâches mal placées et de problèmes d'organisation.
 3.  **Interface Utilisateur Interactive :** Les résultats sont présentés dans une interface web conviviale où vous pouvez examiner l'analyse, filtrer par catégorie de problème et obtenir un aperçu de haut niveau grâce au tableau de bord récapitulatif.
 
-## Fonctionnalités
+## Comment l'utiliser
 
--   **Analyse par IA :** Utilise le modèle Gemini de Google pour analyser le texte intégral des documents de construction.
--   **Compréhension Contextuelle :** Va au-delà de la simple correspondance de mots-clés pour comprendre les relations conceptuelles entre les différentes sections.
--   **Catégorisation Nuancée des Problèmes :** Classe les problèmes en `Mauvais Placement Critique`, `Mauvaise Organisation` et `Suggestion d'Amélioration` pour une analyse plus pertinente.
--   **Interface Web Interactive :** Fournit une interface conviviale pour télécharger des documents, afficher les résultats et filtrer les problèmes.
--   **Tableau de Bord Récapitulatif :** Offre un aperçu de haut niveau des résultats de l'analyse avec des métriques clés.
+1.  **Démarrez l'Application :** Suivez les étapes d'installation ci-dessous et démarrez le serveur web. L'outil fonctionne localement sur votre machine.
+2.  **Téléchargez un PDF :** Ouvrez l'interface web et téléchargez n'importe quel `cahier des charges` au format PDF.
+3.  **Attendez le Traitement :** L'outil traitera le PDF avec LlamaParse. Cela peut prendre quelques minutes.
+4.  **Lancez l'Analyse :** Une fois le traitement terminé, votre fichier apparaîtra dans la liste. Sélectionnez-le et lancez l'analyse.
+5.  **Consultez les Résultats :** Les résultats sont affichés directement dans l'outil, avec un aperçu des problèmes potentiels, classés par catégorie pour plus de clarté.
+
+## Détails Techniques
+
+Cet outil utilise des technologies de pointe pour fournir une analyse approfondie :
+
+-   **OCR et Structuration de Document :** Nous utilisons **LlamaParse** pour la Reconnaissance Optique de Caractères (OCR) et la structuration de documents. L'OCR est le processus de conversion de texte à partir d'images ou de documents numérisés en texte lisible par machine. LlamaParse extrait non seulement le texte, mais aussi la structure hiérarchique (chapitres, sections) du document.
+-   **Analyse Structurelle :** Pour l'analyse réelle de la structure du document, nous utilisons des **appels groupés (batched) au modèle `gemini-2.5-flash` de Google**. En analysant plusieurs sections à la fois, nous pouvons mieux comprendre le contexte de l'ensemble du document et accélérer l'analyse.
+-   **Confidentialité des Données (RGPD) :** Tous les modèles d'IA sont appelés via le service **Vertex AI** de Google Cloud, qui fonctionne sur un **serveur belge (`europe-west1`)**. Cela garantit une conformité totale avec la réglementation RGPD, car vos données ne quittent pas l'UE.
 
 ## Pour commencer
 
@@ -24,50 +38,4 @@ L'application suit un processus en plusieurs étapes pour analyser les documents
 
 -   Python 3.8+
 -   `pip` pour la gestion des paquets
--   Google Cloud SDK (`gcloud`) installé et authentifié
-
-### Installation
-
-1.  **Clonez le dépôt :**
-    ```bash
-    git clone <url-du-depot>
-    cd Meetstaatincorp
-    ```
-
-2.  **Mettez en place un environnement virtuel :**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # Sous Windows, utilisez `venv\\Scripts\\activate`
-    ```
-
-3.  **Installez les dépendances :**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Définissez les Variables d'Environnement :**
-    Ce projet nécessite des clés API pour Google Cloud et LlamaParse. La manière recommandée de les définir est via des variables d'environnement.
-
-    **Pour LlamaParse :**
-    Définissez la variable d'environnement `LLAMA_CLOUD_API_KEY` avec votre clé. Pour les environnements Conda, vous pouvez la définir de manière permanente :
-    ```bash
-    conda env config vars set LLAMA_CLOUD_API_KEY="votre_cle_api_llama_cloud"
-    ```
-    Alternativement, pour le développement local, vous pouvez créer un fichier `.env` à la racine du projet et y ajouter la clé :
-    ```
-    LLAMA_CLOUD_API_KEY="votre_cle_api_llama_cloud"
-    ```
-
-5.  **Authentification Google Cloud :**
-    Assurez-vous d'être authentifié avec la CLI `gcloud` :
-    ```bash
-    gcloud auth application-default login
-    ```
-
-### Lancement de l'Application
-
-Pour démarrer le serveur web Flask, exécutez la commande suivante :
-```bash
-python task_placement_analyzer_app.py
-```
-L'application sera disponible à l'adresse `http://127.0.0.1:5002`.
+-   Google Cloud SDK (`gcloud`) installé et authentifié. Vous devez être connecté via `gcloud auth application-default login`.

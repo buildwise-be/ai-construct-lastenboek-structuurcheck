@@ -1,22 +1,36 @@
 # Meetstaat Inc. - Analyse-instrument voor Bouwdocumenten
 
-Deze tool biedt een geavanceerde analyse van bouwspecificatiedocumenten (`Lastenboeken`) om misplaatste taken en organisatorische problemen te identificeren. Het maakt gebruik van een combinatie van Optical Character Recognition (OCR) met LlamaParse en de Gemini AI van Google voor een diepgaand, contextueel begrip van de documenten.
+![Screenshot van de tool](Requirements/Screenshot%202025-08-29%20172735.png)
+
+<p align="center">
+  <img src="Requirements/BWlogo.png" alt="Buildwise Logo" width="200"/>
+</p>
+
+Deze tool biedt een geavanceerde analyse van bouwspecificatiedocumenten (`Lastenboeken`) om misplaatste taken en organisatorische problemen te identificeren. Het is een lokaal gehoste webapplicatie die elke PDF `lastenboek` kan verwerken en de resultaten in een interactieve interface presenteert.
 
 ## Hoe het werkt
 
 De applicatie volgt een proces in meerdere stappen om bouwdocumenten te analyseren:
 
 1.  **PDF-verwerking met LlamaParse:** Het proces begint met een PDF-document, dat door de LlamaParse-pijplijn wordt gehaald om de volledige tekst te extraheren en de documentstructuur te identificeren.
-2.  **AI-gestuurde Analyse:** De gestructureerde tekst wordt vervolgens naar het Gemini-model van Google gestuurd, dat elke sectie analyseert op misplaatste taken en organisatorische problemen.
+2.  **AI-gestuurde Analyse:** De gestructureerde tekst wordt vervolgens naar het `gemini-2.5-flash`-model van Google gestuurd, dat elke sectie analyseert op misplaatste taken en organisatorische problemen.
 3.  **Interactieve UI:** De resultaten worden gepresenteerd in een gebruiksvriendelijke webinterface waar u de analyse kunt bekijken, kunt filteren op probleemcategorie en een overzicht op hoog niveau kunt krijgen via het samenvattingsdashboard.
 
-## Functies
+## Hoe te Gebruiken
 
--   **AI-gestuurde Analyse:** Maakt gebruik van het Gemini-model van Google om de volledige tekst van bouwdocumenten te analyseren.
--   **Contextueel Begrip:** Gaat verder dan eenvoudige trefwoordmatching om de conceptuele relaties tussen verschillende secties te begrijpen.
--   **Genuanceerde Probleemcategorisering:** Classificeert problemen in `Kritieke Misplaatsing`, `Slechte Organisatie` en `Suggestie voor Verbetering` voor een zinvollere analyse.
--   **Interactieve Web-UI:** Biedt een gebruiksvriendelijke interface om documenten te uploaden, resultaten te bekijken en problemen te filteren.
--   **Samenvattend Dashboard:** Biedt een overzicht op hoog niveau van de analyseresultaten met belangrijke statistieken.
+1.  **Start de Applicatie:** Volg de installatiestappen hieronder en start de webserver. De tool draait lokaal op uw machine.
+2.  **Upload een PDF:** Open de webinterface en upload een willekeurig `lastenboek` in PDF-formaat.
+3.  **Wacht op Verwerking:** De tool zal de PDF verwerken met LlamaParse. Dit kan enkele minuten duren.
+4.  **Start de Analyse:** Zodra de verwerking is voltooid, verschijnt uw bestand in de lijst. Selecteer het en start de analyse.
+5.  **Bekijk de Resultaten:** De resultaten worden direct in de tool weergegeven, met een overzicht van mogelijke problemen, gecategoriseerd voor duidelijkheid.
+
+## Technische Details
+
+Deze tool maakt gebruik van geavanceerde technologieën om een diepgaande analyse te bieden:
+
+-   **OCR en Documentstructurering:** Wij gebruiken **LlamaParse** voor Optical Character Recognition (OCR) en het structureren van documenten. OCR is het proces waarbij tekst uit afbeeldingen of gescande documenten wordt omgezet in machineleesbare tekst. LlamaParse extraheert niet alleen de tekst, maar ook de hiërarchische structuur (hoofdstukken, secties) van het document.
+-   **Structurele Analyse:** Voor de daadwerkelijke analyse van de documentstructuur maken we gebruik van gebundelde (batched) aanroepen naar het **`gemini-2.5-flash`-model** van Google. Door meerdere secties tegelijk te analyseren, kunnen we de context van het hele document beter begrijpen en de analyse versnellen.
+-   **Data Privacy (GDPR):** Alle AI-modellen worden aangeroepen via de **Vertex AI**-service van Google Cloud, die draait op een **Belgische server (`europe-west1`)**. Dit garandeert volledige conformiteit met de GDPR-regelgeving, aangezien uw gegevens de EU niet verlaten.
 
 ## Aan de slag
 
@@ -24,7 +38,7 @@ De applicatie volgt een proces in meerdere stappen om bouwdocumenten te analyser
 
 -   Python 3.8+
 -   `pip` voor pakketbeheer
--   Google Cloud SDK (`gcloud`) geïnstalleerd en geauthenticeerd
+-   Google Cloud SDK (`gcloud`) geïnstalleerd en geauthenticeerd. U moet ingelogd zijn via `gcloud auth application-default login`.
 
 ### Installatie
 
