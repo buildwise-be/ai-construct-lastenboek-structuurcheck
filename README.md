@@ -4,8 +4,6 @@
   <img src="assets/BWlogo.png" alt="Buildwise Logo" width="200"/>
 </p>
 
-![Screenshot van de tool](assets/Screenshot%202025-08-29%20172735.png)
-
 Welkom bij de **AI-Construct Structuurchecker**, een geavanceerd hulpmiddel ontworpen om de structurele integriteit van bouwspecificatiedocumenten (`Lastenboeken`) te analyseren. Deze lokaal gehoste webapplicatie stelt u in staat om elk PDF-document te uploaden en een diepgaande, AI-gestuurde analyse te ontvangen van de plaatsing van taken en de algehele organisatie. Het doel is om potentiële inconsistenties, omissies en misplaatsingen te identificeren voordat ze kostbare problemen worden op de bouwplaats.
 
 ## Hoe het werkt
@@ -87,3 +85,7 @@ Om de Flask-webserver te starten, voert u het volgende commando uit:
 python task_placement_analyzer_app.py
 ```
 De applicatie zal beschikbaar zijn op `http://127.0.0.1:5002`.
+
+## Schermafbeelding
+
+![Screenshot van de tool](assets/Screenshot%202025-08-29%20172735.png)
