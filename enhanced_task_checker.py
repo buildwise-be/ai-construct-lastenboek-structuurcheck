@@ -462,22 +462,22 @@ class EnhancedTaskChecker:
             "Guidelines for Categorization:",
             (
                 "1.  **Critical Misplacement**: Use for trade-specific tasks in a section where they are contextually out of place "
-                "and could be easily overlooked by a contractor (e.g., specific electrical wiring details in a roofing chapter, "
-                "or structural support requirements in a painting chapter)."
+                "and could be easily overlooked by a contractor. This is for major errors where a task is in a completely unrelated chapter "
+                "(e.g., specific electrical wiring details in a roofing chapter, or structural support requirements in a painting chapter)."
             ),
             (
                 "    -   **IMPORTANT**: Do NOT flag site-wide rules (e.g., working hours, safety, general logistics) "
                 "found in a 'General' or 'Administrative' section as misplaced. These belong there."
             ),
             (
-                "2.  **Poor Organization**: Use for tasks that are thematically related to the section but would be better placed "
-                "in a more specific sub-section, or vice-versa (e.g., highly detailed window installation specs in a general "
-                "'Exterior Fittings' chapter, when a 'Windows' sub-chapter would be more appropriate)."
+                "2.  **Poor Organization**: Use for tasks that are thematically related to the main chapter but are poorly placed *within* it. "
+                "This includes: 1) Highly detailed specifications in a general overview section (e.g., window installation details in a general 'Exterior Fittings' chapter). "
+                "2) Multiple distinct topics being mixed together in one section instead of being separated into sub-sections (e.g., a 'Finishing' section that combines painting, flooring, and ceiling specs without separation)."
             ),
             (
-                "3.  **Suggestion for Improvement**: Use for cases where the placement is not technically wrong, but clarity could "
-                "be improved. This includes very long sections that could be broken down, or related tasks that are "
-                "scattered across different sub-sections within the same main chapter."
+                "3.  **Suggestion for Improvement**: Use when the placement isn't technically wrong, but the document's structure could be significantly improved for clarity. "
+                "This is for opportunities to make the document better, such as breaking down extremely long, monolithic sections into more manageable sub-sections, "
+                "or grouping related but scattered information together into a new, more logical section."
             ),
             "",
             "General Rules:",
