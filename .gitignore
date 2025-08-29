@@ -12,6 +12,8 @@ venv/
 # Ignore temporary/upload folders
 uploads/
 instance/
+flask_session/
+logs/
 
 # Ignore specific large files (if needed)
 # example_large_file.dat
