@@ -1,6 +1,0 @@
-# Required for reading PDF files
-PyPDF2
-
-# Required for interacting with Google's Vertex AI
-google-cloud-aiplatform
-vertexai 

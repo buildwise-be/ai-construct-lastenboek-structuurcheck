@@ -1,9 +1,0 @@
-2025-04-22 10:21:51,159 - INFO - app.py:107 - Starting application (PID: 44784)
-2025-04-22 10:21:51,349 - INFO - _internal.py:97 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
- * Running on all addresses (0.0.0.0)
- * Running on http://127.0.0.1:9000
- * Running on http://10.105.51.109:9000
-2025-04-22 10:21:51,350 - INFO - _internal.py:97 - [33mPress CTRL+C to quit[0m
-2025-04-22 10:21:51,352 - INFO - _internal.py:97 -  * Restarting with stat
-2025-04-22 10:28:34,107 - INFO - _internal.py:97 -  * Restarting with stat
-2025-04-22 10:34:27,404 - INFO - _internal.py:97 -  * Restarting with stat
