@@ -47,7 +47,20 @@ The application follows a multi-step process to analyze construction documents:
     pip install -r requirements.txt
     ```
 
-4.  **Google Cloud Authentication:**
+4.  **Set Environment Variables:**
+    This project requires API keys for Google Cloud and LlamaParse. The recommended way to set them is through environment variables.
+
+    **For LlamaParse:**
+    Set the `LLAMA_CLOUD_API_KEY` environment variable to your key. For Conda environments, you can set this permanently:
+    ```bash
+    conda env config vars set LLAMA_CLOUD_API_KEY="your_llama_cloud_api_key"
+    ```
+    Alternatively, for local development, you can create a `.env` file in the root of the project and add the key there:
+    ```
+    LLAMA_CLOUD_API_KEY="your_llama_cloud_api_key"
+    ```
+
+5.  **Google Cloud Authentication:**
     Ensure you are authenticated with the `gcloud` CLI:
     ```bash
     gcloud auth application-default login
@@ -57,34 +70,4 @@ The application follows a multi-step process to analyze construction documents:
 
 To start the Flask web server, run the following command:
 
-```bash
-python task_placement_analyzer_app.py
 ```
-
-The application will be available at `http://127.0.0.1:5002`.
-
-## Usage
-
-1.  **Open the web interface** in your browser.
-2.  **Select an analysis file** from the dropdown menu. These files are automatically detected from the `ocroutput` directory.
-3.  **Click "Start Analyse"** to begin the analysis.
-4.  **View the results** in the interactive UI. You can expand and collapse sections, filter by issue category, and view the summary dashboard.
-
-## Project Structure
-
--   `task_placement_analyzer_app.py`: The main Flask application that runs the web server.
--   `enhanced_task_checker.py`: The core logic for the AI-powered analysis.
--   `Templates/enhanced_ui.html`: The HTML template for the web interface.
--   `requirements.txt`: The list of Python dependencies.
--   `.flake8`: The configuration file for the linter.
--   `ocroutput/`: The directory where the OCR output and analysis files are stored.
--   `legacy/`: Older scripts and documentation.
--   `Basisdocument/`: The template documents that provide the ideal structure for the analysis.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request with your proposed changes.
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for more details.

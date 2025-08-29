@@ -1,147 +1,116 @@
 import os
-import google.generativeai as genai
-import time
-import re
-import datetime
-import json
 import sys
 import argparse
-from typing import Dict, List, Any
+import datetime
+import json
+import re
+from dotenv import load_dotenv
+from llama_parse import LlamaParse
 
-# Configure the Gemini API key
-api_key = os.environ.get("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("GEMINI_API_KEY environment variable not set.")
-genai.configure(api_key=api_key)
-
-
-def upload_to_gemini(path: str, mime_type: str = None) -> genai.File:
-    """Uploads the given file to Gemini."""
-    print(f"Uploading file: {path}")
-    file = genai.upload_file(path, mime_type=mime_type)
-    print(f"Uploaded file '{file.display_name}' as: {file.uri}")
-    return file
-
-
-def wait_for_files_active(files: List[genai.File]):
-    """Waits for the given files to be active."""
-    print("Waiting for file processing...")
-    for name in (file.name for file in files):
-        file = genai.get_file(name)
-        while file.state.name == "PROCESSING":
-            print(".", end="", flush=True)
-            time.sleep(10)
-            file = genai.get_file(name)
-        if file.state.name != "ACTIVE":
-            raise Exception(f"File {file.name} failed to process")
-    print("...all files ready.")
-
-
-def post_process_results(gemini_response: str) -> Dict[str, Any]:
-    """Extracts a Python dictionary from the model's response."""
-    # This regex is designed to find a Python code block and extract its content.
-    code_block_match = re.search(r"```python\s*(.*?)\s*```", gemini_response, re.DOTALL)
-    if not code_block_match:
-        return None
-
-    code_block = code_block_match.group(1)
-    local_vars = {}
-    try:
-        exec(code_block, {}, local_vars)
-        return local_vars.get("chapters") or local_vars.get("secties")
-    except Exception as e:
-        print(f"Error executing extracted code: {e}")
-        return None
-
-
-def get_pdf_page_count(pdf_path: str) -> int:
-    """Gets the total number of pages in a PDF file."""
-    try:
-        import PyPDF2
-
-        with open(pdf_path, "rb") as pdf_file:
-            pdf_reader = PyPDF2.PdfReader(pdf_file)
-            return len(pdf_reader.pages)
-    except Exception as e:
-        print(f"Error reading PDF page count: {e}")
-        return 0
-
-
-def generate_toc_from_pdf(pdf_path: str) -> Dict[str, Any]:
-    """Generates a Table of Contents dictionary from a given PDF file."""
+def parse_pdf_with_llamaparse(pdf_path: str):
+    """
+    Parses a PDF using LlamaParse and saves the structured content.
+    """
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF file not found at: {pdf_path}")
 
-    # Model and generation configuration
-    generation_config = {
-        "temperature": 0.5,
-        "top_p": 0.95,
-        "top_k": 40,
-        "max_output_tokens": 16384,
-        "response_mime_type": "text/plain",
-    }
-    system_instruction = """
-    You are given a technical PDF document. Your task is to identify all chapters and sections,
-    using the GLOBAL PDF page numbers. For each entry, record the numbering, title, and the
-    precise start and end page numbers. The final output must be a nested Python dictionary.
+    # Prioritize environment variable, then fall back to .env file
+    load_dotenv() 
+    api_key = os.getenv("LLAMA_CLOUD_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "LLAMA_CLOUD_API_KEY not found as an environment variable or in .env file."
+        )
+
+    # Initialize the parser
+    # We will need to determine the best result_type later.
+    # For now, let's start with "markdown" as it's structured.
+    parser = LlamaParse(
+        api_key=api_key,
+        result_type="markdown",
+        verbose=True,
+    )
+
+    print(f"Starting PDF parsing with LlamaParse for: {pdf_path}")
+    documents = parser.load_data(pdf_path)
+    print("PDF parsing completed.")
+
+    if documents:
+        parsed_content = documents[0].text
+        # New: Convert markdown to the required JSON structure
+        json_output = convert_markdown_to_json(parsed_content)
+        save_parsed_output(json_output, pdf_path)
+    else:
+        print("LlamaParse returned no documents.", file=sys.stderr)
+
+
+def convert_markdown_to_json(markdown_text: str) -> dict:
     """
-    model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        generation_config=generation_config,
-        system_instruction=system_instruction,
-    )
+    Converts markdown text from LlamaParse into the specific JSON format
+    required by the task placement analyzer.
+    """
+    print("Converting parsed markdown to JSON...")
+    chapters = {}
+    current_chapter = None
+    
+    # Regex to identify chapter headings like '## 01.20 ...' or '# 00 ...'
+    # This is a basic assumption and may need to be refined.
+    chapter_pattern = re.compile(r"^(#{1,3})\s+([0-9\.]+)\s+(.*)")
 
-    # Upload and process the file
-    uploaded_file = upload_to_gemini(pdf_path, mime_type="application/pdf")
-    wait_for_files_active([uploaded_file])
-    total_pages = get_pdf_page_count(pdf_path)
-    if total_pages == 0:
-        return None
+    for line in markdown_text.split('\n'):
+        match = chapter_pattern.match(line)
+        if match:
+            # New chapter found
+            level, chapter_num, title = match.groups()
+            current_chapter = chapter_num.strip()
+            chapters[current_chapter] = {
+                "title": title.strip(),
+                "text": "",
+                # Placeholder page numbers as LlamaParse markdown doesn't provide them
+                "start_page": 1, 
+                "end_page": 1,
+                "character_count": 0
+            }
+        elif current_chapter:
+            # Append content to the current chapter
+            chapters[current_chapter]["text"] += line + "\n"
 
-    chat_session = model.start_chat(
-        history=[{"role": "user", "parts": [uploaded_file]}]
-    )
+    # Post-process to clean up text and calculate char counts
+    for chapter_num, data in chapters.items():
+        data["text"] = data["text"].strip()
+        data["character_count"] = len(data["text"])
 
-    # Use a single, comprehensive prompt
-    initial_prompt = (
-        "Analyze the entire document and identify all main chapters (e.g., 00, 01) and their nested sections "
-        "(e.g., 01.10, 01.10.01). For each, determine the accurate start and end page numbers based on the "
-        "global PDF page count. The end page is the page right before the next section begins. "
-        "Return the result as a single, complete Python dictionary."
-    )
-
-    print("Sending initial prompt to Gemini...")
-    response = chat_session.send_message(initial_prompt)
-    chapters_dict = post_process_results(response.text)
-
-    # A simple validation can be added here if needed
-
-    return chapters_dict
+    print(f"Successfully converted markdown to {len(chapters)} chapters in JSON format.")
+    return chapters
 
 
-def save_results(chapters_dict: Dict[str, Any], input_filename: str):
-    """Saves the generated ToC to a JSON file in the ocroutput directory."""
+def save_parsed_output(content: dict, input_filename: str):
+    """
+    Saves the parsed output to a JSON file in the ocroutput directory.
+    This now saves the JSON file that the main app expects.
+    """
     input_base = os.path.splitext(os.path.basename(input_filename))[0]
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    # Create a structured output directory
+    
+    # The main app expects this specific directory structure and filename
     output_dir = os.path.join(
-        "ocroutput", f"pipeline_run_{timestamp}_{input_base}", "toc_output"
+        "ocroutput", f"pipeline_run_{timestamp}_{input_base}", "final_combined_output"
     )
     os.makedirs(output_dir, exist_ok=True)
-
-    json_filename = os.path.join(output_dir, "chapters.json")
-    with open(json_filename, "w", encoding="utf-8") as f:
-        json.dump(chapters_dict, f, indent=4, ensure_ascii=False)
-
-    print(f"Successfully saved ToC to: {json_filename}")
-    # You can return the path if the main app needs to know where it was saved
-    return json_filename
+    
+    # The main app is hardcoded to look for this filename.
+    output_filename = os.path.join(output_dir, "chapters_with_text_v3.json")
+    
+    with open(output_filename, "w", encoding="utf-8") as f:
+        # The main app expects a dictionary, not a list of chapters.
+        json.dump(content, f, indent=4, ensure_ascii=False)
+    
+    print(f"Successfully saved structured JSON to: {output_filename}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Generate a Table of Contents from a PDF using Gemini."
+        description="Parse a PDF document using LlamaParse."
     )
     parser.add_argument(
         "pdf_path", help="The absolute path to the PDF file to be processed."
@@ -149,9 +118,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        toc = generate_toc_from_pdf(args.pdf_path)
-        if toc:
-            save_results(toc, args.pdf_path)
+        parse_pdf_with_llamaparse(args.pdf_path)
     except Exception as e:
-        print(f"An error occurred during the process: {e}", file=sys.stderr)
+        print(f"An error occurred during the parsing process: {e}", file=sys.stderr)
         sys.exit(1)
