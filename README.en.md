@@ -1,10 +1,10 @@
 # Meetstaat Inc. - Construction Document Analysis Tool
 
-![Screenshot of the tool](assets/Screenshot%202025-08-29%20172735.png)
-
 <p align="center">
   <img src="assets/BWlogo.png" alt="Buildwise Logo" width="200"/>
 </p>
+
+![Screenshot of the tool](assets/Screenshot%202025-08-29%20172735.png)
 
 Welcome to the **AI-Construct Structure Checker**, an advanced tool designed to analyze the structural integrity of construction specification documents (`Lastenboeken`). This locally hosted web application allows you to upload any PDF document and receive an in-depth, AI-driven analysis of task placement and overall organization. The goal is to identify potential inconsistencies, omissions, and misplacements before they become costly problems on the construction site.
 

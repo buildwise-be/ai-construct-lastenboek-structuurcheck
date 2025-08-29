@@ -1,10 +1,10 @@
 # Meetstaat Inc. - Analyse-instrument voor Bouwdocumenten
 
-![Screenshot van de tool](assets/Screenshot%202025-08-29%20172735.png)
-
 <p align="center">
   <img src="assets/BWlogo.png" alt="Buildwise Logo" width="200"/>
 </p>
+
+![Screenshot van de tool](assets/Screenshot%202025-08-29%20172735.png)
 
 Welkom bij de **AI-Construct Structuurchecker**, een geavanceerd hulpmiddel ontworpen om de structurele integriteit van bouwspecificatiedocumenten (`Lastenboeken`) te analyseren. Deze lokaal gehoste webapplicatie stelt u in staat om elk PDF-document te uploaden en een diepgaande, AI-gestuurde analyse te ontvangen van de plaatsing van taken en de algehele organisatie. Het doel is om potentiële inconsistenties, omissies en misplaatsingen te identificeren voordat ze kostbare problemen worden op de bouwplaats.
 

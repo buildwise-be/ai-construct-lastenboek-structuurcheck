@@ -1,10 +1,10 @@
 # Meetstaat Inc. - Outil d'Analyse de Documents de Construction
 
-![Capture d'écran de l'outil](assets/Screenshot%202025-08-29%20172735.png)
-
 <p align="center">
   <img src="assets/BWlogo.png" alt="Logo de Buildwise" width="200"/>
 </p>
+
+![Capture d'écran de l'outil](assets/Screenshot%202025-08-29%20172735.png)
 
 Bienvenue dans le **Vérificateur de Structure AI-Construct**, un outil avancé conçu pour analyser l'intégrité structurelle des documents de spécifications de construction (`cahiers des charges`). Cette application web hébergée localement vous permet de télécharger n'importe quel document PDF et de recevoir une analyse approfondie, pilotée par l'IA, du placement des tâches et de l'organisation générale. L'objectif est d'identifier les incohérences, omissions et mauvais placements potentiels avant qu'ils ne deviennent des problèmes coûteux sur le chantier.
 
