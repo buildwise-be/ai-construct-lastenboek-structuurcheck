@@ -1,72 +1,73 @@
-# Meetstaat Inc. - Outil d'Analyse pour Documents de Construction
+# Meetstaat Inc. - Outil d'Analyse de Documents de Construction
 
-Cet outil fournit une analyse avancée des documents de spécifications de construction (`Cahiers des Charges`) pour identifier les tâches mal placées et les problèmes d'organisation. Il utilise une combinaison de Reconnaissance Optique de Caractères (OCR) et de l'IA Gemini de Google pour une compréhension contextuelle approfondie des documents.
+Cet outil fournit une analyse avancée des documents de spécifications de construction (`cahiers des charges`) pour identifier les tâches mal placées et les problèmes d'organisation. Il utilise une combinaison de reconnaissance optique de caractères (OCR) avec LlamaParse et l'IA Gemini de Google pour une compréhension approfondie et contextuelle des documents.
 
-[Nederlands](README.md) | [English](README.en.md)
-
-## Comment ça fonctionne
+## Comment ça marche
 
 L'application suit un processus en plusieurs étapes pour analyser les documents de construction :
 
-1.  **Traitement OCR :** Le processus commence par un document PDF, qui est passé dans un pipeline OCR pour extraire le texte intégral et identifier la table des matières.
-2.  **Analyse par IA :** Le texte intégral est ensuite analysé par un `Modèle de Langage Génératif` (Google Gemini 1.5 Flash). Contrairement aux méthodes traditionnelles basées sur des mots-clés, ce modèle comprend le contexte et les relations conceptuelles entre les différentes sections.
-3.  **Interface utilisateur des résultats :** Les résultats sont présentés dans une interface web conviviale, où vous pouvez filtrer les problèmes par catégorie et consulter les détails de chaque problème.
+1.  **Traitement PDF avec LlamaParse :** Le processus commence par un document PDF, qui est traité par le pipeline LlamaParse pour extraire le texte intégral et identifier la structure du document.
+2.  **Analyse par IA :** Le texte structuré est ensuite envoyé au modèle Gemini de Google, qui analyse chaque section à la recherche de tâches mal placées et de problèmes d'organisation.
+3.  **Interface Utilisateur Interactive :** Les résultats sont présentés dans une interface web conviviale où vous pouvez examiner l'analyse, filtrer par catégorie de problème et obtenir un aperçu de haut niveau grâce au tableau de bord récapitulatif.
 
 ## Fonctionnalités
 
--   **Analyse par IA :** Utilise le modèle Gemini 1.5 Flash de Google pour analyser le texte intégral des documents de construction.
--   **Compréhension contextuelle :** Va au-delà de la simple correspondance de mots-clés pour comprendre les relations conceptuelles entre les différentes sections.
--   **Catégorisation nuancée des problèmes :** Classe les problèmes en `Mauvais emplacement critique`, `Mauvaise organisation` et `Suggestion d'amélioration` pour une analyse plus pertinente.
--   **Interface web interactive :** Fournit une interface conviviale pour télécharger des documents, afficher les résultats et filtrer les problèmes.
--   **Tableau de bord de synthèse :** Offre un aperçu de haut niveau des résultats de l'analyse, y compris le nombre total de problèmes par catégorie.
+-   **Analyse par IA :** Utilise le modèle Gemini de Google pour analyser le texte intégral des documents de construction.
+-   **Compréhension Contextuelle :** Va au-delà de la simple correspondance de mots-clés pour comprendre les relations conceptuelles entre les différentes sections.
+-   **Catégorisation Nuancée des Problèmes :** Classe les problèmes en `Mauvais Placement Critique`, `Mauvaise Organisation` et `Suggestion d'Amélioration` pour une analyse plus pertinente.
+-   **Interface Web Interactive :** Fournit une interface conviviale pour télécharger des documents, afficher les résultats et filtrer les problèmes.
+-   **Tableau de Bord Récapitulatif :** Offre un aperçu de haut niveau des résultats de l'analyse avec des métriques clés.
 
 ## Pour commencer
 
 ### Prérequis
 
 -   Python 3.8+
--   Google Cloud SDK (avec `gcloud` authentifié)
+-   `pip` pour la gestion des paquets
+-   Google Cloud SDK (`gcloud`) installé et authentifié
 
 ### Installation
 
 1.  **Clonez le dépôt :**
     ```bash
-    git clone https://github.com/buildwise-be/ai-construct-lastenboek-structuurcheck.git
-    cd ai-construct-lastenboek-structuurcheck
+    git clone <url-du-depot>
+    cd Meetstaatincorp
     ```
 
-2.  **Créez un environnement virtuel et installez les dépendances :**
+2.  **Mettez en place un environnement virtuel :**
     ```bash
     python -m venv venv
-    source venv/bin/activate  # Sous Windows, utilisez `venv\Scripts\activate`
+    source venv/bin/activate  # Sous Windows, utilisez `venv\\Scripts\\activate`
+    ```
+
+3.  **Installez les dépendances :**
+    ```bash
     pip install -r requirements.txt
     ```
 
-3.  **Configurez votre projet Google Cloud :**
-    Assurez-vous d'être connecté avec la CLI gcloud et que votre projet est configuré :
+4.  **Définissez les Variables d'Environnement :**
+    Ce projet nécessite des clés API pour Google Cloud et LlamaParse. La manière recommandée de les définir est via des variables d'environnement.
+
+    **Pour LlamaParse :**
+    Définissez la variable d'environnement `LLAMA_CLOUD_API_KEY` avec votre clé. Pour les environnements Conda, vous pouvez la définir de manière permanente :
+    ```bash
+    conda env config vars set LLAMA_CLOUD_API_KEY="votre_cle_api_llama_cloud"
+    ```
+    Alternativement, pour le développement local, vous pouvez créer un fichier `.env` à la racine du projet et y ajouter la clé :
+    ```
+    LLAMA_CLOUD_API_KEY="votre_cle_api_llama_cloud"
+    ```
+
+5.  **Authentification Google Cloud :**
+    Assurez-vous d'être authentifié avec la CLI `gcloud` :
     ```bash
     gcloud auth application-default login
-    gcloud config set project VOTRE_ID_PROJET
     ```
 
-### Utilisation
+### Lancement de l'Application
 
-1.  **Démarrez l'application Flask :**
-    ```bash
-    python task_placement_analyzer_app.py
-    ```
-2.  **Ouvrez l'interface web :**
-    Naviguez vers `http://127.0.0.1:5000` dans votre navigateur web.
-
-3.  **Sélectionnez et analysez :**
-    -   Sélectionnez un fichier d'analyse disponible dans le menu déroulant.
-    -   Cliquez sur "Démarrer l'analyse".
-    -   Les résultats apparaîtront ci-dessous une fois l'analyse terminée.
-
-## Contribuer
-
-Les contributions sont les bienvenues. Pour des changements majeurs, veuillez d'abord ouvrir une issue pour discuter de ce que vous souhaitez modifier.
-
-## Licence
-
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+Pour démarrer le serveur web Flask, exécutez la commande suivante :
+```bash
+python task_placement_analyzer_app.py
+```
+L'application sera disponible à l'adresse `http://127.0.0.1:5002`.

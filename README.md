@@ -1,73 +1,73 @@
-# Meetstaat Inc. - Construction Document Analysis Tool
+# Meetstaat Inc. - Analyse-instrument voor Bouwdocumenten
 
-![Demonstration of the tool in action](Requirements/GIF/Minidemosplit.gif)
+Deze tool biedt een geavanceerde analyse van bouwspecificatiedocumenten (`Lastenboeken`) om misplaatste taken en organisatorische problemen te identificeren. Het maakt gebruik van een combinatie van Optical Character Recognition (OCR) met LlamaParse en de Gemini AI van Google voor een diepgaand, contextueel begrip van de documenten.
 
-This tool provides an advanced analysis of construction specification documents (`Lastenboeken`) to identify misplaced tasks and organizational issues. It uses a combination of Optical Character Recognition (OCR) and Google's Gemini AI to provide a deep, contextual understanding of the documents.
+## Hoe het werkt
 
-## How it Works
+De applicatie volgt een proces in meerdere stappen om bouwdocumenten te analyseren:
 
-The application follows a multi-step process to analyze construction documents:
+1.  **PDF-verwerking met LlamaParse:** Het proces begint met een PDF-document, dat door de LlamaParse-pijplijn wordt gehaald om de volledige tekst te extraheren en de documentstructuur te identificeren.
+2.  **AI-gestuurde Analyse:** De gestructureerde tekst wordt vervolgens naar het Gemini-model van Google gestuurd, dat elke sectie analyseert op misplaatste taken en organisatorische problemen.
+3.  **Interactieve UI:** De resultaten worden gepresenteerd in een gebruiksvriendelijke webinterface waar u de analyse kunt bekijken, kunt filteren op probleemcategorie en een overzicht op hoog niveau kunt krijgen via het samenvattingsdashboard.
 
-1.  **OCR Processing:** The process starts with a PDF document, which is run through an OCR pipeline to extract the full text and identify the table of contents.
-2.  **AI-Powered Analysis:** The extracted text is then sent to Google's Gemini 2.5 Flash model, which analyzes each section for misplaced tasks and organizational issues.
-3.  **Interactive UI:** The results are presented in a user-friendly web interface where you can review the analysis, filter by issue category, and get a high-level overview from the summary dashboard.
+## Functies
 
-## Features
+-   **AI-gestuurde Analyse:** Maakt gebruik van het Gemini-model van Google om de volledige tekst van bouwdocumenten te analyseren.
+-   **Contextueel Begrip:** Gaat verder dan eenvoudige trefwoordmatching om de conceptuele relaties tussen verschillende secties te begrijpen.
+-   **Genuanceerde Probleemcategorisering:** Classificeert problemen in `Kritieke Misplaatsing`, `Slechte Organisatie` en `Suggestie voor Verbetering` voor een zinvollere analyse.
+-   **Interactieve Web-UI:** Biedt een gebruiksvriendelijke interface om documenten te uploaden, resultaten te bekijken en problemen te filteren.
+-   **Samenvattend Dashboard:** Biedt een overzicht op hoog niveau van de analyseresultaten met belangrijke statistieken.
 
--   **AI-Powered Analysis:** Leverages Google's Gemini 2.5 Flash model to analyze the full text of construction documents.
--   **Contextual Understanding:** Goes beyond simple keyword matching to understand the conceptual relationships between different sections.
--   **Nuanced Issue Categorization:** Classifies issues into `Critical Misplacement`, `Poor Organization`, and `Suggestion for Improvement` for a more meaningful analysis.
--   **Interactive Web UI:** Provides a user-friendly interface to upload documents, view results, and filter issues.
--   **Summary Dashboard:** Offers a high-level overview of the analysis results with key metrics.
+## Aan de slag
 
-## Getting Started
-
-### Prerequisites
+### Vereisten
 
 -   Python 3.8+
--   `pip` for package management
--   Google Cloud SDK (`gcloud`) installed and authenticated
+-   `pip` voor pakketbeheer
+-   Google Cloud SDK (`gcloud`) geïnstalleerd en geauthenticeerd
 
-### Installation
+### Installatie
 
-1.  **Clone the repository:**
+1.  **Kloon de repository:**
     ```bash
     git clone <repository-url>
     cd Meetstaatincorp
     ```
 
-2.  **Set up a virtual environment:**
+2.  **Stel een virtuele omgeving in:**
     ```bash
     python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\\Scripts\\activate`
+    source venv/bin/activate  # Gebruik op Windows `venv\\Scripts\\activate`
     ```
 
-3.  **Install the dependencies:**
+3.  **Installeer de afhankelijkheden:**
     ```bash
     pip install -r requirements.txt
     ```
 
-4.  **Set Environment Variables:**
-    This project requires API keys for Google Cloud and LlamaParse. The recommended way to set them is through environment variables.
+4.  **Stel Omgevingsvariabelen in:**
+    Dit project vereist API-sleutels voor Google Cloud en LlamaParse. De aanbevolen manier om deze in te stellen is via omgevingsvariabelen.
 
-    **For LlamaParse:**
-    Set the `LLAMA_CLOUD_API_KEY` environment variable to your key. For Conda environments, you can set this permanently:
+    **Voor LlamaParse:**
+    Stel de `LLAMA_CLOUD_API_KEY` omgevingsvariabele in op uw sleutel. Voor Conda-omgevingen kunt u dit permanent instellen:
     ```bash
-    conda env config vars set LLAMA_CLOUD_API_KEY="your_llama_cloud_api_key"
+    conda env config vars set LLAMA_CLOUD_API_KEY="uw_llama_cloud_api_sleutel"
     ```
-    Alternatively, for local development, you can create a `.env` file in the root of the project and add the key there:
+    Als alternatief kunt u voor lokale ontwikkeling een `.env`-bestand in de hoofdmap van het project aanmaken en de sleutel daar toevoegen:
     ```
-    LLAMA_CLOUD_API_KEY="your_llama_cloud_api_key"
+    LLAMA_CLOUD_API_KEY="uw_llama_cloud_api_sleutel"
     ```
 
-5.  **Google Cloud Authentication:**
-    Ensure you are authenticated with the `gcloud` CLI:
+5.  **Google Cloud Authenticatie:**
+    Zorg ervoor dat u bent geauthenticeerd met de `gcloud` CLI:
     ```bash
     gcloud auth application-default login
     ```
 
-### Running the Application
+### De Applicatie Draaien
 
-To start the Flask web server, run the following command:
-
+Om de Flask-webserver te starten, voert u het volgende commando uit:
+```bash
+python task_placement_analyzer_app.py
 ```
+De applicatie zal beschikbaar zijn op `http://127.0.0.1:5002`.
