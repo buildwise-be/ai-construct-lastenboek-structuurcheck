@@ -1,0 +1,8 @@
+[flake8]
+exclude =
+    .git,
+    __pycache__,
+    legacy,
+    static/logo,
+    toc_generation_module
+max-line-length = 120

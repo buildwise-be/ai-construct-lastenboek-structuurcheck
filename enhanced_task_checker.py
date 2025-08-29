@@ -20,7 +20,7 @@ import json
 import argparse
 import sys
 import os
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass
 import re
 
@@ -33,6 +33,7 @@ try:
 except ImportError:
     VERTEX_AI_AVAILABLE = False
 # -------------------------
+
 
 @dataclass
 class EnhancedSectionAnalysis:
@@ -47,6 +48,7 @@ class EnhancedSectionAnalysis:
     confidence: float
     issues: List[str]
     suggested_improvements: List[str]
+
 
 class EnhancedTaskChecker:
     def __init__(self, ocr_data_path: str, verbose: bool = False):
@@ -332,29 +334,54 @@ class EnhancedTaskChecker:
 
         prompt_parts = [
             "You are an expert construction contract analyst reviewing sections from a Lastenboek (Specifications).",
+            "Your goal is to identify misplaced tasks or specifications.",
+            "Use the following IDEAL DOCUMENT STRUCTURE as your conceptual guide:",
+            "- Deel 0: General/Contractual (site-wide rules, admin, logistics)",
+            "- Deel 1: Substructure (foundations, earthwork)",
+            "- Deel 2: Superstructure (structural frame)",
+            "- Deel 3: Roofing",
+            "- Deel 4: Facade and Exterior Fittings",
+            "- Deel 5: Interior Finishing (walls, floors, ceilings)",
+            "- Deel 6: HVAC & Plumbing",
+            "- Deel 7: Electrical",
+            "- Deel 8: Painting",
+            "- Deel 9: Landscaping/Exterior Works",
+            "",
             "For EACH section provided below, perform a TASK PLACEMENT CHECK.",
-            "Evaluate if the tasks described in the section's FULL TEXT seem contextually appropriate for the section defined by its ID and Title.",
-            "Look for content that seems misplaced given the section's title or its place in the hierarchy.",
-            "Examples of misplacements: painting tasks described under a woodworking section, detailed electrical work in a structural chapter, foundation details in a finishing chapter.",
-            "\nFormat your analysis for EACH section as a JSON object in this exact structure:",
+            "Evaluate if the tasks described seem contextually appropriate for the section's title and its place in the hierarchy, using the ideal structure as a reference.",
+            "Be flexible; the document being analyzed may not match the ideal structure perfectly, but the conceptual grouping of tasks should be logical.",
+            "",
+            "Format your analysis for EACH section as a JSON object with this exact structure:",
             "{",
             "  \"section_id\": \"the section ID\",",
             "  \"analysis\": {",
             "    \"issues_found\": [",
             "      {",
             "        \"description\": \"A detailed description of a single misplaced task or issue.\",",
-            "        \"severity\": \"low|medium|high\"",
+            "        \"category\": \"Critical Misplacement | Poor Organization | Suggestion for Improvement\"",
             "      }",
             "    ],",
-            "    \"summary\": \"A brief overall summary of any placement issues for this section, or 'No placement issues identified.'\"",
+            "    \"summary\": \"A brief overall summary of any placement issues, or 'No placement issues identified.'\"",
             "  }",
             "}",
-            "\nGuidelines:",
-            "1. Base your judgment on the FULL TEXT provided for each section.",
-            "2. If no issues are found, 'issues_found' MUST be an empty list [].",
-            "3. For 'severity', use 'high' for clear contradictions, 'medium' for likely issues, and 'low' for minor inconsistencies.",
-            "4. Provide a concise but complete 'summary'.",
-            "\n--- SECTIONS FOR ANALYSIS ---"
+            "",
+            "Guidelines for Categorization:",
+            "1.  **Critical Misplacement**: Use for trade-specific tasks in a completely unrelated section where they are "
+            "**highly likely to be missed** (e.g., electrical specs in the roofing chapter).",
+            "    -   **IMPORTANT**: Do NOT flag site-wide rules (e.g., working hours, safety, general logistics) "
+            "found in a 'General' or 'Administrative' section as misplaced. These belong there.",
+            "2.  **Poor Organization**: Use for tasks in a thematically related but incorrect section, causing potential "
+            "confusion (e.g., metal door details in a woodworking chapter).",
+            "3.  **Suggestion for Improvement**: Use for minor overlaps or redundancies where clarity could be improved. "
+            "This is for non-critical issues.",
+            "",
+            "General Rules:",
+            "-   Base your judgment on the FULL TEXT provided.",
+            "-   Recognize that ancillary tasks (like demolition of existing structures, site preparation, or cleanup) "
+            "are often appropriately placed within their main, trade-specific section.",
+            "-   If no issues are found, 'issues_found' MUST be an empty list [].",
+            "",
+            "--- SECTIONS FOR ANALYSIS ---"
         ]
 
         for section in batch:
@@ -366,9 +393,12 @@ class EnhancedTaskChecker:
             prompt_parts.append(f"FULL TEXT (first 4000 chars):\n{content_preview}")
 
         prompt_parts.append("\n--- END SECTIONS --- ")
-        prompt_parts.append("\nReturn your analysis STRICTLY as a JSON array of objects, with one object per section. Ensure the output is valid JSON.")
+        prompt_parts.append(
+            "\\nReturn your analysis STRICTLY as a JSON array of objects, "
+            "with one object per section. Ensure the output is valid JSON."
+        )
         
-        prompt = "\n".join(prompt_parts)
+        prompt = "\\n".join(prompt_parts)
 
         try:
             response = model.generate_content(
@@ -429,8 +459,8 @@ class EnhancedTaskChecker:
                 end_page=chapter.get('end_page', 1),
                 summary=llm_result.get('summary', 'Analysis may have failed for this item.'),
                 section_id=section_id,
-                content_type='llm_analyzed', # We can use a new content type
-                confidence=llm_result.get('confidence', 0.9 if 'issues_found' in llm_result else 0.5), # Dummy confidence
+                content_type='llm_analyzed',  # We can use a new content type
+                confidence=llm_result.get('confidence', 0.9 if 'issues_found' in llm_result else 0.5),
                 issues=llm_result.get('issues_found', []),
                 suggested_improvements=llm_result.get('suggested_improvements', [])
             )
@@ -463,7 +493,7 @@ class EnhancedTaskChecker:
 def main():
     parser = argparse.ArgumentParser(description="Enhanced Task Placement Checker - Summary Format")
     parser.add_argument(
-        "--ocr-data", 
+        "--ocr-data",
         default="ocroutput/pipeline_run_20250605_112516_cathlabarchitectlb/final_combined_output/chapters_with_text_v3.json",
         help="Path to OCR chapters with text JSON file"
     )
