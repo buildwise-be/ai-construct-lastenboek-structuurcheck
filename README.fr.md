@@ -29,7 +29,7 @@ L'application suit un processus en plusieurs étapes pour analyser les documents
 Cet outil utilise des technologies de pointe pour fournir une analyse approfondie :
 
 -   **OCR et Structuration de Document :** Nous utilisons **LlamaParse** pour la Reconnaissance Optique de Caractères (OCR) et la structuration de documents. L'OCR est le processus de conversion de texte à partir d'images ou de documents numérisés en texte lisible par machine. LlamaParse extrait non seulement le texte, mais aussi la structure hiérarchique (chapitres, sections) du document.
--   **Analyse Structurelle :** Pour l'analyse réelle de la structure du document, nous utilisons des **appels groupés (batched) au modèle `gemini-2.5-flash` de Google**. En analysant plusieurs sections à la fois, nous pouvons mieux comprendre le contexte de l'ensemble du document et accélérer l'analyse.
+-   **Analyse Structurelle :** Pour l'analyse réelle de la structure du document, nous utilisons des **appels groupés (batched) au modèle `gemini-2.5-flash` de Google**. En analysant plusieurs sections à la fois, nous pouvons mieux comprendre le contexte de l'ensemble du document et accélérer l'analyse. Un exemple du fichier JSON structuré utilisé comme entrée pour cette étape se trouve dans `examples/example_structured_document.json`.
 -   **Confidentialité des Données (RGPD) :** Tous les modèles d'IA sont appelés via le service **Vertex AI** de Google Cloud, qui fonctionne sur un **serveur belge (`europe-west1`)**. Cela garantit une conformité totale avec la réglementation RGPD, car vos données ne quittent pas l'UE.
 
 ## Pour commencer

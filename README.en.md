@@ -29,7 +29,7 @@ The application follows a multi-step process to analyze construction documents:
 This tool uses advanced technologies to provide an in-depth analysis:
 
 -   **OCR and Document Structuring:** We use **LlamaParse** for Optical Character Recognition (OCR) and document structuring. OCR is the process of converting text from images or scanned documents into machine-readable text. LlamaParse not only extracts the text but also the hierarchical structure (chapters, sections) of the document.
--   **Structural Analysis:** For the actual analysis of the document structure, we use **batched calls to Google's `gemini-2.5-flash` model**. By analyzing multiple sections at once, we can better understand the context of the entire document and speed up the analysis.
+-   **Structural Analysis:** For the actual analysis of the document structure, we use **batched calls to Google's `gemini-2.5-flash` model**. By analyzing multiple sections at once, we can better understand the context of the entire document and speed up the analysis. An example of the structured JSON file used as input for this step can be found in `examples/example_structured_document.json`.
 -   **Data Privacy (GDPR):** All AI models are called via Google Cloud's **Vertex AI** service, running on a **Belgian server (`europe-west1`)**. This ensures full compliance with GDPR regulations, as your data does not leave the EU.
 
 ## Getting Started

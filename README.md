@@ -29,7 +29,7 @@ De applicatie volgt een proces in meerdere stappen om bouwdocumenten te analyser
 Deze tool maakt gebruik van geavanceerde technologieën om een diepgaande analyse te bieden:
 
 -   **OCR en Documentstructurering:** Wij gebruiken **LlamaParse** voor Optical Character Recognition (OCR) en het structureren van documenten. OCR is het proces waarbij tekst uit afbeeldingen of gescande documenten wordt omgezet in machineleesbare tekst. LlamaParse extraheert niet alleen de tekst, maar ook de hiërarchische structuur (hoofdstukken, secties) van het document.
--   **Structurele Analyse:** Voor de daadwerkelijke analyse van de documentstructuur maken we gebruik van gebundelde (batched) aanroepen naar het **`gemini-2.5-flash`-model** van Google. Door meerdere secties tegelijk te analyseren, kunnen we de context van het hele document beter begrijpen en de analyse versnellen.
+-   **Structurele Analyse:** Voor de daadwerkelijke analyse van de documentstructuur maken we gebruik van gebundelde (batched) aanroepen naar het **`gemini-2.5-flash`-model** van Google. Door meerdere secties tegelijk te analyseren, kunnen we de context van het hele document beter begrijpen en de analyse versnellen. Een voorbeeld van het gestructureerde JSON-bestand dat als input voor deze stap wordt gebruikt, is te vinden in `examples/example_structured_document.json`.
 -   **Data Privacy (GDPR):** Alle AI-modellen worden aangeroepen via de **Vertex AI**-service van Google Cloud, die draait op een **Belgische server (`europe-west1`)**. Dit garandeert volledige conformiteit met de GDPR-regelgeving, aangezien uw gegevens de EU niet verlaten.
 
 ## Aan de slag
