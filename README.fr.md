@@ -40,6 +40,50 @@ Cet outil utilise des technologies de pointe pour fournir une analyse approfondi
 -   `pip` pour la gestion des paquets
 -   Google Cloud SDK (`gcloud`) installé et authentifié. Vous devez être connecté via `gcloud auth application-default login`.
 
+### Installation
+
+1.  **Clonez le dépôt :**
+    ```bash
+    git clone <repository-url>
+    cd Meetstaatincorp
+    ```
+
+2.  **Configurez un environnement virtuel :**
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # Sous Windows, utilisez `venv\\Scripts\\activate`
+    ```
+
+3.  **Installez les dépendances :**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+4.  **Définissez les Variables d'Environnement :**
+    Ce projet nécessite des clés API pour Google Cloud et LlamaParse. La manière recommandée de les définir est via les variables d'environnement.
+
+    **Pour LlamaParse :**
+    Définissez la variable d'environnement `LLAMA_CLOUD_API_KEY` avec votre clé. Pour les environnements Conda, vous pouvez la définir de manière permanente :
+    ```bash
+    conda env config vars set LLAMA_CLOUD_API_KEY="votre_cle_api_llama_cloud"
+    ```
+    Alternativement, pour le développement local, vous pouvez créer un fichier `.env` à la racine du projet et y ajouter la clé :
+    ```
+    LLAMA_CLOUD_API_KEY="votre_cle_api_llama_cloud"
+    ```
+
+5.  **Authentification Google Cloud :**
+    Assurez-vous d'être authentifié avec la CLI `gcloud` :
+    ```bash
+    gcloud auth application-default login
+    ```
+
+### Lancement de l'Application
+
+Pour démarrer le serveur web Flask, exécutez la commande suivante :
+```bash
+python task_placement_analyzer_app.py
+```
 L'application sera disponible à l'adresse `http://127.0.0.1:5002`.
 
 ## Capture d'écran

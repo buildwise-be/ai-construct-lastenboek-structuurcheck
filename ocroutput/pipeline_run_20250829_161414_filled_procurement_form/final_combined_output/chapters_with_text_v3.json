@@ -1,0 +1,51 @@
+{
+    "1": {
+        "title": "Bestek nummer:",
+        "text": "",
+        "start_page": 1,
+        "end_page": 1,
+        "character_count": 0
+    },
+    "2": {
+        "title": "Voorwerp van de opdracht",
+        "text": "",
+        "start_page": 1,
+        "end_page": 1,
+        "character_count": 0
+    },
+    "3": {
+        "title": "Identificatie van de inschrijver(s)",
+        "text": "2025-CAFE-001",
+        "start_page": 1,
+        "end_page": 1,
+        "character_count": 13
+    },
+    "3.1": {
+        "title": "De firma",
+        "text": "Sloop en bouw van cafetaria met omgevingsaanleg en speeltuin\n\nHandelsnaam of benaming: .....................................................................................\n\nRechtsvorm: .............................................................................................................\n\nNationaliteit: ............................................................................................................\n\nMaatschappelijke zetel: ...........................................................................................\n\nTelefoonnr.: BouwGroep Vlaanderen NV .............................................................................................................\n\nNaamloze Vennootschap (NV)\n\nOndernemingsnummer: ...........................................................................................\n\nOF",
+        "start_page": 1,
+        "end_page": 1,
+        "character_count": 830
+    },
+    "3.2": {
+        "title": "De ondergetekende(n)",
+        "text": "Na(a)m(en), voorna(a)m(en): .....................................................................................\n\nHoedanigheid of beroep: ..........................................................................................\n\nNationaliteit: ............................................................................................................\n\nTelefoonnr.: .............................................................................................................\n\nWoonplaats: .............................................................................................................\n\nOF",
+        "start_page": 1,
+        "end_page": 1,
+        "character_count": 605
+    },
+    "3.3": {
+        "title": "De ondergetekenden",
+        "text": "(voor elk van hun gegevens als hierboven), die zich tijdelijk verenigd hebben voor deze aanneming:\n\n.................................................................................................................................\n\n.................................................................................................................................\n\n.................................................................................................................................",
+        "start_page": 1,
+        "end_page": 1,
+        "character_count": 491
+    },
+    "4": {
+        "title": "Percelen",
+        "text": "Percelen waarvoor een offerte wordt ingediend:\n\n| Perceel 1: | Sloop en bouw van de cafetaria met aangrenzende omgevingsaanleg en speeltuin |\n| ---------- | ---------------------------------------------------------------------------- |\n| Perceel 2: | Omgevingsaanleg en speeltuin                                                 |\n\n11 Schrappen wat niet past.\n\nPagina 58",
+        "start_page": 1,
+        "end_page": 1,
+        "character_count": 369
+    }
+}

@@ -82,8 +82,11 @@ This tool uses advanced technologies to provide an in-depth analysis:
 
 To start the Flask web server, run the following command:
 
+```bash
+python task_placement_analyzer_app.py
 ```
-```
+
+The application will be available at `http://1227.0.0.1:5002`.
 
 ## Screenshot
 
