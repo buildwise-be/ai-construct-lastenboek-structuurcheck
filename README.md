@@ -1,35 +1,37 @@
 # Meetstaat Inc. - Analyse-instrument voor Bouwdocumenten
 
-![Screenshot van de tool](Requirements/Screenshot%202025-08-29%20172735.png)
+![Screenshot van de tool](assets/Screenshot%202025-08-29%20172735.png)
 
 <p align="center">
-  <img src="Requirements/BWlogo.png" alt="Buildwise Logo" width="200"/>
+  <img src="assets/BWlogo.png" alt="Buildwise Logo" width="200"/>
 </p>
 
-Deze tool biedt een geavanceerde analyse van bouwspecificatiedocumenten (`Lastenboeken`) om misplaatste taken en organisatorische problemen te identificeren. Het is een lokaal gehoste webapplicatie die elke PDF `lastenboek` kan verwerken en de resultaten in een interactieve interface presenteert.
+Welkom bij de **AI-Construct Structuurchecker**, een geavanceerd hulpmiddel ontworpen om de structurele integriteit van bouwspecificatiedocumenten (`Lastenboeken`) te analyseren. Deze lokaal gehoste webapplicatie stelt u in staat om elk PDF-document te uploaden en een diepgaande, AI-gestuurde analyse te ontvangen van de plaatsing van taken en de algehele organisatie. Het doel is om potentiële inconsistenties, omissies en misplaatsingen te identificeren voordat ze kostbare problemen worden op de bouwplaats.
 
 ## Hoe het werkt
 
-De applicatie volgt een proces in meerdere stappen om bouwdocumenten te analyseren:
+De applicatie combineert de kracht van geavanceerde OCR met de redeneercapaciteiten van Large Language Models (LLMs) om een naadloze analyse-ervaring te bieden:
 
-1.  **PDF-verwerking met LlamaParse:** Het proces begint met een PDF-document, dat door de LlamaParse-pijplijn wordt gehaald om de volledige tekst te extraheren en de documentstructuur te identificeren.
-2.  **AI-gestuurde Analyse:** De gestructureerde tekst wordt vervolgens naar het `gemini-2.5-flash`-model van Google gestuurd, dat elke sectie analyseert op misplaatste taken en organisatorische problemen.
-3.  **Interactieve UI:** De resultaten worden gepresenteerd in een gebruiksvriendelijke webinterface waar u de analyse kunt bekijken, kunt filteren op probleemcategorie en een overzicht op hoog niveau kunt krijgen via het samenvattingsdashboard.
+1.  **PDF-verwerking met LlamaParse:** Wanneer u een PDF uploadt, wordt deze eerst verwerkt door LlamaParse. Deze krachtige engine extraheert niet alleen de ruwe tekst, maar reconstrueert ook de volledige hiërarchische structuur van het document, inclusief hoofdstukken, secties en subsecties.
+2.  **AI-gestuurde Analyse:** De gestructureerde output van LlamaParse wordt vervolgens in batches naar het `gemini-2.5-flash`-model van Google gestuurd. Het model analyseert elke sectie in de context van het hele document om te bepalen of de taken en specificaties logisch geplaatst zijn.
+3.  **Interactieve UI:** De analyseresultaten worden gepresenteerd in een duidelijke en interactieve webinterface. Hier kunt u eenvoudig door de documentstructuur navigeren, de bevindingen van de AI bekijken, filteren op probleemcategorie en een overzicht op hoog niveau krijgen via het samenvattingsdashboard.
 
 ## Hoe te Gebruiken
 
-1.  **Start de Applicatie:** Volg de installatiestappen hieronder en start de webserver. De tool draait lokaal op uw machine.
-2.  **Upload een PDF:** Open de webinterface en upload een willekeurig `lastenboek` in PDF-formaat.
-3.  **Wacht op Verwerking:** De tool zal de PDF verwerken met LlamaParse. Dit kan enkele minuten duren.
-4.  **Start de Analyse:** Zodra de verwerking is voltooid, verschijnt uw bestand in de lijst. Selecteer het en start de analyse.
-5.  **Bekijk de Resultaten:** De resultaten worden direct in de tool weergegeven, met een overzicht van mogelijke problemen, gecategoriseerd voor duidelijkheid.
+Het gebruik van de tool is ontworpen om eenvoudig en intuïtief te zijn:
+
+1.  **Start de Applicatie:** Na het volgen van de installatiestappen, start u de lokale webserver. De tool is nu toegankelijk in uw browser.
+2.  **Upload een PDF:** De interface biedt een duidelijke optie om een `lastenboek` in PDF-formaat van uw computer te selecteren en te uploaden.
+3.  **Wacht op Verwerking:** LlamaParse analyseert uw document. De voortgang is zichtbaar in de interface en het proces duurt doorgaans enkele minuten, afhankelijk van de grootte van het document.
+4.  **Start de Analyse:** Zodra de verwerking is voltooid, wordt het bestand beschikbaar in een dropdown-menu. Selecteer het en klik op "Start Analyse" om de AI zijn werk te laten doen.
+5.  **Bekijk de Resultaten:** De bevindingen worden direct op de pagina weergegeven. U kunt door de hoofdstukken klikken, de specifieke opmerkingen van de AI lezen en de ernst van de geïdentificeerde problemen beoordelen.
 
 ## Technische Details
 
 Deze tool maakt gebruik van geavanceerde technologieën om een diepgaande analyse te bieden:
 
--   **OCR en Documentstructurering:** Wij gebruiken **LlamaParse** voor Optical Character Recognition (OCR) en het structureren van documenten. OCR is het proces waarbij tekst uit afbeeldingen of gescande documenten wordt omgezet in machineleesbare tekst. LlamaParse extraheert niet alleen de tekst, maar ook de hiërarchische structuur (hoofdstukken, secties) van het document.
--   **Structurele Analyse:** Voor de daadwerkelijke analyse van de documentstructuur maken we gebruik van gebundelde (batched) aanroepen naar het **`gemini-2.5-flash`-model** van Google. Door meerdere secties tegelijk te analyseren, kunnen we de context van het hele document beter begrijpen en de analyse versnellen. Een voorbeeld van het gestructureerde JSON-bestand dat als input voor deze stap wordt gebruikt, is te vinden in `examples/example_structured_document.json`.
+-   **OCR en Documentstructurering:** Wij gebruiken **LlamaParse** voor Optical Character Recognition (OCR) en het structureren van documenten. OCR is het proces waarbij tekst uit afbeeldingen of gescande documenten wordt omgezet in machineleesbare tekst. LlamaParse extraheert niet alleen de tekst, maar ook de hiërarchische structuur (hoofdstukken, secties) van het document, wat essentieel is voor een contextuele analyse.
+-   **Structurele Analyse:** Voor de daadwerkelijke analyse van de documentstructuur maken we gebruik van gebundelde (batched) aanroepen naar het **`gemini-2.5-flash`-model** van Google. Door meerdere secties tegelijk te analyseren, kan het model de context van het hele document beter begrijpen en de analyse aanzienlijk versnellen. Een voorbeeld van het gestructureerde JSON-bestand dat als input voor deze stap wordt gebruikt, is te vinden in `examples/example_structured_document.json`.
 -   **Data Privacy (GDPR):** Alle AI-modellen worden aangeroepen via de **Vertex AI**-service van Google Cloud, die draait op een **Belgische server (`europe-west1`)**. Dit garandeert volledige conformiteit met de GDPR-regelgeving, aangezien uw gegevens de EU niet verlaten.
 
 ## Aan de slag

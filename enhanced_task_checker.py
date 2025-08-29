@@ -461,20 +461,23 @@ class EnhancedTaskChecker:
             "",
             "Guidelines for Categorization:",
             (
-                "1.  **Critical Misplacement**: Use for trade-specific tasks in a completely unrelated section where they are "
-                "**highly likely to be missed** (e.g., electrical specs in the roofing chapter)."
+                "1.  **Critical Misplacement**: Use for trade-specific tasks in a section where they are contextually out of place "
+                "and could be easily overlooked by a contractor (e.g., specific electrical wiring details in a roofing chapter, "
+                "or structural support requirements in a painting chapter)."
             ),
             (
                 "    -   **IMPORTANT**: Do NOT flag site-wide rules (e.g., working hours, safety, general logistics) "
                 "found in a 'General' or 'Administrative' section as misplaced. These belong there."
             ),
             (
-                "2.  **Poor Organization**: Use for tasks in a thematically related but incorrect section, causing potential "
-                "confusion (e.g., metal door details in a woodworking chapter)."
+                "2.  **Poor Organization**: Use for tasks that are thematically related to the section but would be better placed "
+                "in a more specific sub-section, or vice-versa (e.g., highly detailed window installation specs in a general "
+                "'Exterior Fittings' chapter, when a 'Windows' sub-chapter would be more appropriate)."
             ),
             (
-                "3.  **Suggestion for Improvement**: Use for minor overlaps or redundancies where clarity could be improved. "
-                "This is for non-critical issues."
+                "3.  **Suggestion for Improvement**: Use for cases where the placement is not technically wrong, but clarity could "
+                "be improved. This includes very long sections that could be broken down, or related tasks that are "
+                "scattered across different sub-sections within the same main chapter."
             ),
             "",
             "General Rules:",
