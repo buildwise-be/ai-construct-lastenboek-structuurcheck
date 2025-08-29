@@ -10,9 +10,14 @@ import os
 import logging
 import json
 import glob
+import subprocess
+from werkzeug.utils import secure_filename
+import sys
 
 # Import the enhanced checker function
-from enhanced_task_checker import analyze_placement_from_file as run_enhanced_placement_analysis
+from enhanced_task_checker import (
+    analyze_placement_from_file as run_enhanced_placement_analysis,
+)
 
 app = Flask(__name__, instance_relative_config=True)
 app.logger.setLevel(logging.INFO)
@@ -20,8 +25,12 @@ app.logger.setLevel(logging.INFO)
 # --- Configure Flask-Session ---
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_FILE_DIR"] = os.path.join(app.instance_path, 'flask_session_enhanced')  # Use a separate session dir
+app.config["SESSION_FILE_DIR"] = os.path.join(
+    app.instance_path, "flask_session_enhanced"
+)  # Use a separate session dir
 app.config["SECRET_KEY"] = os.urandom(24)
+app.config["UPLOAD_FOLDER"] = "uploads"
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 try:
     os.makedirs(app.instance_path, exist_ok=True)
@@ -36,16 +45,79 @@ Session(app)
 def get_available_analysis_files():
     """Scans the output directory and returns a list of available analysis files."""
     try:
-        search_pattern = os.path.join('ocroutput', '*', 'final_combined_output', 'chapters_with_text_v3.json')
+        search_pattern = os.path.join(
+            "ocroutput", "*", "final_combined_output", "chapters_with_text_v3.json"
+        )
         found_files = glob.glob(search_pattern)
         # Return just the filenames, not the full path, for the user to select
-        return [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in found_files]
+        return [
+            os.path.basename(os.path.dirname(os.path.dirname(f))) for f in found_files
+        ]
     except Exception as e:
         app.logger.error(f"Error scanning for analysis files: {e}")
         return []
 
 
-@app.route('/get_analysis_files', methods=['GET'])
+@app.route("/upload_pdf", methods=["POST"])
+def upload_pdf():
+    """Handles PDF upload and initiates the OCR parsing process."""
+    if "pdf_file" not in request.files:
+        return jsonify({"error": "No PDF file part in the request."}), 400
+
+    file = request.files["pdf_file"]
+    if file.filename == "":
+        return jsonify({"error": "No selected file."}), 400
+
+    if file and file.filename.lower().endswith(".pdf"):
+        filename = secure_filename(file.filename)
+        pdf_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(pdf_path)
+        app.logger.info(f"PDF file saved to: {pdf_path}")
+
+        # Run the ocr_parser.py script as a subprocess
+        try:
+            script_path = os.path.join(os.path.dirname(__file__), "ocr_parser.py")
+            process = subprocess.Popen(
+                [sys.executable, script_path, pdf_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            stdout, stderr = process.communicate()
+
+            if process.returncode == 0:
+                app.logger.info(f"OCR parsing successful for {filename}.")
+                app.logger.info(f"Parser output: {stdout}")
+                # The parser saves the file, the main app will find it on refresh
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": (
+                            f"PDF '{filename}' uploaded and sent for processing. "
+                            "Refresh the file list to see the result."
+                        ),
+                        "output": stdout,
+                    }
+                )
+            else:
+                app.logger.error(f"OCR parsing failed for {filename}. Error: {stderr}")
+                return jsonify({"error": f"Failed to process PDF: {stderr}"}), 500
+
+        except Exception as e:
+            app.logger.error(f"Error running ocr_parser.py: {e}", exc_info=True)
+            return (
+                jsonify(
+                    {
+                        "error": f"An unexpected error occurred while running the parser: {e}"
+                    }
+                ),
+                500,
+            )
+
+    return jsonify({"error": "Invalid file type. Only PDF is allowed."}), 400
+
+
+@app.route("/get_analysis_files", methods=["GET"])
 def list_analysis_files():
     """API endpoint to get a list of available analysis file identifiers."""
     files = get_available_analysis_files()
@@ -55,12 +127,15 @@ def list_analysis_files():
 def get_latest_enhanced_toc_path():
     """Finds the most recent 'chapters_with_text_v3.json' file in the output directories."""
     try:
-        search_pattern = os.path.join('ocroutput', '*', 'final_combined_output', 'chapters_with_text_v3.json')
+        search_pattern = os.path.join(
+            "ocroutput", "*", "final_combined_output", "chapters_with_text_v3.json"
+        )
         found_files = glob.glob(search_pattern)
 
         if not found_files:
             app.logger.error(
-                "No enhanced TOC file ('chapters_with_text_v3.json') found using pattern: %s", search_pattern
+                "No enhanced TOC file ('chapters_with_text_v3.json') found using pattern: %s",
+                search_pattern,
             )
             return None
 
@@ -78,15 +153,17 @@ def run_placement_analysis(json_path):
         app.logger.info(f"Starting enhanced placement analysis for {json_path}")
 
         # --- Unset credentials env var to ensure gcloud auth is used ---
-        original_creds = os.environ.pop('GOOGLE_APPLICATION_CREDENTIALS', None)
+        original_creds = os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
         if original_creds:
-            app.logger.info("Temporarily unsetting GOOGLE_APPLICATION_CREDENTIALS to use gcloud auth.")
+            app.logger.info(
+                "Temporarily unsetting GOOGLE_APPLICATION_CREDENTIALS to use gcloud auth."
+            )
         # --------------------------------------------------------------
 
         # --- Vertex AI configuration ---
         project_id = "aico25"
         location = "europe-west1"
-        model_name = "gemini-1.5-flash"
+        model_name = "gemini-2.5-flash"
         # -----------------------------
 
         analysis_results = run_enhanced_placement_analysis(
@@ -94,101 +171,136 @@ def run_placement_analysis(json_path):
             project_id=project_id,
             location=location,
             model_name=model_name,
-            verbose=True
+            verbose=True,
         )
         app.logger.info("Enhanced placement analysis completed.")
         return analysis_results
     except Exception as e:
-        app.logger.error(f"An error occurred during enhanced placement analysis: {e}", exc_info=True)
+        app.logger.error(
+            f"An error occurred during enhanced placement analysis: {e}", exc_info=True
+        )
         return {"error": str(e)}
     finally:
         # --- Restore credentials env var if it was originally set ---
         if original_creds:
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = original_creds
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = original_creds
             app.logger.info("Restored GOOGLE_APPLICATION_CREDENTIALS.")
         # ---------------------------------------------------------
 
 
-@app.route('/')
+@app.route("/")
 def index():
     """Route for the main page - serves the enhanced UI."""
     session.clear()
     app.logger.info("Session cleared for new visit.")
-    return render_template('enhanced_ui.html')
+    return render_template("enhanced_ui.html")
 
 
-@app.route('/analyze', methods=['POST'])
+@app.route("/analyze", methods=["POST"])
 def analyze():
     """Handles initiating the ENHANCED PLACEMENT ANALYSIS on a selected file."""
     session.clear()
     app.logger.info("Cleared session for new analysis request.")
 
-    selected_file_id = request.form.get('analysis_file')
+    selected_file_id = request.form.get("analysis_file")
     if not selected_file_id:
         return jsonify({"error": "No analysis file selected."}), 400
 
     # Construct the full path from the selected file identifier
     toc_path = os.path.join(
-        'ocroutput', selected_file_id, 'final_combined_output', 'chapters_with_text_v3.json'
+        "ocroutput",
+        selected_file_id,
+        "final_combined_output",
+        "chapters_with_text_v3.json",
     )
 
     if not os.path.exists(toc_path):
         app.logger.error("Selected analysis file does not exist at path: %s", toc_path)
-        return jsonify({"error": f"Selected analysis file not found on server: {selected_file_id}"}), 404
+        return (
+            jsonify(
+                {
+                    "error": f"Selected analysis file not found on server: {selected_file_id}"
+                }
+            ),
+            404,
+        )
 
-    session['toc_path'] = toc_path
+    session["toc_path"] = toc_path
 
     try:
         analysis_results = run_placement_analysis(toc_path)
-        session['enhanced_analysis_results'] = analysis_results
+        session["enhanced_analysis_results"] = analysis_results
 
         issue_count = 0
         if isinstance(analysis_results, list):
-            issue_count = sum(len(chapter.get('analysis', {}).get('issues_found', [])) for chapter in analysis_results if isinstance(chapter, dict))
+            issue_count = sum(
+                len(chapter.get("analysis", {}).get("issues_found", []))
+                for chapter in analysis_results
+                if isinstance(chapter, dict)
+            )
 
-        return jsonify({
-            "message": "Analyse voltooid. {} mogelijke problemen gevonden.".format(issue_count),
-            "status": "complete",
-            "issue_count": issue_count
-        })
+        return jsonify(
+            {
+                "message": "Analyse voltooid. {} mogelijke problemen gevonden.".format(
+                    issue_count
+                ),
+                "status": "complete",
+                "issue_count": issue_count,
+            }
+        )
 
     except Exception as e:
-        app.logger.error(f"An error occurred during enhanced analysis: {e}", exc_info=True)
-        return jsonify({"error": f"An unexpected error occurred during analysis: {e}"}), 500
+        app.logger.error(
+            f"An error occurred during enhanced analysis: {e}", exc_info=True
+        )
+        return (
+            jsonify({"error": f"An unexpected error occurred during analysis: {e}"}),
+            500,
+        )
 
 
-@app.route('/get_enhanced_results', methods=['GET'])
+@app.route("/get_enhanced_results", methods=["GET"])
 def get_enhanced_results():
     """Returns the stored enhanced analysis results from the session."""
-    results = session.get('enhanced_analysis_results')
+    results = session.get("enhanced_analysis_results")
     if results:
-        if isinstance(results, dict) and 'error' in results:
-            return jsonify({"error": "Analysis failed: {}".format(results['error'])}), 500
+        if isinstance(results, dict) and "error" in results:
+            return (
+                jsonify({"error": "Analysis failed: {}".format(results["error"])}),
+                500,
+            )
 
         app.logger.info("Returning enhanced results.")
         return jsonify(results)
     else:
-        return jsonify({"error": "No analysis results found in session. Please run an analysis first."}), 404
+        return (
+            jsonify(
+                {
+                    "error": "No analysis results found in session. Please run an analysis first."
+                }
+            ),
+            404,
+        )
 
 
-@app.route('/export_enhanced_json')
+@app.route("/export_enhanced_json")
 def export_enhanced_json():
     """Exports the full enhanced analysis results as a JSON file."""
-    results = session.get('enhanced_analysis_results')
+    results = session.get("enhanced_analysis_results")
     if not results:
         return "No results to export. Please run an analysis first.", 404
 
     response = make_response(json.dumps(results, indent=4, ensure_ascii=False))
-    response.headers['Content-Type'] = 'application/json; charset=utf-8'
-    original_filename = os.path.basename(session.get('toc_path', 'analysis.json'))
+    response.headers["Content-Type"] = "application/json; charset=utf-8"
+    original_filename = os.path.basename(session.get("toc_path", "analysis.json"))
     new_filename = f"placement_analysis_{original_filename}"
-    response.headers['Content-Disposition'] = f'attachment; filename="{new_filename}"'
+    response.headers["Content-Disposition"] = f'attachment; filename="{new_filename}"'
 
     app.logger.info(f"Exporting enhanced analysis results to {new_filename}")
     return response
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Running on a different port to avoid conflict with the main app.py
     # Using 'stat' reloader to prevent issues with watchdog on Windows
-    app.run(debug=True, port=5002, reloader_type='stat') 
+    app.run(debug=True, port=5002, reloader_type="stat")

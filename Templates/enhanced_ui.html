@@ -54,10 +54,37 @@
 
         <!-- Main Content -->
         <main class="flex-1 p-10 overflow-auto">
-            <div class="bg-white rounded-2xl shadow p-8">
-                <h2 class="text-xl font-semibold mb-4">Run Analysis</h2>
+            <div class="bg-white rounded-2xl shadow p-8 mb-6">
+                <h2 class="text-xl font-semibold mb-4">1. Upload PDF for Processing</h2>
                 <p class="text-gray-600 mb-4">
-                    This tool analyzes the placement of tasks within the document structure based on the full text of each section. It uses the latest processed OCR output file found on the server.
+                    Upload a new PDF document. The system will process it to create a structured analysis file. This may take a few minutes depending on the document size.
+                </p>
+                <form id="upload-form" class="space-y-4">
+                    <div>
+                        <label for="pdf-file" class="block text-sm font-medium text-gray-700">Select PDF File:</label>
+                        <input type="file" id="pdf-file" name="pdf_file" class="mt-1 block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100" accept=".pdf" required>
+                    </div>
+                    <button type="submit" id="upload-button" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50">
+                        Upload and Process PDF
+                    </button>
+                </form>
+                <div id="upload-status" class="mt-4 text-sm"></div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow p-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">2. Run Analysis</h2>
+                    <button id="refresh-list-button" class="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300">
+                        Refresh List
+                    </button>
+                </div>
+                <p class="text-gray-600 mb-4">
+                    Select a processed file from the list to analyze the placement of tasks within the document structure.
                 </p>
                 <form id="analysis-form" class="space-y-4">
                     <div>
@@ -88,15 +115,15 @@
                         <p id="total-sections" class="text-2xl font-bold text-blue-900">0</p>
                     </div>
                     <div class="bg-red-100 border border-red-200 p-4 rounded-lg text-center">
-                        <h4 class="text-lg font-semibold text-red-800">High Severity</h4>
+                        <h4 class="text-lg font-semibold text-red-800">Critical Misplacement</h4>
                         <p id="high-severity" class="text-2xl font-bold text-red-900">0</p>
                     </div>
                     <div class="bg-orange-100 border border-orange-200 p-4 rounded-lg text-center">
-                        <h4 class="text-lg font-semibold text-orange-800">Medium Severity</h4>
+                        <h4 class="text-lg font-semibold text-orange-800">Poor Organization</h4>
                         <p id="medium-severity" class="text-2xl font-bold text-orange-900">0</p>
                     </div>
                     <div class="bg-yellow-100 border border-yellow-200 p-4 rounded-lg text-center">
-                        <h4 class="text-lg font-semibold text-yellow-800">Low Severity</h4>
+                        <h4 class="text-lg font-semibold text-yellow-800">Suggestion for Improvement</h4>
                         <p id="low-severity" class="text-2xl font-bold text-yellow-900">0</p>
                     </div>
                 </div>
@@ -107,11 +134,11 @@
             
             <!-- Filter buttons will be dynamically added here -->
             <div id="filter-controls" class="my-4">
-                <span class="text-sm font-medium text-gray-700 mr-2">Filter by severity:</span>
+                <span class="text-sm font-medium text-gray-700 mr-2">Filter by category:</span>
                 <button class="filter-btn active" data-severity="all">All</button>
-                <button class="filter-btn" data-severity="high">High</button>
-                <button class="filter-btn" data-severity="medium">Medium</button>
-                <button class="filter-btn" data-severity="low">Low</button>
+                <button class="filter-btn" data-severity="critical misplacement">Critical Misplacement</button>
+                <button class="filter-btn" data-severity="poor organization">Poor Organization</button>
+                <button class="filter-btn" data-severity="suggestion for improvement">Suggestion for Improvement</button>
             </div>
 
         </main>
@@ -122,9 +149,15 @@
         const resultsArea = document.getElementById('results-area');
         const exportButton = document.getElementById('export-button');
         const fileSelect = document.getElementById('analysis-file-select');
+        const uploadForm = document.getElementById('upload-form');
+        const uploadButton = document.getElementById('upload-button');
+        const uploadStatus = document.getElementById('upload-status');
+        const refreshListButton = document.getElementById('refresh-list-button');
 
-        // --- New: Load files on page load ---
-        document.addEventListener('DOMContentLoaded', async () => {
+        // --- Function to load analysis files ---
+        async function loadAnalysisFiles() {
+            fileSelect.innerHTML = '<option>Loading files...</option>';
+            analyzeButton.disabled = true;
             try {
                 const response = await fetch('/get_analysis_files');
                 const files = await response.json();
@@ -138,9 +171,9 @@
                             option.textContent = file;
                             fileSelect.appendChild(option);
                         });
+                        analyzeButton.disabled = false;
                     } else {
-                        fileSelect.innerHTML = '<option>No analysis files found</option>';
-                        analyzeButton.disabled = true;
+                        fileSelect.innerHTML = '<option>No analysis files found. Please upload a PDF.</option>';
                     }
                 } else {
                     throw new Error(files.error || 'Failed to load files.');
@@ -148,11 +181,57 @@
             } catch (error) {
                 console.error('Error loading analysis files:', error);
                 fileSelect.innerHTML = `<option>Error: ${error.message}</option>`;
-                analyzeButton.disabled = true;
+            }
+        }
+
+        // --- Load files on page load ---
+        document.addEventListener('DOMContentLoaded', loadAnalysisFiles);
+
+        // --- Refresh button ---
+        refreshListButton.addEventListener('click', loadAnalysisFiles);
+
+        // --- PDF Upload Logic ---
+        uploadForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(uploadForm);
+            const pdfFile = formData.get('pdf_file');
+
+            if (!pdfFile || pdfFile.size === 0) {
+                uploadStatus.innerHTML = '<p class="text-red-600 font-semibold">Please select a PDF file to upload.</p>';
+                return;
+            }
+
+            uploadStatus.innerHTML = '<p class="text-blue-600 font-semibold">Uploading and processing... This may take several minutes. Please do not navigate away.</p>';
+            uploadButton.disabled = true;
+            uploadButton.textContent = 'Processing...';
+
+            try {
+                const response = await fetch('/upload_pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    uploadStatus.innerHTML = `<p class="text-green-600 font-semibold">${result.message}</p>`;
+                    // Refresh the list to show the new file
+                    loadAnalysisFiles();
+                } else {
+                    throw new Error(result.error || 'An unknown error occurred during upload.');
+                }
+
+            } catch (error) {
+                console.error('Error uploading PDF:', error);
+                uploadStatus.innerHTML = `<p class="text-red-600 font-semibold">Error: ${error.message}</p>`;
+            } finally {
+                uploadButton.disabled = false;
+                uploadButton.textContent = 'Upload and Process PDF';
+                uploadForm.reset();
             }
         });
-        // --- End New ---
 
+        // --- Analysis Logic (existing code) ---
         analyzeButton.addEventListener('click', async () => {
             resultsArea.innerHTML = '<p class="text-blue-600 font-semibold">Analyzing... This may take a few moments.</p>';
             analyzeButton.disabled = true;
@@ -214,10 +293,10 @@
                 const issues = chapter.analysis ? chapter.analysis.issues_found : [];
                 if (Array.isArray(issues)) {
                     issues.forEach(issue => {
-                        const severity = (issue.severity || 'medium').toLowerCase();
-                        if (severity === 'high') highSeverity++;
-                        else if (severity === 'medium') mediumSeverity++;
-                        else if (severity === 'low') lowSeverity++;
+                        const severity = (issue.severity || 'Poor Organization').toLowerCase();
+                        if (severity === 'critical misplacement') highSeverity++;
+                        else if (severity === 'poor organization') mediumSeverity++;
+                        else if (severity === 'suggestion for improvement') lowSeverity++;
                     });
                 }
             });
@@ -258,14 +337,14 @@
                 
                 if (hasIssues) {
                     issues.forEach(issue => {
-                        const severity = issue.severity || 'medium'; // Default severity
-                        const severityClass = `issue-${severity.toLowerCase()}`;
+                        const severity = issue.severity || 'Poor Organization'; // Default severity
+                        const severityClass = getSeverityClass(severity.toLowerCase());
                         html += `
                             <div class="issue-card ${severityClass}" data-severity="${severity.toLowerCase()}" style="display: block;">
                                 <div class="p-3 my-2 rounded-md border bg-gray-50">
                                     <p class="font-semibold text-gray-900">${issue.description}</p>
                                     <div class="mt-2 text-xs font-medium">
-                                        <span class="inline-block bg-gray-200 text-gray-800 rounded-full px-2 py-1">Severity: ${severity}</span>
+                                        <span class="inline-block bg-gray-200 text-gray-800 rounded-full px-2 py-1">Category: ${severity}</span>
                                     </div>
                                 </div>
                             </div>
@@ -290,6 +369,17 @@
                     filterResults(this.dataset.severity);
                 });
             });
+        }
+
+        function getSeverityClass(severity) {
+            if (severity === 'critical misplacement') {
+                return 'issue-high';
+            } else if (severity === 'poor organization') {
+                return 'issue-medium';
+            } else if (severity === 'suggestion for improvement') {
+                return 'issue-low';
+            }
+            return 'issue-medium'; // Default
         }
 
         function toggleCollapse(elementId) {

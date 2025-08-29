@@ -1,72 +1,90 @@
-# Meetstaat Inc. - Analyse-instrument voor Bouwdocumenten
+# Meetstaat Inc. - Construction Document Analysis Tool
 
-Dit instrument biedt een geavanceerde analyse van bouwspecificaties (Lastenboeken) om verkeerd geplaatste taken en organisationele problemen te identificeren. Het maakt gebruik van een combinatie van Optical Character Recognition (OCR) en Google's Gemini AI voor een diepgaand, contextueel begrip van de documenten.
+![Demonstration of the tool in action](Requirements/GIF/Minidemosplit.gif)
 
-[English](README.en.md) | [Français](README.fr.md)
+This tool provides an advanced analysis of construction specification documents (`Lastenboeken`) to identify misplaced tasks and organizational issues. It uses a combination of Optical Character Recognition (OCR) and Google's Gemini AI to provide a deep, contextual understanding of the documents.
 
-## Hoe het werkt
+## How it Works
 
-De applicatie volgt een proces in meerdere stappen om bouwdocumenten te analyseren:
+The application follows a multi-step process to analyze construction documents:
 
-1.  **OCR-verwerking:** Het proces begint met een PDF-document, dat door een OCR-pijplijn wordt gehaald om de volledige tekst te extraheren en de inhoudsopgave te identificeren.
-2.  **AI-analyse:** De volledige tekst wordt vervolgens geanalyseerd door een Generative Language Model (Google Gemini 1.5 Flash). In tegenstelling tot traditionele methoden, die afhankelijk zijn van trefwoorden, begrijpt dit model de context en de conceptuele relaties tussen verschillende secties.
-3.  **Resultaten-UI:** De resultaten worden gepresenteerd in een gebruiksvriendelijke webinterface, waar u problemen kunt filteren op basis van hun categorie en de details van elk probleem kunt bekijken.
+1.  **OCR Processing:** The process starts with a PDF document, which is run through an OCR pipeline to extract the full text and identify the table of contents.
+2.  **AI-Powered Analysis:** The extracted text is then sent to Google's Gemini 2.5 Flash model, which analyzes each section for misplaced tasks and organizational issues.
+3.  **Interactive UI:** The results are presented in a user-friendly web interface where you can review the analysis, filter by issue category, and get a high-level overview from the summary dashboard.
 
-## Functies
+## Features
 
--   **AI-gestuurde analyse:** Maakt gebruik van Google's Gemini 1.5 Flash-model om de volledige tekst van bouwdocumenten te analyseren.
--   **Contextueel begrip:** Gaat verder dan eenvoudige trefwoord-matching om de conceptuele relaties tussen verschillende secties te begrijpen.
--   **Genuanceerde probleemcategorisering:** Classificeert problemen in Kritieke misplaatsing, Slechte organisatie en Suggestie voor verbetering voor een zinvollere analyse.
--   **Interactieve web-UI:** Biedt een gebruiksvriendelijke interface om documenten te uploaden, resultaten te bekijken en problemen te filteren.
--   **Overzichtsdashboard:** Biedt een overzicht op hoog niveau van de analyseresultaten, inclusief het totaal aantal problemen per categorie.
+-   **AI-Powered Analysis:** Leverages Google's Gemini 2.5 Flash model to analyze the full text of construction documents.
+-   **Contextual Understanding:** Goes beyond simple keyword matching to understand the conceptual relationships between different sections.
+-   **Nuanced Issue Categorization:** Classifies issues into `Critical Misplacement`, `Poor Organization`, and `Suggestion for Improvement` for a more meaningful analysis.
+-   **Interactive Web UI:** Provides a user-friendly interface to upload documents, view results, and filter issues.
+-   **Summary Dashboard:** Offers a high-level overview of the analysis results with key metrics.
 
-## Aan de slag
+## Getting Started
 
-### Vereisten
+### Prerequisites
 
 -   Python 3.8+
--   Google Cloud SDK (met gcloud geauthenticeerd)
+-   `pip` for package management
+-   Google Cloud SDK (`gcloud`) installed and authenticated
 
-### Installatie
+### Installation
 
-1.  **Kloon de repository:**
-    `ash
-    git clone https://github.com/buildwise-be/ai-construct-lastenboek-structuurcheck.git
-    cd ai-construct-lastenboek-structuurcheck
-    `
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd Meetstaatincorp
+    ```
 
-2.  **Creëer een virtuele omgeving en installeer de afhankelijkheden:**
-    `ash
+2.  **Set up a virtual environment:**
+    ```bash
     python -m venv venv
-    source venv/bin/activate  # Op Windows: venv\\Scripts\\activate
+    source venv/bin/activate  # On Windows, use `venv\\Scripts\\activate`
+    ```
+
+3.  **Install the dependencies:**
+    ```bash
     pip install -r requirements.txt
-    `
+    ```
 
-3.  **Stel uw Google Cloud-project in:**
-    Zorg ervoor dat u bent ingelogd met de gcloud CLI en dat uw project is ingesteld:
-    `ash
+4.  **Google Cloud Authentication:**
+    Ensure you are authenticated with the `gcloud` CLI:
+    ```bash
     gcloud auth application-default login
-    gcloud config set project UW_PROJECT_ID
-    `
+    ```
 
-### Gebruik
+### Running the Application
 
-1.  **Start de Flask-applicatie:**
-    `ash
-    python task_placement_analyzer_app.py
-    `
-2.  **Open de webinterface:**
-    Navigeer naar http://127.0.0.1:5002 in uw webbrowser.
+To start the Flask web server, run the following command:
 
-3.  **Selecteer en analyseer:**
-    -   Selecteer een beschikbaar analysebestand uit de vervolgkeuzelijst.
-    -   Klik op "Start Analyse".
-    -   De resultaten verschijnen hieronder zodra de analyse is voltooid.
+```bash
+python task_placement_analyzer_app.py
+```
 
-## Bijdragen
+The application will be available at `http://127.0.0.1:5002`.
 
-Bijdragen zijn welkom. Voor belangrijke wijzigingen, open eerst een issue om te bespreken wat u wilt wijzigen.
+## Usage
 
-## Licentie
+1.  **Open the web interface** in your browser.
+2.  **Select an analysis file** from the dropdown menu. These files are automatically detected from the `ocroutput` directory.
+3.  **Click "Start Analyse"** to begin the analysis.
+4.  **View the results** in the interactive UI. You can expand and collapse sections, filter by issue category, and view the summary dashboard.
 
-Dit project is gelicentieerd onder de MIT-licentie. Zie het LICENSE-bestand voor meer details.
+## Project Structure
+
+-   `task_placement_analyzer_app.py`: The main Flask application that runs the web server.
+-   `enhanced_task_checker.py`: The core logic for the AI-powered analysis.
+-   `Templates/enhanced_ui.html`: The HTML template for the web interface.
+-   `requirements.txt`: The list of Python dependencies.
+-   `.flake8`: The configuration file for the linter.
+-   `ocroutput/`: The directory where the OCR output and analysis files are stored.
+-   `legacy/`: Older scripts and documentation.
+-   `Basisdocument/`: The template documents that provide the ideal structure for the analysis.
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request with your proposed changes.
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for more details.
