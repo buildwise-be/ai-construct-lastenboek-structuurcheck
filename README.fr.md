@@ -1,4 +1,4 @@
-# Meetstaat Inc. - Outil d'Analyse de Documents de Construction
+# Buildwise Analyse Structurelle par IA pour Documents de Construction
 
 <p align="center">
   <img src="assets/BWlogo.png" alt="Logo de Buildwise" width="200"/>

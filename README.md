@@ -1,4 +1,4 @@
-# Meetstaat Inc. - Analyse-instrument voor Bouwdocumenten
+# Buildwise AI-Structuuranalyse voor Lastenboeken
 
 <p align="center">
   <img src="assets/BWlogo.png" alt="Buildwise Logo" width="200"/>
